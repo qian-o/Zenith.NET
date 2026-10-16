@@ -9,7 +9,6 @@ internal class Stroke(SKColor color, float width) : DisposableObject
 
     private SKPathBuilder? builder = new();
     private SKPath? path;
-
     private SKRect bounds;
     private SKPoint tailStart;
     private SKPoint tailEnd;
@@ -31,25 +30,27 @@ internal class Stroke(SKColor color, float width) : DisposableObject
 
     public void Add(SKPoint point)
     {
-        if (sampleCount is 0 || DistanceSquared(tailEnd, point) >= MinimumPointDistance * MinimumPointDistance)
+        if (sampleCount > 0 && DistanceSquared(tailEnd, point) < (MinimumPointDistance * MinimumPointDistance))
         {
-            path?.Dispose();
-            path = null;
-
-            if (sampleCount is 0)
-            {
-                builder!.MoveTo(point);
-                tailStart = point;
-            }
-            else if (sampleCount > 1)
-            {
-                tailStart = new((tailEnd.X + point.X) * 0.5f, (tailEnd.Y + point.Y) * 0.5f);
-                builder!.QuadTo(tailEnd, tailStart);
-            }
-
-            tailEnd = point;
-            sampleCount++;
+            return;
         }
+
+        path?.Dispose();
+        path = null;
+
+        if (sampleCount is 0)
+        {
+            builder!.MoveTo(point);
+            tailStart = point;
+        }
+        else if (sampleCount > 1)
+        {
+            tailStart = new((tailEnd.X + point.X) * 0.5f, (tailEnd.Y + point.Y) * 0.5f);
+            builder!.QuadTo(tailEnd, tailStart);
+        }
+
+        tailEnd = point;
+        sampleCount++;
     }
 
     public void Complete(SKPaint paint)
@@ -57,6 +58,7 @@ internal class Stroke(SKColor color, float width) : DisposableObject
         builder!.LineTo(tailEnd);
 
         path?.Dispose();
+        path = null;
 
         using SKPath centerline = builder.Detach();
 
@@ -71,23 +73,25 @@ internal class Stroke(SKColor color, float width) : DisposableObject
 
     public bool Erase(SKPath eraser, SKRect eraserBounds)
     {
-        if (bounds.IntersectsWith(eraserBounds))
+        if (!bounds.IntersectsWith(eraserBounds))
         {
-            SKPath source = Path;
-
-            using SKPath? overlap = source.Op(eraser, SKPathOp.Intersect);
-
-            if (overlap?.IsEmpty is false && source.Op(eraser, SKPathOp.Difference) is { } result)
-            {
-                source.Dispose();
-                path = result;
-                bounds = result.TightBounds;
-
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        SKPath source = Path;
+
+        using SKPath? overlap = source.Op(eraser, SKPathOp.Intersect);
+
+        if (overlap?.IsEmpty is not false || source.Op(eraser, SKPathOp.Difference) is not SKPath result)
+        {
+            return false;
+        }
+
+        source.Dispose();
+        path = result;
+        bounds = result.TightBounds;
+
+        return true;
     }
 
     protected override void Destroy()

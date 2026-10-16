@@ -14,12 +14,13 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
     public ImGuiHandler(IInputContext input)
     {
         mouse = input.Mice[0];
+        keyboard = input.Keyboards[0];
+
         mouse.MouseDown += OnMouseDown;
         mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
         mouse.Scroll += OnMouseScroll;
 
-        keyboard = input.Keyboards[0];
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
         keyboard.KeyChar += OnKeyChar;
@@ -64,19 +65,24 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
-        // IME not supported.
     }
 
     protected override void Destroy()
     {
-        mouse.MouseDown -= OnMouseDown;
-        mouse.MouseUp -= OnMouseUp;
-        mouse.MouseMove -= OnMouseMove;
-        mouse.Scroll -= OnMouseScroll;
+        if (keyboard is not null)
+        {
+            keyboard.KeyChar -= OnKeyChar;
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
+        }
 
-        keyboard.KeyDown -= OnKeyDown;
-        keyboard.KeyUp -= OnKeyUp;
-        keyboard.KeyChar -= OnKeyChar;
+        if (mouse is not null)
+        {
+            mouse.Scroll -= OnMouseScroll;
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
+        }
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
@@ -136,6 +142,21 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
     {
+        if (key >= Key.Number0 && key <= Key.Number9)
+        {
+            return ImGuiKey.Key0 + (key - Key.Number0);
+        }
+
+        if (key >= Key.A && key <= Key.Z)
+        {
+            return ImGuiKey.A + (key - Key.A);
+        }
+
+        if (key >= Key.F1 && key <= Key.F24)
+        {
+            return ImGuiKey.F1 + (key - Key.F1);
+        }
+
         return key switch
         {
             Key.Tab => ImGuiKey.Tab,
@@ -195,9 +216,6 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
             Key.AltRight => ImGuiKey.RightAlt,
             Key.SuperRight => ImGuiKey.RightSuper,
             Key.Menu => ImGuiKey.Menu,
-            >= Key.Number0 and <= Key.Number9 => ImGuiKey.Key0 + (key - Key.Number0),
-            >= Key.A and <= Key.Z => ImGuiKey.A + (key - Key.A),
-            >= Key.F1 and <= Key.F24 => ImGuiKey.F1 + (key - Key.F1),
             _ => ImGuiKey.None
         };
     }
@@ -213,5 +231,4 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
             _ => ImGuiKey.None
         };
     }
-
 }

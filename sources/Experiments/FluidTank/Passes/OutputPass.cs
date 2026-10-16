@@ -1,22 +1,20 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
+internal unsafe class OutputPass : DisposableObject
 {
-    private Buffer constants = null!;
-    private Sampler sampler = null!;
-    private GraphicsPipeline toneMappingPipeline = null!;
-    private GraphicsPipeline antialiasingPipeline = null!;
+    private readonly Buffer constants;
+    private readonly Sampler sampler;
+    private readonly GraphicsPipeline toneMappingPipeline;
+    private readonly GraphicsPipeline antialiasingPipeline;
+
     private Texture displayColor = null!;
 
-    public Texture Color { get; private set; } = null!;
-
-    protected override void Initialize()
+    public OutputPass(uint width, uint height)
     {
         constants = App.Context.CreateBuffer(new()
         {
@@ -26,13 +24,17 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
         });
         sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
 
-        AttachmentFormats formats = new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], SampleCount = SampleCount.Count1 };
-        using Shader toneMappingVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "FullscreenVS"));
-        using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "ToneMappingFS"));
+        AttachmentFormats formats = new()
+        {
+            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+            SampleCount = SampleCount.Count1
+        };
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "FullscreenVS"));
+        using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "ToneMappingFS"));
 
         toneMappingPipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            VertexShader = toneMappingVertexShader,
+            VertexShader = vertexShader,
             FragmentShader = toneMappingFragmentShader,
             InputLayouts = [],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
@@ -45,12 +47,11 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
             }
         });
 
-        using Shader antialiasingVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "FullscreenVS"));
-        using Shader antialiasingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "AntialiasingFS"));
+        using Shader antialiasingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "AntialiasingFS"));
 
         antialiasingPipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            VertexShader = antialiasingVertexShader,
+            VertexShader = vertexShader,
             FragmentShader = antialiasingFragmentShader,
             InputLayouts = [],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
@@ -63,17 +64,18 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
             }
         });
 
-        Color = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-        displayColor = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        CreateTextures(width, height);
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    public Texture Color { get; private set; } = null!;
+
+    public void Record(CommandBuffer commandBuffer, Texture color)
     {
         OutputConstants toneMappingConstants = new()
         {
-            TexelSize = new(1.0f / Width, 1.0f / Height),
+            TexelSize = new(1.0f / Color.Desc.Width, 1.0f / Color.Desc.Height),
             Exposure = 1.0f,
-            Input = args.Color.SampledHandle,
+            Input = color.SampledHandle,
             Sampler = sampler.Handle
         };
 
@@ -85,13 +87,7 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
 
         Draw(commandBuffer, toneMappingPipeline, displayColor, 0);
 
-        OutputConstants antialiasingConstants = new()
-        {
-            TexelSize = new(1.0f / Width, 1.0f / Height),
-            Exposure = 1.0f,
-            Input = displayColor.SampledHandle,
-            Sampler = sampler.Handle
-        };
+        OutputConstants antialiasingConstants = toneMappingConstants with { Input = displayColor.SampledHandle };
 
         constants.Upload(256, new()
         {
@@ -102,36 +98,45 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
         Draw(commandBuffer, antialiasingPipeline, Color, 256);
     }
 
-    protected override void ResizeImpl()
+    public void Resize(uint width, uint height)
     {
-        if (Color.Desc.Width == Width && Color.Desc.Height == Height)
-        {
-            return;
-        }
-
-        Color.Dispose();
-        displayColor.Dispose();
-
-        Color = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-        displayColor = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        DestroyTextures();
+        CreateTextures(width, height);
     }
 
     protected override void Destroy()
     {
-        Color?.Dispose();
-        displayColor?.Dispose();
-        antialiasingPipeline.Dispose();
-        toneMappingPipeline.Dispose();
-        sampler.Dispose();
-        constants.Dispose();
+        DestroyTextures();
+        antialiasingPipeline?.Dispose();
+        toneMappingPipeline?.Dispose();
+        sampler?.Dispose();
+        constants?.Dispose();
     }
 
-    private void Draw(CommandBuffer commandBuffer, GraphicsPipeline pipeline, Texture output, uint offset)
+    private void CreateTextures(uint width, uint height)
+    {
+        TextureDesc desc = TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+        };
+        Color = App.Context.CreateTexture(desc);
+        displayColor = App.Context.CreateTexture(desc);
+    }
+
+    private void DestroyTextures()
+    {
+        displayColor?.Dispose();
+        displayColor = null!;
+        Color?.Dispose();
+        Color = null!;
+    }
+
+    private void Draw(CommandBuffer commandBuffer, GraphicsPipeline pipeline, Texture output, uint offsetInBytes)
     {
         commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(output)], null);
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constants, offset);
+        commandBuffer.SetConstantBuffer(constants, offsetInBytes);
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
         commandBuffer.Transition(output, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);

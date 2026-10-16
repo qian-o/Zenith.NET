@@ -2,7 +2,7 @@
 
 internal enum FluidViewMode
 {
-    Water = 0,
+    Water,
 
-    Particles = 1
+    Particles
 }

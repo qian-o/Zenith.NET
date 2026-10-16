@@ -15,7 +15,7 @@ struct CompositeConstants
 
     private float4 AbsorptionAndIor;
 
-    private uint4 ScreenAndRenderMode;
+    private uint4 ScreenSizeAndPadding;
 
     DescriptorHandle<Texture2D> SceneColor;
 
@@ -90,21 +90,14 @@ struct CompositeConstants
     property uint Width
     {
         get {
-            return ScreenAndRenderMode.x;
+            return ScreenSizeAndPadding.x;
         }
     }
 
     property uint Height
     {
         get {
-            return ScreenAndRenderMode.y;
-        }
-    }
-
-    property uint RenderMode
-    {
-        get {
-            return ScreenAndRenderMode.z;
+            return ScreenSizeAndPadding.y;
         }
     }
 };
@@ -273,11 +266,6 @@ float4 ShadeWater<let rayTracing : bool>(FullscreenOutput input)
     float2 uv = input.UV;
     float sceneDepth = composite.SceneDepth.Load(int3(int2(input.Position.xy), 0)).r;
     float3 scene = SceneAt(uv);
-
-    if (composite.RenderMode == 1)
-    {
-        return float4(scene, 1.0);
-    }
 
     float3 normal;
     float3 fluid = SampleFluid(uv, sceneDepth, normal);

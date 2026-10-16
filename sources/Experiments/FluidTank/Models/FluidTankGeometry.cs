@@ -35,11 +35,36 @@ internal static class FluidTankGeometry
         indices = [.. indicesList];
         materials =
         [
-            new() { Albedo = new(0.48f, 0.45f, 0.40f), Roughness = 0.60f, Metallic = 0.0f },
-            new() { Albedo = new(0.50f, 0.15f, 0.055f), Roughness = 0.40f, Metallic = 0.0f },
-            new() { Albedo = new(0.58f, 0.60f, 0.62f), Roughness = 0.24f, Metallic = 0.90f },
-            new() { Albedo = new(0.17f, 0.16f, 0.14f), Roughness = 0.50f, Metallic = 0.0f },
-            new() { Albedo = new(0.62f, 0.63f, 0.64f), Roughness = 0.25f, Metallic = 0.90f }
+            new()
+            {
+                Albedo = new(0.48f, 0.45f, 0.40f),
+                Roughness = 0.60f,
+                Metallic = 0.0f
+            },
+            new()
+            {
+                Albedo = new(0.50f, 0.15f, 0.055f),
+                Roughness = 0.40f,
+                Metallic = 0.0f
+            },
+            new()
+            {
+                Albedo = new(0.58f, 0.60f, 0.62f),
+                Roughness = 0.24f,
+                Metallic = 0.90f
+            },
+            new()
+            {
+                Albedo = new(0.17f, 0.16f, 0.14f),
+                Roughness = 0.50f,
+                Metallic = 0.0f
+            },
+            new()
+            {
+                Albedo = new(0.62f, 0.63f, 0.64f),
+                Roughness = 0.25f,
+                Metallic = 0.90f
+            }
         ];
     }
 
@@ -69,7 +94,7 @@ internal static class FluidTankGeometry
                                           Matrix4x4 rotation,
                                           uint materialId)
     {
-        Vector3[] local =
+        Span<Vector3> points =
         [
             new(-halfExtents.X, -halfExtents.Y, -halfExtents.Z),
             new(halfExtents.X, -halfExtents.Y, -halfExtents.Z),
@@ -81,10 +106,9 @@ internal static class FluidTankGeometry
             new(-halfExtents.X, halfExtents.Y, halfExtents.Z)
         ];
 
-        Vector3[] points = new Vector3[local.Length];
-        for (int index = 0; index < local.Length; index++)
+        for (int i = 0; i < points.Length; i++)
         {
-            points[index] = Vector3.Transform(local[index], rotation) + center;
+            points[i] = Vector3.Transform(points[i], rotation) + center;
         }
 
         AddQuad(vertices, indices, points[1], points[0], points[3], points[2], materialId);
@@ -103,10 +127,10 @@ internal static class FluidTankGeometry
                                     int segments,
                                     uint materialId)
     {
-        for (int segment = 0; segment < segments; segment++)
+        for (int i = 0; i < segments; i++)
         {
-            float angle0 = segment * MathF.Tau / segments;
-            float angle1 = (segment + 1) * MathF.Tau / segments;
+            float angle0 = i * MathF.Tau / segments;
+            float angle1 = (i + 1) * MathF.Tau / segments;
             Vector3 radial0 = new(MathF.Cos(angle0) * radius, 0.0f, MathF.Sin(angle0) * radius);
             Vector3 radial1 = new(MathF.Cos(angle1) * radius, 0.0f, MathF.Sin(angle1) * radius);
 
@@ -120,9 +144,24 @@ internal static class FluidTankGeometry
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
         uint startIndex = (uint)vertices.Count;
 
-        vertices.Add(new() { Position = v0, Normal = normal, MaterialId = materialId });
-        vertices.Add(new() { Position = v1, Normal = normal, MaterialId = materialId });
-        vertices.Add(new() { Position = v2, Normal = normal, MaterialId = materialId });
+        vertices.Add(new()
+        {
+            Position = v0,
+            Normal = normal,
+            MaterialId = materialId
+        });
+        vertices.Add(new()
+        {
+            Position = v1,
+            Normal = normal,
+            MaterialId = materialId
+        });
+        vertices.Add(new()
+        {
+            Position = v2,
+            Normal = normal,
+            MaterialId = materialId
+        });
 
         indices.Add(startIndex);
         indices.Add(startIndex + 1);
@@ -140,10 +179,30 @@ internal static class FluidTankGeometry
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
         uint startIndex = (uint)vertices.Count;
 
-        vertices.Add(new() { Position = v0, Normal = normal, MaterialId = materialId });
-        vertices.Add(new() { Position = v1, Normal = normal, MaterialId = materialId });
-        vertices.Add(new() { Position = v2, Normal = normal, MaterialId = materialId });
-        vertices.Add(new() { Position = v3, Normal = normal, MaterialId = materialId });
+        vertices.Add(new()
+        {
+            Position = v0,
+            Normal = normal,
+            MaterialId = materialId
+        });
+        vertices.Add(new()
+        {
+            Position = v1,
+            Normal = normal,
+            MaterialId = materialId
+        });
+        vertices.Add(new()
+        {
+            Position = v2,
+            Normal = normal,
+            MaterialId = materialId
+        });
+        vertices.Add(new()
+        {
+            Position = v3,
+            Normal = normal,
+            MaterialId = materialId
+        });
 
         indices.Add(startIndex);
         indices.Add(startIndex + 1);

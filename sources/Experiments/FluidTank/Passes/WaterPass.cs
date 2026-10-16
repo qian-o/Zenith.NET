@@ -1,23 +1,23 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using FluidTank.Handlers;
 using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
+internal unsafe class WaterPass : DisposableObject
 {
-    private Buffer compositeConstants = null!;
-    private Buffer reflectionConstants = null!;
-    private Sampler sampler = null!;
-    private GraphicsPipeline compositePipeline = null!;
-    private ComputePipeline? reflectionPipeline;
+    private readonly Buffer compositeConstants;
+    private readonly Sampler sampler;
+    private readonly GraphicsPipeline compositePipeline;
+    private readonly Buffer? reflectionConstants;
+    private readonly ComputePipeline? reflectionPipeline;
+
     private Texture? reflection;
 
-    public Texture Color { get; private set; } = null!;
-
-    protected override void Initialize()
+    public WaterPass(uint width, uint height)
     {
         compositeConstants = App.Context.CreateBuffer(new()
         {
@@ -25,16 +25,11 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
-        reflectionConstants = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(ReflectionConstants),
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
         sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
 
-        using Shader compositeVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("FluidComposite.slang"), "FullscreenVS"));
-        using Shader compositeFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("FluidComposite.slang"), App.Context.Capabilities.RayTracingSupported ? "CompositeFS" : "EnvironmentFS"));
+        string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidComposite.slang");
+        using Shader compositeVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "FullscreenVS"));
+        using Shader compositeFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, App.Context.Capabilities.RayTracingSupported ? "CompositeFS" : "EnvironmentFS"));
 
         compositePipeline = App.Context.CreateGraphicsPipeline(new()
         {
@@ -57,112 +52,86 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
 
         if (App.Context.Capabilities.RayTracingSupported)
         {
-            using Shader reflectionShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("FluidReflection.slang"), "ReflectionCS"));
+            reflectionConstants = App.Context.CreateBuffer(new()
+            {
+                SizeInBytes = (uint)sizeof(ReflectionConstants),
+                Usages = BufferUsages.Constant,
+                Residency = MemoryResidency.CpuWriteOnly
+            });
+
+            using Shader reflectionShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidReflection.slang"), "ReflectionCS"));
             reflectionPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = reflectionShader });
         }
 
-        ResizeImpl();
+        CreateTexture(width, height);
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    public Texture Color { get; private set; } = null!;
+
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Texture sceneColor, Texture sceneDepth, Texture fluidDepth, Texture thickness, Texture normal)
     {
-        if (reflectionPipeline is not null && args.ViewMode is FluidViewMode.Water)
+        Matrix4x4.Invert(camera.View, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(camera.Projection, out Matrix4x4 inverseProjection);
+
+        if (reflectionPipeline is not null)
         {
-            RecordReflection(commandBuffer, in args);
+            uint fluidWidth = fluidDepth.Desc.Width;
+            uint fluidHeight = fluidDepth.Desc.Height;
+
+            reflection ??= App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, fluidWidth, fluidHeight, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
+
+            ReflectionConstants reflectionData = new()
+            {
+                InvView = inverseView,
+                InvProjection = inverseProjection,
+                CameraPosition = camera.Position,
+                SunDirection = SceneResources.SunDirection,
+                LightIntensity = SceneResources.LightIntensity,
+                Width = fluidWidth,
+                Height = fluidHeight,
+                Normal = normal.SampledHandle,
+                FluidDepth = fluidDepth.SampledHandle,
+                Scene = scene.Scene!.Handle,
+                Vertices = scene.Vertices.StorageReadOnlyHandle,
+                Indices = scene.Indices.StorageReadOnlyHandle,
+                Materials = scene.Materials.StorageReadOnlyHandle,
+                OutputTexture = reflection.StorageHandle
+            };
+
+            reflectionConstants!.Upload(0, new()
+            {
+                Pointer = (nint)(&reflectionData),
+                SizeInBytes = (uint)sizeof(ReflectionConstants)
+            });
+
+            commandBuffer.Transition(reflection, default, TextureLayout.Undefined, TextureLayout.Storage);
+            commandBuffer.SetPipeline(reflectionPipeline);
+            commandBuffer.SetConstantBuffer(reflectionConstants, 0);
+            ThreadGroupSize group = reflectionPipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+            commandBuffer.Dispatch((fluidWidth + group.X - 1) / group.X, (fluidHeight + group.Y - 1) / group.Y, 1);
+            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
+            commandBuffer.Transition(reflection, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
 
-        RecordComposite(commandBuffer, in args);
-    }
-
-    protected override void ResizeImpl()
-    {
-        if (Color is null || Color.Desc.Width != Width || Color.Desc.Height != Height)
-        {
-            Color?.Dispose();
-            Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-        }
-
-        reflection?.Dispose();
-        reflection = null;
-    }
-
-    protected override void Destroy()
-    {
-        reflection?.Dispose();
-        Color?.Dispose();
-        reflectionPipeline?.Dispose();
-        compositePipeline.Dispose();
-        sampler.Dispose();
-        reflectionConstants.Dispose();
-        compositeConstants.Dispose();
-    }
-
-    private void RecordReflection(CommandBuffer commandBuffer, in PassArgs args)
-    {
-        uint fluidWidth = args.FluidDepth.Desc.Width;
-        uint fluidHeight = args.FluidDepth.Desc.Height;
-
-        if (reflection is null || reflection.Desc.Width != fluidWidth || reflection.Desc.Height != fluidHeight)
-        {
-            reflection?.Dispose();
-            reflection = CreateTexture(fluidWidth, fluidHeight, PixelFormat.R16G16B16A16Float);
-        }
-
-        ReflectionConstants reflectionData = new()
-        {
-            InvView = args.InverseView,
-            InvProjection = args.InverseProjection,
-            CameraPosition = args.CameraPosition,
-            SunDirection = args.SunDirection,
-            LightIntensity = args.LightIntensity,
-            Width = fluidWidth,
-            Height = fluidHeight,
-            FluidDepth = args.FluidDepth.SampledHandle,
-            Normal = args.Normal.SampledHandle,
-            Scene = args.Scene.Scene!.Handle,
-            Vertices = args.Scene.Vertices.StorageReadOnlyHandle,
-            Indices = args.Scene.Indices.StorageReadOnlyHandle,
-            Materials = args.Scene.Materials.StorageReadOnlyHandle,
-            OutputTexture = reflection.StorageHandle
-        };
-
-        reflectionConstants.Upload(0, new()
-        {
-            Pointer = (nint)(&reflectionData),
-            SizeInBytes = (uint)sizeof(ReflectionConstants)
-        });
-
-        commandBuffer.Transition(reflection, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.SetPipeline(reflectionPipeline!);
-        commandBuffer.SetConstantBuffer(reflectionConstants, 0);
-        ThreadGroupSize group = reflectionPipeline!.Desc.ComputeShader.Desc.ThreadGroupSize;
-        commandBuffer.Dispatch((fluidWidth + group.X - 1) / group.X, (fluidHeight + group.Y - 1) / group.Y, 1);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
-        commandBuffer.Transition(reflection, default, TextureLayout.Storage, TextureLayout.Sampled);
-    }
-
-    private void RecordComposite(CommandBuffer commandBuffer, in PassArgs args)
-    {
         CompositeConstants compositeData = new()
         {
-            InvView = args.InverseView,
-            InvProjection = args.InverseProjection,
-            CameraPosition = args.CameraPosition,
-            LightIntensity = args.LightIntensity,
-            SunDirection = args.SunDirection,
+            InvView = inverseView,
+            InvProjection = inverseProjection,
+            CameraPosition = camera.Position,
+            LightIntensity = SceneResources.LightIntensity,
+            SunDirection = SceneResources.SunDirection,
             Clarity = 0.25f,
             WaterColor = new(0.025f, 0.12f, 0.16f),
             RefractionStrength = 0.45f,
             Absorption = new(0.18f, 0.045f, 0.015f),
             Ior = 1.333f,
-            Width = args.FluidDepth.Desc.Width,
-            Height = args.FluidDepth.Desc.Height,
-            RenderMode = (uint)args.ViewMode,
-            SceneColor = args.Color.SampledHandle,
-            SceneDepth = args.SceneDepth.SampledHandle,
-            FluidDepth = args.FluidDepth.SampledHandle,
-            Thickness = args.Thickness.SampledHandle,
-            Normal = args.Normal.SampledHandle,
+            Width = fluidDepth.Desc.Width,
+            Height = fluidDepth.Desc.Height,
+            SceneColor = sceneColor.SampledHandle,
+            SceneDepth = sceneDepth.SampledHandle,
+            FluidDepth = fluidDepth.SampledHandle,
+            Thickness = thickness.SampledHandle,
+            Normal = normal.SampledHandle,
             Reflection = reflection?.SampledHandle ?? default,
             Sampler = sampler.Handle
         };
@@ -180,6 +149,35 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
         commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+    }
+
+    public void Resize(uint width, uint height)
+    {
+        DestroyTexture();
+        CreateTexture(width, height);
+    }
+
+    protected override void Destroy()
+    {
+        DestroyTexture();
+        reflectionPipeline?.Dispose();
+        reflectionConstants?.Dispose();
+        compositePipeline?.Dispose();
+        sampler?.Dispose();
+        compositeConstants?.Dispose();
+    }
+
+    private void CreateTexture(uint width, uint height)
+    {
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled });
+    }
+
+    private void DestroyTexture()
+    {
+        reflection?.Dispose();
+        reflection = null;
+        Color?.Dispose();
+        Color = null!;
     }
 }
 
@@ -221,9 +219,6 @@ file struct CompositeConstants
 
     [FieldOffset(196)]
     public uint Height;
-
-    [FieldOffset(200)]
-    public uint RenderMode;
 
     [FieldOffset(208)]
     public ResourceHandle SceneColor;

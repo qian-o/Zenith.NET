@@ -1,26 +1,22 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using FluidTank.Handlers;
 using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
+internal unsafe class ScenePass : DisposableObject
 {
-    private Buffer constantBuffer = null!;
-    private Buffer backgroundConstantBuffer = null!;
-    private GraphicsPipeline pipeline = null!;
-    private GraphicsPipeline backgroundPipeline = null!;
-    private bool initialized;
+    private readonly Buffer constantBuffer;
+    private readonly Buffer backgroundConstantBuffer;
+    private readonly GraphicsPipeline pipeline;
+    private readonly GraphicsPipeline backgroundPipeline;
 
-    public Texture Color { get; private set; } = null!;
+    private bool isInitialized;
 
-    public Texture LinearDepth { get; private set; } = null!;
-
-    public Texture DepthStencil { get; private set; } = null!;
-
-    protected override void Initialize()
+    public ScenePass(uint width, uint height)
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -36,11 +32,19 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
         });
 
         InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Position
+        });
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Normal
+        });
 
-        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Scene.slang"), "VSMain"));
-        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Scene.slang"), "FSMain"));
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Scene.slang"), "VSMain"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Scene.slang"), "FSMain"));
 
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
@@ -62,8 +66,8 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
             }
         });
 
-        using Shader backgroundVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("SceneBackground.slang"), "FullscreenVS"));
-        using Shader backgroundFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("SceneBackground.slang"), "BackgroundFS"));
+        using Shader backgroundVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "SceneBackground.slang"), "FullscreenVS"));
+        using Shader backgroundFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "SceneBackground.slang"), "BackgroundFS"));
 
         backgroundPipeline = App.Context.CreateGraphicsPipeline(new()
         {
@@ -85,19 +89,24 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
             }
         });
 
-        ResizeImpl();
+        CreateTextures(width, height);
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    public Texture Color { get; private set; } = null!;
+
+    public Texture LinearDepth { get; private set; } = null!;
+
+    public Texture DepthStencil { get; private set; } = null!;
+
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera)
     {
-        SceneResources scene = args.Scene;
         SceneConstants sceneConstants = new()
         {
-            View = args.View,
-            Projection = args.Projection,
-            CameraPosition = args.CameraPosition,
-            LightDirection = args.SunDirection,
-            LightIntensity = args.LightIntensity,
+            View = camera.View,
+            Projection = camera.Projection,
+            CameraPosition = camera.Position,
+            LightDirection = SceneResources.SunDirection,
+            LightIntensity = SceneResources.LightIntensity,
             Materials = scene.Materials.StorageReadOnlyHandle
         };
 
@@ -107,11 +116,14 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
             SizeInBytes = (uint)sizeof(SceneConstants)
         });
 
+        Matrix4x4.Invert(camera.View, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(camera.Projection, out Matrix4x4 inverseProjection);
+
         BackgroundConstants backgroundConstants = new()
         {
-            InvView = args.InverseView,
-            InvProjection = args.InverseProjection,
-            SunDirection = args.SunDirection
+            InvView = inverseView,
+            InvProjection = inverseProjection,
+            SunDirection = SceneResources.SunDirection
         };
 
         backgroundConstantBuffer.Upload(0, new()
@@ -120,8 +132,8 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
             SizeInBytes = (uint)sizeof(BackgroundConstants)
         });
 
-        TextureLayout colorLayout = initialized ? TextureLayout.Sampled : TextureLayout.Undefined;
-        TextureLayout depthLayout = initialized ? TextureLayout.DepthStencilAttachment : TextureLayout.Undefined;
+        TextureLayout colorLayout = isInitialized ? TextureLayout.Sampled : TextureLayout.Undefined;
+        TextureLayout depthLayout = isInitialized ? TextureLayout.DepthStencilAttachment : TextureLayout.Undefined;
         commandBuffer.Transition(Color, default, colorLayout, TextureLayout.ColorAttachment);
         commandBuffer.Transition(LinearDepth, default, colorLayout, TextureLayout.ColorAttachment);
         commandBuffer.Transition(DepthStencil, default, depthLayout, TextureLayout.DepthStencilAttachment);
@@ -140,33 +152,50 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
 
         commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
         commandBuffer.Transition(LinearDepth, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
-        initialized = true;
+        isInitialized = true;
     }
 
-    protected override void ResizeImpl()
+    public void Resize(uint width, uint height)
     {
-        DisposeTargets();
-
-        Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        LinearDepth = CreateTexture(Width, Height, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        DepthStencil = CreateTexture(Width, Height, PixelFormat.D32FloatS8UInt, TextureUsages.DepthStencilAttachment);
-        initialized = false;
+        DestroyTextures();
+        CreateTextures(width, height);
     }
 
     protected override void Destroy()
     {
-        backgroundPipeline.Dispose();
-        pipeline.Dispose();
-        backgroundConstantBuffer.Dispose();
-        constantBuffer.Dispose();
-        DisposeTargets();
+        DestroyTextures();
+        backgroundPipeline?.Dispose();
+        pipeline?.Dispose();
+        backgroundConstantBuffer?.Dispose();
+        constantBuffer?.Dispose();
     }
 
-    private void DisposeTargets()
+    private void CreateTextures(uint width, uint height)
+    {
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
+        });
+        LinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
+        });
+        DepthStencil = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.D32FloatS8UInt, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.DepthStencilAttachment
+        });
+    }
+
+    private void DestroyTextures()
     {
         DepthStencil?.Dispose();
+        DepthStencil = null!;
         LinearDepth?.Dispose();
+        LinearDepth = null!;
         Color?.Dispose();
+        Color = null!;
+
+        isInitialized = false;
     }
 }
 

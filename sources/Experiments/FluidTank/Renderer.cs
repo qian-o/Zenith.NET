@@ -8,18 +8,18 @@ namespace FluidTank;
 
 internal class Renderer : DisposableObject
 {
-    private const double SimulationStep = 1.0 / 30.0;
+    private const double SimulationStepSeconds = 1.0 / 30.0;
 
     private readonly Simulation simulation;
     private readonly SceneResources scene;
     private readonly ScenePass scenePass;
     private readonly SurfacePass surfacePass;
     private readonly WaterPass waterPass;
+    private readonly ParticlePass particlePass;
     private readonly GlassPass glassPass;
     private readonly OutputPass outputPass;
 
-    private double accumulator = SimulationStep;
-    private TimelineValue simulationReady;
+    private double accumulatedSeconds = SimulationStepSeconds;
 
     public Renderer()
     {
@@ -28,7 +28,8 @@ internal class Renderer : DisposableObject
         scenePass = new(App.Width, App.Height);
         surfacePass = new(App.Width, App.Height);
         waterPass = new(App.Width, App.Height);
-        glassPass = new(App.Width, App.Height);
+        particlePass = new();
+        glassPass = new();
         outputPass = new(App.Width, App.Height);
     }
 
@@ -38,11 +39,11 @@ internal class Renderer : DisposableObject
 
     public Texture Color => outputPass.Color;
 
-    public void Update(double delta)
+    public void Update(double deltaSeconds)
     {
         if (!IsPaused)
         {
-            accumulator = Math.Min(accumulator + Math.Min(delta, SimulationStep), SimulationStep * 2.0);
+            accumulatedSeconds = Math.Min(accumulatedSeconds + Math.Min(deltaSeconds, SimulationStepSeconds), SimulationStepSeconds * 2.0);
         }
     }
 
@@ -55,96 +56,51 @@ internal class Renderer : DisposableObject
     {
         simulation.Reset();
         IsPaused = false;
-        accumulator = SimulationStep;
+        accumulatedSeconds = SimulationStepSeconds;
     }
 
     public TimelineValue Simulate()
     {
         if (IsPaused)
         {
-            simulationReady = simulation.Step(SimulationStep, true);
+            simulation.Step(SimulationStepSeconds, true);
         }
-        else if (accumulator >= SimulationStep)
+        else if (accumulatedSeconds >= SimulationStepSeconds)
         {
-            accumulator -= SimulationStep;
-            simulationReady = simulation.Step(SimulationStep, false);
+            accumulatedSeconds -= SimulationStepSeconds;
+            simulation.Step(SimulationStepSeconds, false);
         }
 
-        return simulationReady;
+        return simulation.Ready;
     }
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
-        Matrix4x4 view = camera.View;
-        Matrix4x4 projection = camera.Projection;
-        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
-        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+        float interpolationAlpha = IsPaused ? 1.0f : (float)Math.Clamp(accumulatedSeconds / SimulationStepSeconds, 0.0, 1.0);
 
-        PassArgs args = new()
+        scenePass.Record(commandBuffer, scene, camera);
+        glassPass.Record(commandBuffer, scene, camera, scenePass.Color, scenePass.DepthStencil, useFrontFaces: false);
+
+        Texture color = scenePass.Color;
+
+        if (ViewMode is FluidViewMode.Water)
         {
-            View = view,
-            Projection = projection,
-            InverseView = inverseView,
-            InverseProjection = inverseProjection,
-            CameraPosition = camera.Position,
-            CameraRight = camera.Right,
-            CameraUp = camera.Up,
-            SunDirection = Vector3.Normalize(new(-0.38f, -0.83f, -0.42f)),
-            LightIntensity = 2.7f,
-            InterpolationAlpha = IsPaused ? 1.0f : (float)Math.Clamp(accumulator / SimulationStep, 0.0, 1.0),
-            Particles = new()
-            {
-                Particles = simulation.Particles,
-                PreviousPositions = simulation.PreviousPositions,
-                Count = Simulation.ParticleCount,
-                Radius = Simulation.ParticleRadius,
-                Spacing = Simulation.ParticleSpacing,
-                Minimum = Simulation.TankMin,
-                Maximum = Simulation.TankMax
-            },
-            Scene = scene,
-            ViewMode = ViewMode
-        };
-
-        scenePass.Record(commandBuffer, in args);
-
-        args = args with
+            surfacePass.Record(commandBuffer, simulation, camera, scenePass.LinearDepth, interpolationAlpha);
+            waterPass.Record(commandBuffer, scene, camera, color, scenePass.LinearDepth, surfacePass.Depth, surfacePass.Thickness, surfacePass.Normal);
+            color = waterPass.Color;
+        }
+        else
         {
-            Color = scenePass.Color,
-            SceneDepth = scenePass.LinearDepth,
-            DepthStencil = scenePass.DepthStencil,
-            FrontFaces = false
-        };
-        glassPass.Record(commandBuffer, in args);
-
-        if (args.ViewMode is FluidViewMode.Water)
-        {
-            surfacePass.Record(commandBuffer, in args);
+            particlePass.Record(commandBuffer, simulation, camera, color, scenePass.DepthStencil, interpolationAlpha);
         }
 
-        args = args with
-        {
-            FluidDepth = surfacePass.Depth,
-            Thickness = surfacePass.Thickness,
-            Normal = surfacePass.Normal
-        };
-        waterPass.Record(commandBuffer, in args);
-
-        args = args with { Color = waterPass.Color };
-
-        if (args.ViewMode is FluidViewMode.Particles)
-        {
-            surfacePass.Record(commandBuffer, in args);
-        }
-
-        args = args with { FrontFaces = true };
-        glassPass.Record(commandBuffer, in args);
-        outputPass.Record(commandBuffer, in args);
+        glassPass.Record(commandBuffer, scene, camera, color, scenePass.DepthStencil, useFrontFaces: true);
+        outputPass.Record(commandBuffer, color);
     }
 
     public void Resize(uint width, uint height)
     {
-        if (outputPass.Width == width && outputPass.Height == height)
+        if (Color.Desc.Width == width && Color.Desc.Height == height)
         {
             return;
         }
@@ -152,18 +108,18 @@ internal class Renderer : DisposableObject
         scenePass.Resize(width, height);
         surfacePass.Resize(width, height);
         waterPass.Resize(width, height);
-        glassPass.Resize(width, height);
         outputPass.Resize(width, height);
     }
 
     protected override void Destroy()
     {
-        outputPass.Dispose();
-        glassPass.Dispose();
-        waterPass.Dispose();
-        surfacePass.Dispose();
-        scenePass.Dispose();
-        scene.Dispose();
-        simulation.Dispose();
+        outputPass?.Dispose();
+        glassPass?.Dispose();
+        particlePass?.Dispose();
+        waterPass?.Dispose();
+        surfacePass?.Dispose();
+        scenePass?.Dispose();
+        scene?.Dispose();
+        simulation?.Dispose();
     }
 }
