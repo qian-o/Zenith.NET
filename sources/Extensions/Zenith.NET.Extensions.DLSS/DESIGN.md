@@ -47,15 +47,15 @@ public struct DLSSSuperResolutionDesc
 
 public struct DLSSSuperResolutionArgs
 {
-    public DLSSBinding Color;
+    public Texture Color;
 
-    public DLSSBinding Depth;
+    public Texture Depth;
 
-    public DLSSBinding MotionVectors;
+    public Texture MotionVectors;
 
-    public DLSSBinding? Exposure;
+    public Texture? Exposure;
 
-    public DLSSBinding Output;
+    public Texture Output;
 
     public Vector2 JitterOffset;
 
@@ -83,25 +83,25 @@ public struct DLSSRayReconstructionDesc
 
 public struct DLSSRayReconstructionArgs
 {
-    public DLSSBinding Color;
+    public Texture Color;
 
-    public DLSSBinding Depth;
+    public Texture Depth;
 
-    public DLSSBinding MotionVectors;
+    public Texture MotionVectors;
 
-    public DLSSBinding DiffuseAlbedo;
+    public Texture DiffuseAlbedo;
 
-    public DLSSBinding SpecularAlbedo;
+    public Texture SpecularAlbedo;
 
-    public DLSSBinding Normals;
+    public Texture Normals;
 
-    public DLSSBinding Roughness;
+    public Texture Roughness;
 
-    public DLSSBinding SpecularHitDistance;
+    public Texture SpecularHitDistance;
 
-    public DLSSBinding? TransparencyLayer;
+    public Texture? TransparencyLayer;
 
-    public DLSSBinding Output;
+    public Texture Output;
 
     public Vector2 JitterOffset;
 
@@ -131,13 +131,13 @@ public struct DLSSFrameGenerationDesc
 
 public struct DLSSFrameGenerationArgs
 {
-    public DLSSBinding Color;
+    public Texture Color;
 
-    public DLSSBinding Depth;
+    public Texture Depth;
 
-    public DLSSBinding MotionVectors;
+    public Texture MotionVectors;
 
-    public DLSSBinding Output;
+    public Texture Output;
 
     public Buffer? OutputDisableInterpolation;
 

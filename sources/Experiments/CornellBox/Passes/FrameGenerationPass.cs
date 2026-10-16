@@ -65,10 +65,10 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
         pendingArgs = new()
         {
-            Color = color[args.Slot].DLSSBinding,
-            Depth = depth[args.Slot].DLSSBinding,
-            MotionVectors = motionVectors[args.Slot].DLSSBinding,
-            Output = generatedColor[args.Slot].DLSSBinding,
+            Color = color[args.Slot],
+            Depth = depth[args.Slot],
+            MotionVectors = motionVectors[args.Slot],
+            Output = generatedColor[args.Slot],
             JitterOffset = new(2.0f * args.Jitter.X / RenderWidth, -2.0f * args.Jitter.Y / RenderHeight),
             MotionVectorScale = new(-0.5f, 0.5f),
             ViewToClip = args.Projection,

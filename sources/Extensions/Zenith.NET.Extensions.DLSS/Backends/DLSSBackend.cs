@@ -6,7 +6,6 @@ namespace Zenith.NET.Extensions.DLSS;
 internal unsafe partial class DLSSBackend : DisposableObject
 {
     private readonly NGXParameter parameters;
-    private readonly Dictionary<Texture, DLSSBinding> bindings = [];
 
     public DLSSBackend(GraphicsContext context, string dataPath)
     {
@@ -300,10 +299,26 @@ internal unsafe partial class DLSSBackend : DisposableObject
             CameraMotionIncluded = true,
             Reset = args.Reset,
             OrthoProjection = args.IsOrthographic,
-            MvecsSubrectSize = args.MotionVectors.Size,
-            DepthSubrectSize = args.Depth.Size,
-            BackbufferSubrectSize = args.Color.Size,
-            OutputInterpSubrectSize = args.Output.Size
+            MvecsSubrectSize = new()
+            {
+                Width = args.MotionVectors.Desc.Width,
+                Height = args.MotionVectors.Desc.Height
+            },
+            DepthSubrectSize = new()
+            {
+                Width = args.Depth.Desc.Width,
+                Height = args.Depth.Desc.Height
+            },
+            BackbufferSubrectSize = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
+            OutputInterpSubrectSize = new()
+            {
+                Width = args.Output.Desc.Width,
+                Height = args.Output.Desc.Height
+            }
         };
 
         switch (Context.GraphicsApi)
@@ -318,36 +333,8 @@ internal unsafe partial class DLSSBackend : DisposableObject
         }
     }
 
-    public DLSSBinding Binding(Texture texture)
-    {
-        if (!bindings.TryGetValue(texture, out DLSSBinding binding))
-        {
-            bindings[texture] = binding = Context.GraphicsApi switch
-            {
-                GraphicsApi.DirectX12 => CreateDirectX12Binding(texture),
-                GraphicsApi.Vulkan => CreateVulkanBinding(texture),
-                _ => default
-            };
-
-            texture.Disposing += (sender, _) =>
-            {
-                if (bindings.Remove((Texture)sender!, out DLSSBinding disposedBinding))
-                {
-                    DestroyBinding(disposedBinding);
-                }
-            };
-        }
-
-        return binding;
-    }
-
     protected override void Destroy()
     {
-        foreach (DLSSBinding binding in bindings.Values)
-        {
-            DestroyBinding(binding);
-        }
-
         DestroyParameters(parameters);
 
         switch (Context.GraphicsApi)
@@ -358,18 +345,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
             case GraphicsApi.Vulkan:
                 ShutdownVulkan();
-                break;
-        }
-
-        bindings.Clear();
-    }
-
-    private void DestroyBinding(DLSSBinding binding)
-    {
-        switch (Context.GraphicsApi)
-        {
-            case GraphicsApi.Vulkan:
-                DestroyVulkanBinding(binding);
                 break;
         }
     }

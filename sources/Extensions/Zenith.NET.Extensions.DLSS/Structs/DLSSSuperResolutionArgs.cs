@@ -4,15 +4,15 @@ namespace Zenith.NET.Extensions.DLSS;
 
 public struct DLSSSuperResolutionArgs
 {
-    public DLSSBinding Color;
+    public Texture Color;
 
-    public DLSSBinding Depth;
+    public Texture Depth;
 
-    public DLSSBinding MotionVectors;
+    public Texture MotionVectors;
 
-    public DLSSBinding? Exposure;
+    public Texture? Exposure;
 
-    public DLSSBinding Output;
+    public Texture Output;
 
     public Vector2 JitterOffset;
 

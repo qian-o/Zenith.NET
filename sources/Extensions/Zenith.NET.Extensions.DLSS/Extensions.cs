@@ -58,11 +58,6 @@ public static class Extensions
         }
     }
 
-    extension(Texture texture)
-    {
-        public DLSSBinding DLSSBinding => GetBackend(texture.Context).Binding(texture);
-    }
-
     extension(NGXResult result)
     {
         internal void Success()

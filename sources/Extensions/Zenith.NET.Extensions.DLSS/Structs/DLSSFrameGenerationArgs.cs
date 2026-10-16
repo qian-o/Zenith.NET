@@ -4,13 +4,13 @@ namespace Zenith.NET.Extensions.DLSS;
 
 public struct DLSSFrameGenerationArgs
 {
-    public DLSSBinding Color;
+    public Texture Color;
 
-    public DLSSBinding Depth;
+    public Texture Depth;
 
-    public DLSSBinding MotionVectors;
+    public Texture MotionVectors;
 
-    public DLSSBinding Output;
+    public Texture Output;
 
     public Buffer? OutputDisableInterpolation;
 

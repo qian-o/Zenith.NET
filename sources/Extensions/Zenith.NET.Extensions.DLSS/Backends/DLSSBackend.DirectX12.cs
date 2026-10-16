@@ -44,18 +44,22 @@ internal unsafe partial class DLSSBackend
         {
             Feature = new()
             {
-                Color = args.Color.DirectX12,
-                Output = args.Output.DirectX12
+                Color = args.Color.GetNativeObject(NativeObjectType.D3D12Resource),
+                Output = args.Output.GetNativeObject(NativeObjectType.D3D12Resource)
             },
-            Depth = args.Depth.DirectX12,
-            MotionVectors = args.MotionVectors.DirectX12,
+            Depth = args.Depth.GetNativeObject(NativeObjectType.D3D12Resource),
+            MotionVectors = args.MotionVectors.GetNativeObject(NativeObjectType.D3D12Resource),
             JitterOffsetX = args.JitterOffset.X,
             JitterOffsetY = args.JitterOffset.Y,
-            RenderSubrectDimensions = args.Color.Size,
+            RenderSubrectDimensions = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
             Reset = args.Reset ? 1 : 0,
             MVScaleX = args.MotionVectorScale.X,
             MVScaleY = args.MotionVectorScale.Y,
-            ExposureTexture = args.Exposure?.DirectX12 ?? 0,
+            ExposureTexture = args.Exposure?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0,
             PreExposure = args.PreExposure
         };
 
@@ -66,25 +70,29 @@ internal unsafe partial class DLSSBackend
     {
         NGXD3D12DLSSDEvalParams evalParams = new()
         {
-            DiffuseAlbedo = args.DiffuseAlbedo.DirectX12,
-            SpecularAlbedo = args.SpecularAlbedo.DirectX12,
-            Normals = args.Normals.DirectX12,
-            Roughness = args.Roughness.DirectX12,
-            Color = args.Color.DirectX12,
-            Output = args.Output.DirectX12,
-            Depth = args.Depth.DirectX12,
-            MotionVectors = args.MotionVectors.DirectX12,
+            DiffuseAlbedo = args.DiffuseAlbedo.GetNativeObject(NativeObjectType.D3D12Resource),
+            SpecularAlbedo = args.SpecularAlbedo.GetNativeObject(NativeObjectType.D3D12Resource),
+            Normals = args.Normals.GetNativeObject(NativeObjectType.D3D12Resource),
+            Roughness = args.Roughness.GetNativeObject(NativeObjectType.D3D12Resource),
+            Color = args.Color.GetNativeObject(NativeObjectType.D3D12Resource),
+            Output = args.Output.GetNativeObject(NativeObjectType.D3D12Resource),
+            Depth = args.Depth.GetNativeObject(NativeObjectType.D3D12Resource),
+            MotionVectors = args.MotionVectors.GetNativeObject(NativeObjectType.D3D12Resource),
             JitterOffsetX = args.JitterOffset.X,
             JitterOffsetY = args.JitterOffset.Y,
-            RenderSubrectDimensions = args.Color.Size,
+            RenderSubrectDimensions = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
             Reset = args.Reset ? 1 : 0,
             MVScaleX = args.MotionVectorScale.X,
             MVScaleY = args.MotionVectorScale.Y,
-            SpecularHitDistance = args.SpecularHitDistance.DirectX12,
+            SpecularHitDistance = args.SpecularHitDistance.GetNativeObject(NativeObjectType.D3D12Resource),
             WorldToViewMatrix = &args.WorldToView,
             ViewToClipMatrix = &args.ViewToClip,
             PreExposure = args.PreExposure,
-            TransparencyLayer = args.TransparencyLayer?.DirectX12 ?? 0
+            TransparencyLayer = args.TransparencyLayer?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0
         };
 
         Ngx.D3D12.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
@@ -94,22 +102,13 @@ internal unsafe partial class DLSSBackend
     {
         NGXD3D12DLSSGEvalParams evalParams = new()
         {
-            Backbuffer = args.Color.DirectX12,
-            Depth = args.Depth.DirectX12,
-            MVecs = args.MotionVectors.DirectX12,
-            OutputInterpFrame = args.Output.DirectX12,
+            Backbuffer = args.Color.GetNativeObject(NativeObjectType.D3D12Resource),
+            Depth = args.Depth.GetNativeObject(NativeObjectType.D3D12Resource),
+            MVecs = args.MotionVectors.GetNativeObject(NativeObjectType.D3D12Resource),
+            OutputInterpFrame = args.Output.GetNativeObject(NativeObjectType.D3D12Resource),
             OutputDisableInterpolation = args.OutputDisableInterpolation?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0
         };
 
         Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
-    }
-
-    private static DLSSBinding CreateDirectX12Binding(Texture texture)
-    {
-        return new(texture.GetNativeObject(NativeObjectType.D3D12Resource), default, new()
-        {
-            Width = texture.Desc.Width,
-            Height = texture.Desc.Height
-        });
     }
 }

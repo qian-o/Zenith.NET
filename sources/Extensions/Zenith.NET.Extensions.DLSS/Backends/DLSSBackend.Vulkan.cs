@@ -13,6 +13,8 @@ internal unsafe partial class DLSSBackend
     private const uint ImageViewType2D = 1;
     private const uint ComputeBindPoint = 1;
 
+    private readonly Dictionary<nint, NGXResourceVK> resources = [];
+
     private readonly nint descriptorSetLayout;
     private readonly nint pipelineLayout;
     private readonly nint descriptorPool;
@@ -102,6 +104,12 @@ internal unsafe partial class DLSSBackend
 
     private void ShutdownVulkan()
     {
+        foreach (NGXResourceVK resource in resources.Values)
+        {
+            DestroyVulkanResource(resource);
+        }
+        resources.Clear();
+
         vkDestroyDescriptorPool(Device, descriptorPool, null);
         vkDestroyPipelineLayout(Device, pipelineLayout, null);
         vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
@@ -143,11 +151,10 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = args.Color.Vulkan with { ReadWrite = false };
-        NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
-        NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
-        NGXResourceVK exposure = (args.Exposure?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+        NGXResourceVK color = GetVulkanResource(args.Color) with { ReadWrite = false };
+        NGXResourceVK depth = GetVulkanResource(args.Depth) with { ReadWrite = false };
+        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors) with { ReadWrite = false };
+        NGXResourceVK output = GetVulkanResource(args.Output) with { ReadWrite = true };
 
         NGXVKDLSSEvalParams evalParams = new()
         {
@@ -158,15 +165,26 @@ internal unsafe partial class DLSSBackend
             },
             Depth = &depth,
             MotionVectors = &motionVectors,
-            ExposureTexture = args.Exposure.HasValue ? &exposure : null,
             JitterOffsetX = args.JitterOffset.X,
             JitterOffsetY = args.JitterOffset.Y,
             MVScaleX = args.MotionVectorScale.X,
             MVScaleY = args.MotionVectorScale.Y,
             PreExposure = args.PreExposure,
-            RenderSubrectDimensions = args.Color.Size,
+            RenderSubrectDimensions = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
             Reset = args.Reset ? 1 : 0
         };
+
+        NGXResourceVK exposure;
+
+        if (args.Exposure is not null)
+        {
+            exposure = GetVulkanResource(args.Exposure) with { ReadWrite = false };
+            evalParams.ExposureTexture = &exposure;
+        }
 
         Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
@@ -175,16 +193,15 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = args.Color.Vulkan with { ReadWrite = false };
-        NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
-        NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
-        NGXResourceVK diffuseAlbedo = args.DiffuseAlbedo.Vulkan with { ReadWrite = false };
-        NGXResourceVK specularAlbedo = args.SpecularAlbedo.Vulkan with { ReadWrite = false };
-        NGXResourceVK normals = args.Normals.Vulkan with { ReadWrite = false };
-        NGXResourceVK roughness = args.Roughness.Vulkan with { ReadWrite = false };
-        NGXResourceVK specularHitDistance = args.SpecularHitDistance.Vulkan with { ReadWrite = false };
-        NGXResourceVK transparencyLayer = (args.TransparencyLayer?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+        NGXResourceVK color = GetVulkanResource(args.Color) with { ReadWrite = false };
+        NGXResourceVK depth = GetVulkanResource(args.Depth) with { ReadWrite = false };
+        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors) with { ReadWrite = false };
+        NGXResourceVK diffuseAlbedo = GetVulkanResource(args.DiffuseAlbedo) with { ReadWrite = false };
+        NGXResourceVK specularAlbedo = GetVulkanResource(args.SpecularAlbedo) with { ReadWrite = false };
+        NGXResourceVK normals = GetVulkanResource(args.Normals) with { ReadWrite = false };
+        NGXResourceVK roughness = GetVulkanResource(args.Roughness) with { ReadWrite = false };
+        NGXResourceVK specularHitDistance = GetVulkanResource(args.SpecularHitDistance) with { ReadWrite = false };
+        NGXResourceVK output = GetVulkanResource(args.Output) with { ReadWrite = true };
 
         NGXVKDLSSDEvalParams evalParams = new()
         {
@@ -196,7 +213,6 @@ internal unsafe partial class DLSSBackend
             Normals = &normals,
             Roughness = &roughness,
             SpecularHitDistance = &specularHitDistance,
-            TransparencyLayer = args.TransparencyLayer.HasValue ? &transparencyLayer : null,
             Output = &output,
             JitterOffsetX = args.JitterOffset.X,
             JitterOffsetY = args.JitterOffset.Y,
@@ -205,9 +221,21 @@ internal unsafe partial class DLSSBackend
             WorldToViewMatrix = &args.WorldToView,
             ViewToClipMatrix = &args.ViewToClip,
             PreExposure = args.PreExposure,
-            RenderSubrectDimensions = args.Color.Size,
+            RenderSubrectDimensions = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
             Reset = args.Reset ? 1 : 0
         };
+
+        NGXResourceVK transparencyLayer;
+
+        if (args.TransparencyLayer is not null)
+        {
+            transparencyLayer = GetVulkanResource(args.TransparencyLayer) with { ReadWrite = false };
+            evalParams.TransparencyLayer = &transparencyLayer;
+        }
 
         Ngx.Vulkan.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
@@ -216,11 +244,20 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = args.Color.Vulkan with { ReadWrite = false };
-        NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
-        NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
-        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
-        NGXResourceVK outputDisableInterpolation = default;
+        NGXResourceVK color = GetVulkanResource(args.Color) with { ReadWrite = false };
+        NGXResourceVK depth = GetVulkanResource(args.Depth) with { ReadWrite = false };
+        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors) with { ReadWrite = false };
+        NGXResourceVK output = GetVulkanResource(args.Output) with { ReadWrite = true };
+
+        NGXVKDLSSGEvalParams evalParams = new()
+        {
+            Backbuffer = &color,
+            Depth = &depth,
+            MVecs = &motionVectors,
+            OutputInterpFrame = &output
+        };
+
+        NGXResourceVK outputDisableInterpolation;
 
         if (args.OutputDisableInterpolation is { } buffer)
         {
@@ -237,72 +274,71 @@ internal unsafe partial class DLSSBackend
                 Type = NGXResourceVKType.VkBuffer,
                 ReadWrite = true
             };
+            evalParams.OutputDisableInterpolation = &outputDisableInterpolation;
         }
-
-        NGXVKDLSSGEvalParams evalParams = new()
-        {
-            Backbuffer = &color,
-            Depth = &depth,
-            MVecs = &motionVectors,
-            OutputInterpFrame = &output,
-            OutputDisableInterpolation = args.OutputDisableInterpolation is not null ? &outputDisableInterpolation : null
-        };
 
         Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
     }
 
-    private DLSSBinding CreateVulkanBinding(Texture texture)
+    private NGXResourceVK GetVulkanResource(Texture texture)
     {
-        (uint format, uint aspectFlags) = DLSSFormats.Vulkan(texture.Desc.Format);
-
         nint image = texture.GetNativeObject(NativeObjectType.VulkanImage);
 
-        NGXVkImageSubresourceRange subresourceRange = new()
+        if (!resources.TryGetValue(image, out NGXResourceVK resource))
         {
-            AspectMask = aspectFlags,
-            LevelCount = 1,
-            LayerCount = 1
-        };
+            (uint format, uint aspectFlags) = DLSSFormats.Vulkan(texture.Desc.Format);
 
-        VkImageViewCreateInfo createInfo = new()
-        {
-            SType = ImageViewCreateInfoType,
-            Image = image,
-            ViewType = ImageViewType2D,
-            Format = format,
-            SubresourceRange = subresourceRange
-        };
-
-        nint view;
-        vkCreateImageView(Device, &createInfo, null, &view).Success();
-
-        NGXResourceVK vulkan = new()
-        {
-            Resource = new()
+            NGXVkImageSubresourceRange subresourceRange = new()
             {
-                ImageViewInfo = new()
-                {
-                    ImageView = view,
-                    Image = image,
-                    SubresourceRange = subresourceRange,
-                    Format = (NGXVkFormat)format,
-                    Width = texture.Desc.Width,
-                    Height = texture.Desc.Height
-                }
-            },
-            Type = NGXResourceVKType.VkImageView
-        };
+                AspectMask = aspectFlags,
+                LevelCount = 1,
+                LayerCount = 1
+            };
 
-        return new(default, vulkan, new()
-        {
-            Width = texture.Desc.Width,
-            Height = texture.Desc.Height
-        });
+            VkImageViewCreateInfo createInfo = new()
+            {
+                SType = ImageViewCreateInfoType,
+                Image = image,
+                ViewType = ImageViewType2D,
+                Format = format,
+                SubresourceRange = subresourceRange
+            };
+
+            nint view;
+            vkCreateImageView(Device, &createInfo, null, &view).Success();
+
+            resources[image] = resource = new()
+            {
+                Resource = new()
+                {
+                    ImageViewInfo = new()
+                    {
+                        ImageView = view,
+                        Image = image,
+                        SubresourceRange = subresourceRange,
+                        Format = (NGXVkFormat)format,
+                        Width = texture.Desc.Width,
+                        Height = texture.Desc.Height
+                    }
+                },
+                Type = NGXResourceVKType.VkImageView
+            };
+
+            texture.Disposing += (_, _) =>
+            {
+                if (resources.Remove(image, out NGXResourceVK disposedResource))
+                {
+                    DestroyVulkanResource(disposedResource);
+                }
+            };
+        }
+
+        return resource;
     }
 
-    private void DestroyVulkanBinding(DLSSBinding binding)
+    private void DestroyVulkanResource(NGXResourceVK resource)
     {
-        vkDestroyImageView(Device, binding.Vulkan.Resource.ImageViewInfo.ImageView, null);
+        vkDestroyImageView(Device, resource.Resource.ImageViewInfo.ImageView, null);
     }
 
     private void BindDescriptorSet(nint commandList)
