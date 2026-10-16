@@ -8,36 +8,34 @@ namespace CornellBox.Passes;
 internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private DLSSFrameGeneration? frameGeneration;
-    private Texture[] hudless = [];
+    private Texture[] color = [];
+    private Texture[] generatedColor = [];
     private Texture[] depth = [];
     private Texture[] motionVectors = [];
     private DLSSFrameGenerationArgs pendingArgs;
-    private Texture? pendingBackBuffer;
     private Texture? pendingFrame;
     private bool history;
 
     public bool IsGenerated { get; private set; }
 
-    public TimelineValue Dispatch(TimelineValue rendered)
-    {
-        if (pendingBackBuffer is null || pendingFrame is null)
-        {
-            return rendered;
-        }
+    public Texture Color { get; private set; } = null!;
 
-        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
+    public Texture GeneratedColor { get; private set; } = null!;
+
+    public void Dispatch(CommandBuffer commandBuffer)
+    {
+        if (pendingFrame is null)
+        {
+            return;
+        }
 
         commandBuffer.Transition(pendingFrame, default, TextureLayout.Undefined, TextureLayout.Storage);
 
         frameGeneration!.Dispatch(commandBuffer, pendingArgs);
 
-        commandBuffer.Transition(pendingFrame, default, TextureLayout.Storage, TextureLayout.CopySrc);
-        commandBuffer.Transition(pendingBackBuffer, default, TextureLayout.Sampled, TextureLayout.CopySrc);
+        commandBuffer.Transition(pendingFrame, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        pendingBackBuffer = null;
         pendingFrame = null;
-
-        return commandBuffer.Submit(rendered);
     }
 
     protected override void Initialize()
@@ -48,11 +46,10 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
     protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
         IsGenerated = false;
+        pendingFrame = null;
 
         if (!args.FrameGeneration)
         {
-            commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Sampled, TextureLayout.CopySrc);
-
             history = false;
 
             return;
@@ -60,7 +57,7 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
         frameGeneration ??= App.Context.CreateDLSSFrameGeneration(Desc());
 
-        Snapshot(commandBuffer, args.Color, hudless[args.Slot]);
+        Snapshot(commandBuffer, args.Color, color[args.Slot]);
         Snapshot(commandBuffer, args.Depth, depth[args.Slot]);
         Snapshot(commandBuffer, args.MotionVectors, motionVectors[args.Slot]);
 
@@ -68,20 +65,14 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
         pendingArgs = new()
         {
-            Color = args.BackBuffer.DLSSBinding,
+            Color = color[args.Slot].DLSSBinding,
             Depth = depth[args.Slot].DLSSBinding,
             MotionVectors = motionVectors[args.Slot].DLSSBinding,
-            HudlessColor = hudless[args.Slot].DLSSBinding,
-            UI = args.UI.DLSSBinding,
-            Output = args.GeneratedFrame.DLSSBinding,
-            MultiFrameCount = 1,
-            MultiFrameIndex = 1,
-            FrameId = args.FrameIndex,
+            Output = generatedColor[args.Slot].DLSSBinding,
             JitterOffset = new(2.0f * args.Jitter.X / RenderWidth, -2.0f * args.Jitter.Y / RenderHeight),
             MotionVectorScale = new(-0.5f, 0.5f),
             ViewToClip = args.Projection,
             ClipToView = args.InverseProjection,
-            ClipToLensClip = Matrix4x4.Identity,
             ClipToPrevClip = args.ClipToPrevClip,
             PrevClipToClip = prevClipToClip,
             CameraPosition = args.CameraPosition,
@@ -92,11 +83,11 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
             CameraFar = args.CameraFar,
             CameraFovAngleVer = args.CameraFovAngleVer,
             CameraAspectRatio = args.CameraAspectRatio,
-            IsCameraMotionIncluded = true,
             Reset = !history
         };
-        pendingBackBuffer = args.BackBuffer;
-        pendingFrame = args.GeneratedFrame;
+        Color = color[args.Slot];
+        GeneratedColor = generatedColor[args.Slot];
+        pendingFrame = GeneratedColor;
 
         IsGenerated = history;
         history = true;
@@ -134,20 +125,21 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
             InputWidth = RenderWidth,
             InputHeight = RenderHeight,
             OutputWidth = DisplayWidth,
-            OutputHeight = DisplayHeight,
-            IsUIRecompositionEnabled = true
+            OutputHeight = DisplayHeight
         };
     }
 
     private void CreateTextures()
     {
-        hudless = new Texture[App.SlotCount];
+        color = new Texture[App.SlotCount];
+        generatedColor = new Texture[App.SlotCount];
         depth = new Texture[App.SlotCount];
         motionVectors = new Texture[App.SlotCount];
 
         for (int i = 0; i < App.SlotCount; i++)
         {
-            hudless[i] = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.TransferDst);
+            color[i] = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.TransferDst);
+            generatedColor[i] = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm);
             depth[i] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.TransferDst);
             motionVectors[i] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.TransferDst);
         }
@@ -155,11 +147,12 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
     private void DestroyTextures()
     {
-        for (int i = 0; i < hudless.Length; i++)
+        for (int i = 0; i < color.Length; i++)
         {
             motionVectors[i].Dispose();
             depth[i].Dispose();
-            hudless[i].Dispose();
+            generatedColor[i].Dispose();
+            color[i].Dispose();
         }
     }
 

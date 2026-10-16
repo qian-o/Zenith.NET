@@ -11,6 +11,4 @@ public struct DLSSFrameGenerationDesc
     public uint OutputWidth;
 
     public uint OutputHeight;
-
-    public bool IsUIRecompositionEnabled;
 }

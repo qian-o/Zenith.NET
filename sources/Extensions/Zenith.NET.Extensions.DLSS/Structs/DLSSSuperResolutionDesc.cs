@@ -12,5 +12,5 @@ public struct DLSSSuperResolutionDesc
 
     public DLSSMode Mode;
 
-    public DLSSFeatureFlags Flags;
+    public DLSSSuperResolutionFlags Flags;
 }

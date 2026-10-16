@@ -34,8 +34,7 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
             OutputWidth = DisplayWidth,
             OutputHeight = DisplayHeight,
             Mode = mode,
-            RoughnessMode = DLSSRoughnessMode.Packed,
-            Flags = DLSSFeatureFlags.Hdr | DLSSFeatureFlags.MotionVectorLowResolution
+            Flags = DLSSRayReconstructionFlags.None
         };
 
         if (rayReconstruction is null || !rayReconstruction.Desc.Equals(desc))
@@ -57,6 +56,7 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
             DiffuseAlbedo = args.DiffuseAlbedo.DLSSBinding,
             SpecularAlbedo = args.SpecularAlbedo.DLSSBinding,
             Normals = args.Normal.DLSSBinding,
+            Roughness = args.Roughness.DLSSBinding,
             SpecularHitDistance = args.SpecularHitDistance.DLSSBinding,
             Output = output.DLSSBinding,
             JitterOffset = args.Jitter,

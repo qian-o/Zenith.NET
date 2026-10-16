@@ -20,6 +20,8 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
 
     public Texture Normal { get; private set; } = null!;
 
+    public Texture Roughness { get; private set; } = null!;
+
     public Texture MotionVectors { get; private set; } = null!;
 
     public Texture DiffuseAlbedo { get; private set; } = null!;
@@ -63,6 +65,7 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
             Color = Color.StorageHandle,
             Depth = Depth.StorageHandle,
             Normal = Normal.StorageHandle,
+            Roughness = Roughness.StorageHandle,
             MotionVectors = MotionVectors.StorageHandle,
             DiffuseAlbedo = DiffuseAlbedo.StorageHandle,
             SpecularAlbedo = SpecularAlbedo.StorageHandle,
@@ -110,12 +113,13 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
         Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
         Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
         Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        Roughness = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16Float);
         MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
         DiffuseAlbedo = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
         SpecularAlbedo = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
         SpecularHitDistance = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
 
-        outputs = [Color, Depth, Normal, MotionVectors, DiffuseAlbedo, SpecularAlbedo, SpecularHitDistance];
+        outputs = [Color, Depth, Normal, Roughness, MotionVectors, DiffuseAlbedo, SpecularAlbedo, SpecularHitDistance];
     }
 
     private void DestroyTextures()
@@ -127,7 +131,7 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 400)]
+[StructLayout(LayoutKind.Explicit, Size = 416)]
 file struct Constants
 {
     [FieldOffset(0)]
@@ -176,14 +180,17 @@ file struct Constants
     public ResourceHandle Normal;
 
     [FieldOffset(368)]
-    public ResourceHandle MotionVectors;
+    public ResourceHandle Roughness;
 
     [FieldOffset(376)]
-    public ResourceHandle DiffuseAlbedo;
+    public ResourceHandle MotionVectors;
 
     [FieldOffset(384)]
-    public ResourceHandle SpecularAlbedo;
+    public ResourceHandle DiffuseAlbedo;
 
     [FieldOffset(392)]
+    public ResourceHandle SpecularAlbedo;
+
+    [FieldOffset(400)]
     public ResourceHandle SpecularHitDistance;
 }

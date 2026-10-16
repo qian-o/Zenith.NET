@@ -12,6 +12,8 @@ internal readonly struct PassArgs
 
     public Texture Normal { get; init; }
 
+    public Texture Roughness { get; init; }
+
     public Texture Depth { get; init; }
 
     public Texture MotionVectors { get; init; }
@@ -27,6 +29,8 @@ internal readonly struct PassArgs
     public Texture BackBuffer { get; init; }
 
     public Texture GeneratedFrame { get; init; }
+
+    public Texture? GeneratedColor { get; init; }
 
     public Matrix4x4 View { get; init; }
 

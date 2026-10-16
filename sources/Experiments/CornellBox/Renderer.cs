@@ -16,6 +16,7 @@ internal class Renderer : DisposableObject
     private readonly CompositePass composite;
     private readonly FrameGenerationPass frameGeneration;
 
+    private PassArgs? pendingComposite;
     private uint frameIndex;
     private Matrix4x4 previousViewProjection;
     private bool history;
@@ -103,6 +104,7 @@ internal class Renderer : DisposableObject
         {
             Color = pathTracing.Color,
             Normal = pathTracing.Normal,
+            Roughness = pathTracing.Roughness,
             Depth = pathTracing.Depth,
             MotionVectors = pathTracing.MotionVectors,
             DiffuseAlbedo = pathTracing.DiffuseAlbedo,
@@ -116,9 +118,21 @@ internal class Renderer : DisposableObject
         tonemap.Record(commandBuffer, in args);
 
         args = args with { Color = tonemap.Color };
-        composite.Record(commandBuffer, in args);
-
         frameGeneration.Record(commandBuffer, in args);
+
+        if (args.FrameGeneration)
+        {
+            pendingComposite = args with
+            {
+                Color = frameGeneration.Color,
+                GeneratedColor = frameGeneration.IsGenerated ? frameGeneration.GeneratedColor : null
+            };
+        }
+        else
+        {
+            pendingComposite = null;
+            composite.Record(commandBuffer, in args);
+        }
 
         previousViewProjection = viewProjection;
         history = true;
@@ -128,7 +142,19 @@ internal class Renderer : DisposableObject
 
     public TimelineValue GenerateFrame(TimelineValue rendered)
     {
-        return frameGeneration.Dispatch(rendered);
+        if (pendingComposite is not PassArgs args)
+        {
+            return rendered;
+        }
+
+        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
+
+        frameGeneration.Dispatch(commandBuffer);
+        composite.Record(commandBuffer, in args);
+
+        pendingComposite = null;
+
+        return commandBuffer.Submit(rendered);
     }
 
     public void Resize(uint width, uint height)

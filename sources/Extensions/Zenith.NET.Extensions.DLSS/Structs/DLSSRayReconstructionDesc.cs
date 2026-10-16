@@ -12,9 +12,5 @@ public struct DLSSRayReconstructionDesc
 
     public DLSSMode Mode;
 
-    public DLSSDepthType DepthType;
-
-    public DLSSRoughnessMode RoughnessMode;
-
-    public DLSSFeatureFlags Flags;
+    public DLSSRayReconstructionFlags Flags;
 }

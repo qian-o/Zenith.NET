@@ -168,6 +168,8 @@ struct Constants
 
     DescriptorHandle<RWTexture2D<float4>> Normal;
 
+    DescriptorHandle<RWTexture2D<float>> Roughness;
+
     DescriptorHandle<RWTexture2D<float2>> MotionVectors;
 
     DescriptorHandle<RWTexture2D<float4>> DiffuseAlbedo;
@@ -477,7 +479,8 @@ void WriteGuides(uint2 pixel, Surface surface, float3 V, float3 F0)
     float NdotV = saturate(dot(surface.Normal, V));
 
     constants.Depth[pixel] = saturate(currentClip.z / currentClip.w);
-    constants.Normal[pixel] = float4(surface.Normal, surface.Roughness);
+    constants.Normal[pixel] = float4(surface.Normal, 0.0);
+    constants.Roughness[pixel] = surface.Roughness;
     constants.MotionVectors[pixel] = motion;
     constants.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
     constants.SpecularAlbedo[pixel] = float4(EnvBRDFApprox2(F0, surface.Roughness * surface.Roughness, NdotV), 1.0);
@@ -496,6 +499,7 @@ void WriteSkyGuides(uint2 pixel, float3 direction)
 
     constants.Depth[pixel] = 1.0;
     constants.Normal[pixel] = float4(0.0);
+    constants.Roughness[pixel] = 0.0;
     constants.MotionVectors[pixel] = motion;
     constants.DiffuseAlbedo[pixel] = float4(0.0);
     constants.SpecularAlbedo[pixel] = float4(0.0);

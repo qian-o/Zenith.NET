@@ -7,19 +7,25 @@ namespace CornellBox.Passes;
 
 internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
-    private Buffer buffer = null!;
+    private Buffer[] buffers = [];
     private ComputePipeline pipeline = null!;
 
     protected override void Initialize()
     {
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Composite.slang"), "CSMain"));
 
-        buffer = App.Context.CreateBuffer(new()
+        buffers = new Buffer[App.SlotCount];
+
+        for (int i = 0; i < buffers.Length; i++)
         {
-            SizeInBytes = (uint)sizeof(Constants),
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
+            buffers[i] = App.Context.CreateBuffer(new()
+            {
+                SizeInBytes = (uint)sizeof(Constants),
+                Usages = BufferUsages.Constant,
+                Residency = MemoryResidency.CpuWriteOnly
+            });
+        }
+
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
     }
 
@@ -29,10 +35,14 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
         {
             Width = DisplayWidth,
             Height = DisplayHeight,
-            Hudless = args.Color.SampledHandle,
+            Color = args.Color.SampledHandle,
+            GeneratedColor = args.GeneratedColor?.SampledHandle ?? default,
             UI = args.UI.SampledHandle,
-            Output = args.BackBuffer.StorageHandle
+            Output = args.BackBuffer.StorageHandle,
+            GeneratedOutput = args.GeneratedColor is not null ? args.GeneratedFrame.StorageHandle : default
         };
+
+        Buffer buffer = buffers[args.Slot];
 
         buffer.Upload(0, new()
         {
@@ -41,10 +51,21 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
         });
 
         commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Undefined, TextureLayout.Storage);
+
+        if (args.GeneratedColor is not null)
+        {
+            commandBuffer.Transition(args.GeneratedFrame, default, TextureLayout.Undefined, TextureLayout.Storage);
+        }
+
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((DisplayWidth + 7) / 8, (DisplayHeight + 7) / 8, 1);
-        commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Dispatch((DisplayWidth + 7) / 8, (DisplayHeight + 7) / 8, args.GeneratedColor is not null ? 2u : 1u);
+        commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Storage, TextureLayout.CopySrc);
+
+        if (args.GeneratedColor is not null)
+        {
+            commandBuffer.Transition(args.GeneratedFrame, default, TextureLayout.Storage, TextureLayout.CopySrc);
+        }
     }
 
     protected override void ResizeImpl()
@@ -54,11 +75,15 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
     protected override void Destroy()
     {
         pipeline.Dispose();
-        buffer.Dispose();
+
+        foreach (Buffer buffer in buffers)
+        {
+            buffer.Dispose();
+        }
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 48)]
+[StructLayout(LayoutKind.Explicit, Size = 64)]
 file struct Constants
 {
     [FieldOffset(0)]
@@ -68,11 +93,17 @@ file struct Constants
     public uint Height;
 
     [FieldOffset(16)]
-    public ResourceHandle Hudless;
+    public ResourceHandle Color;
 
     [FieldOffset(24)]
-    public ResourceHandle UI;
+    public ResourceHandle GeneratedColor;
 
     [FieldOffset(32)]
+    public ResourceHandle UI;
+
+    [FieldOffset(40)]
     public ResourceHandle Output;
+
+    [FieldOffset(48)]
+    public ResourceHandle GeneratedOutput;
 }

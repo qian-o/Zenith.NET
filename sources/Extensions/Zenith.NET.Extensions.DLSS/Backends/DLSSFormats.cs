@@ -152,60 +152,32 @@ internal static class DLSSFormats
         };
     }
 
-    public static NGXDLSSFeatureFlags NGX(DLSSFeatureFlags featureFlags)
+    public static NGXDLSSFeatureFlags NGX(DLSSSuperResolutionFlags featureFlags)
     {
-        NGXDLSSFeatureFlags result = default;
+        NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.IsHdr | NGXDLSSFeatureFlags.MvLowRes;
 
-        if (featureFlags.HasFlag(DLSSFeatureFlags.Hdr))
-        {
-            result |= NGXDLSSFeatureFlags.IsHdr;
-        }
-
-        if (featureFlags.HasFlag(DLSSFeatureFlags.AutoExposure))
+        if (featureFlags.HasFlag(DLSSSuperResolutionFlags.AutoExposure))
         {
             result |= NGXDLSSFeatureFlags.AutoExposure;
         }
 
-        if (featureFlags.HasFlag(DLSSFeatureFlags.DepthReversed))
+        if (featureFlags.HasFlag(DLSSSuperResolutionFlags.DepthReversed))
         {
             result |= NGXDLSSFeatureFlags.DepthInverted;
-        }
-
-        if (featureFlags.HasFlag(DLSSFeatureFlags.MotionVectorJittered))
-        {
-            result |= NGXDLSSFeatureFlags.MvJittered;
-        }
-
-        if (featureFlags.HasFlag(DLSSFeatureFlags.AlphaUpscaling))
-        {
-            result |= NGXDLSSFeatureFlags.AlphaUpscaling;
-        }
-
-        if (featureFlags.HasFlag(DLSSFeatureFlags.MotionVectorLowResolution))
-        {
-            result |= NGXDLSSFeatureFlags.MvLowRes;
         }
 
         return result;
     }
 
-    public static NGXDLSSDepthType NGX(DLSSDepthType depthType)
+    public static NGXDLSSFeatureFlags NGX(DLSSRayReconstructionFlags featureFlags)
     {
-        return depthType switch
-        {
-            DLSSDepthType.Hardware => NGXDLSSDepthType.Hw,
-            DLSSDepthType.Linear => NGXDLSSDepthType.Linear,
-            _ => default
-        };
-    }
+        NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.IsHdr | NGXDLSSFeatureFlags.MvLowRes;
 
-    public static NGXDLSSRoughnessMode NGX(DLSSRoughnessMode roughnessMode)
-    {
-        return roughnessMode switch
+        if (featureFlags.HasFlag(DLSSRayReconstructionFlags.DepthReversed))
         {
-            DLSSRoughnessMode.Unpacked => NGXDLSSRoughnessMode.Unpacked,
-            DLSSRoughnessMode.Packed => NGXDLSSRoughnessMode.Packed,
-            _ => default
-        };
+            result |= NGXDLSSFeatureFlags.DepthInverted;
+        }
+
+        return result;
     }
 }
