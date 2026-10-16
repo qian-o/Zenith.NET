@@ -13,12 +13,11 @@ internal unsafe partial class DLSSBackend
     private const uint ImageViewType2D = 1;
     private const uint ComputeBindPoint = 1;
 
-    private readonly Dictionary<nint, NGXResourceVK> resources = [];
-
     private readonly nint descriptorSetLayout;
     private readonly nint pipelineLayout;
     private readonly nint descriptorPool;
     private readonly nint descriptorSet;
+    private readonly Dictionary<nint, NGXResourceVK> resources = [];
 
     private delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateImageView;
     private delegate* unmanaged<nint, nint, void*, void> vkDestroyImageView;
@@ -230,10 +229,10 @@ internal unsafe partial class DLSSBackend
         };
 
         NGXResourceVK transparencyLayer;
-
         if (args.TransparencyLayer is not null)
         {
             transparencyLayer = GetVulkanResource(args.TransparencyLayer) with { ReadWrite = false };
+
             evalParams.TransparencyLayer = &transparencyLayer;
         }
 
@@ -258,8 +257,7 @@ internal unsafe partial class DLSSBackend
         };
 
         NGXResourceVK outputDisableInterpolation;
-
-        if (args.OutputDisableInterpolation is { } buffer)
+        if (args.OutputDisableInterpolation is not null)
         {
             outputDisableInterpolation = new()
             {
@@ -267,17 +265,26 @@ internal unsafe partial class DLSSBackend
                 {
                     BufferInfo = new()
                     {
-                        Buffer = buffer.GetNativeObject(NativeObjectType.VulkanBuffer),
-                        SizeInBytes = buffer.Desc.SizeInBytes
+                        Buffer = args.OutputDisableInterpolation.GetNativeObject(NativeObjectType.VulkanBuffer),
+                        SizeInBytes = args.OutputDisableInterpolation.Desc.SizeInBytes
                     }
                 },
                 Type = NGXResourceVKType.VkBuffer,
                 ReadWrite = true
             };
+
             evalParams.OutputDisableInterpolation = &outputDisableInterpolation;
         }
 
         Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
+    }
+
+    private void BindDescriptorSet(nint commandList)
+    {
+        fixed (nint* pDescriptorSet = &descriptorSet)
+        {
+            vkCmdBindDescriptorSets(commandList, ComputeBindPoint, pipelineLayout, 0, 1, pDescriptorSet, 0, null);
+        }
     }
 
     private NGXResourceVK GetVulkanResource(Texture texture)
@@ -339,14 +346,6 @@ internal unsafe partial class DLSSBackend
     private void DestroyVulkanResource(NGXResourceVK resource)
     {
         vkDestroyImageView(Device, resource.Resource.ImageViewInfo.ImageView, null);
-    }
-
-    private void BindDescriptorSet(nint commandList)
-    {
-        fixed (nint* pDescriptorSet = &descriptorSet)
-        {
-            vkCmdBindDescriptorSets(commandList, ComputeBindPoint, pipelineLayout, 0, 1, pDescriptorSet, 0, null);
-        }
     }
 }
 
