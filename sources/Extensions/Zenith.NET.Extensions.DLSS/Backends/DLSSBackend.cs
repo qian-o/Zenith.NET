@@ -247,32 +247,28 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSSuperResolution feature, DLSSSuperResolutionArgs args)
     {
-        NGXDimensions renderSubrectDimensions = args.Color.Size;
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args, renderSubrectDimensions);
+                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args, renderSubrectDimensions);
+                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args);
                 break;
         }
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args)
     {
-        NGXDimensions renderSubrectDimensions = args.Color.Size;
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args, renderSubrectDimensions);
+                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args, renderSubrectDimensions);
+                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args);
                 break;
         }
     }

@@ -139,7 +139,7 @@ internal unsafe partial class DLSSBackend
         }
     }
 
-    private void EvaluateVulkan(nint commandList, DLSSSuperResolution feature, DLSSSuperResolutionArgs args, NGXDimensions renderSubrectDimensions)
+    private void EvaluateVulkan(nint commandList, DLSSSuperResolution feature, DLSSSuperResolutionArgs args)
     {
         BindDescriptorSet(commandList);
 
@@ -164,14 +164,14 @@ internal unsafe partial class DLSSBackend
             MVScaleX = args.MotionVectorScale.X,
             MVScaleY = args.MotionVectorScale.Y,
             PreExposure = args.PreExposure,
-            RenderSubrectDimensions = renderSubrectDimensions,
+            RenderSubrectDimensions = args.Color.Size,
             Reset = args.Reset ? 1 : 0
         };
 
         Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
 
-    private void EvaluateVulkan(nint commandList, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args, NGXDimensions renderSubrectDimensions)
+    private void EvaluateVulkan(nint commandList, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args)
     {
         BindDescriptorSet(commandList);
 
@@ -205,7 +205,7 @@ internal unsafe partial class DLSSBackend
             WorldToViewMatrix = &args.WorldToView,
             ViewToClipMatrix = &args.ViewToClip,
             PreExposure = args.PreExposure,
-            RenderSubrectDimensions = renderSubrectDimensions,
+            RenderSubrectDimensions = args.Color.Size,
             Reset = args.Reset ? 1 : 0
         };
 

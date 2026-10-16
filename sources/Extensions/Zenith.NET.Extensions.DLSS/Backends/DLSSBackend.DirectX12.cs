@@ -38,7 +38,7 @@ internal unsafe partial class DLSSBackend
         }
     }
 
-    private static void EvaluateDirectX12(nint commandList, DLSSSuperResolution feature, DLSSSuperResolutionArgs args, NGXDimensions renderSubrectDimensions)
+    private static void EvaluateDirectX12(nint commandList, DLSSSuperResolution feature, DLSSSuperResolutionArgs args)
     {
         NGXD3D12DLSSEvalParams evalParams = new()
         {
@@ -51,7 +51,7 @@ internal unsafe partial class DLSSBackend
             MotionVectors = args.MotionVectors.DirectX12,
             JitterOffsetX = args.JitterOffset.X,
             JitterOffsetY = args.JitterOffset.Y,
-            RenderSubrectDimensions = renderSubrectDimensions,
+            RenderSubrectDimensions = args.Color.Size,
             Reset = args.Reset ? 1 : 0,
             MVScaleX = args.MotionVectorScale.X,
             MVScaleY = args.MotionVectorScale.Y,
@@ -62,7 +62,7 @@ internal unsafe partial class DLSSBackend
         Ngx.D3D12.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
 
-    private static void EvaluateDirectX12(nint commandList, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args, NGXDimensions renderSubrectDimensions)
+    private static void EvaluateDirectX12(nint commandList, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args)
     {
         NGXD3D12DLSSDEvalParams evalParams = new()
         {
@@ -76,7 +76,7 @@ internal unsafe partial class DLSSBackend
             MotionVectors = args.MotionVectors.DirectX12,
             JitterOffsetX = args.JitterOffset.X,
             JitterOffsetY = args.JitterOffset.Y,
-            RenderSubrectDimensions = renderSubrectDimensions,
+            RenderSubrectDimensions = args.Color.Size,
             Reset = args.Reset ? 1 : 0,
             MVScaleX = args.MotionVectorScale.X,
             MVScaleY = args.MotionVectorScale.Y,
