@@ -356,7 +356,8 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
         return float3(0.0, 0.0, 0.0);
     }
 
-    float3 shadowOrigin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, L) > 0.0 ? RayOffset : -RayOffset);
+    float3 shadowOrigin =
+        surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, L) > 0.0 ? RayOffset : -RayOffset);
     if (TraceShadowRay(shadowOrigin, L, dist))
     {
         return float3(0.0, 0.0, 0.0);
@@ -458,7 +459,8 @@ float3 EnvBRDFApprox2(float3 specularColor, float alpha, float NdotV)
 float TraceHitDistance(Surface surface, float3 direction)
 {
     RayDesc ray;
-    ray.Origin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, direction) > 0.0 ? RayOffset : -RayOffset);
+    ray.Origin = surface.Position +
+                 surface.GeometricNormal * (dot(surface.GeometricNormal, direction) > 0.0 ? RayOffset : -RayOffset);
     ray.Direction = direction;
     ray.TMin = 0.001;
     ray.TMax = MissDistance;
@@ -624,7 +626,8 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         }
 
         previousPdf = ComputeBRDFPDF(surface.Normal, V, newDir, roughness, specProb);
-        origin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, newDir) > 0.0 ? RayOffset : -RayOffset);
+        origin = surface.Position +
+                 surface.GeometricNormal * (dot(surface.GeometricNormal, newDir) > 0.0 ? RayOffset : -RayOffset);
         direction = newDir;
 
         if (bounce >= 2)
