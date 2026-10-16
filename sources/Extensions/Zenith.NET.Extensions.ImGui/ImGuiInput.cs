@@ -1,4 +1,4 @@
-namespace Zenith.NET.Extensions.ImGui;
+﻿namespace Zenith.NET.Extensions.ImGui;
 
 public enum ImGuiInput
 {
