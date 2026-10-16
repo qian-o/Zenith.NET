@@ -14,12 +14,12 @@ internal class Renderer : DisposableObject
     private readonly RayReconstructionPass rayReconstruction;
     private readonly TonemapPass tonemap;
     private readonly CompositePass composite;
-    private readonly FrameGenerationPass frameGeneration;
 
-    private PassArgs? pendingComposite;
+    private PassArgs compositeArgs;
     private uint frameIndex;
     private Matrix4x4 previousViewProjection;
-    private bool history;
+    private bool hasHistory;
+    private DLSSMode? previousReconstruction;
 
     public Renderer()
     {
@@ -28,30 +28,15 @@ internal class Renderer : DisposableObject
         rayReconstruction = new(App.Width, App.Height, App.Width, App.Height);
         tonemap = new(App.Width, App.Height, App.Width, App.Height);
         composite = new(App.Width, App.Height, App.Width, App.Height);
-        frameGeneration = new(App.Width, App.Height, App.Width, App.Height);
-
-        switch (App.Context.GraphicsApi)
-        {
-            case GraphicsApi.DirectX12:
-            case GraphicsApi.Vulkan:
-                DLSSCapabilities = App.Context.DLSSCapabilities;
-                break;
-        }
     }
-
-    public DLSSCapabilities? DLSSCapabilities { get; }
 
     public bool IsPaused { get; set; }
 
     public DLSSMode? RayReconstruction { get; set; }
 
-    public bool IsFrameGenerationEnabled { get; set; }
-
-    public bool IsFrameGenerated => frameGeneration.IsGenerated;
-
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera, double delta, int slot, Texture ui, Texture backBuffer, Texture generatedFrame)
+    public DLSSFrameGenerationArgs Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds, int slot, Texture ui, Texture backBuffer, Texture? generatedFrame)
     {
-        scene.Update(commandBuffer, IsPaused ? 0.0 : delta);
+        scene.Update(commandBuffer, IsPaused ? 0.0 : deltaSeconds);
 
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
@@ -59,11 +44,16 @@ internal class Renderer : DisposableObject
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
-        DLSSMode? reconstruction = DLSSCapabilities?.RayReconstructionSupported is true ? RayReconstruction : null;
+        DLSSMode? reconstruction = App.DLSSCapabilities?.RayReconstructionSupported is true ? RayReconstruction : null;
+
+        if (reconstruction != previousReconstruction)
+        {
+            hasHistory = false;
+        }
 
         Vector2 jitter = reconstruction is not null ? new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f) : Vector2.Zero;
 
-        if (!history)
+        if (!hasHistory)
         {
             previousViewProjection = viewProjection;
         }
@@ -82,20 +72,12 @@ internal class Renderer : DisposableObject
             InverseProjection = inverseProjection,
             ViewProjection = viewProjection,
             PreviousViewProjection = previousViewProjection,
-            ClipToPrevClip = clipToPrevClip,
             CameraPosition = camera.Position,
-            CameraUp = camera.Up,
-            CameraRight = camera.Right,
-            CameraForward = camera.Forward,
-            CameraNear = camera.NearPlane,
-            CameraFar = camera.FarPlane,
-            CameraFovAngleVer = float.DegreesToRadians(camera.Fov),
-            CameraAspectRatio = camera.AspectRatio,
             Jitter = jitter,
             FrameIndex = frameIndex,
             Slot = slot,
             RayReconstruction = reconstruction,
-            FrameGeneration = IsFrameGenerationEnabled && DLSSCapabilities?.FrameGenerationSupported is true
+            ResetHistory = !hasHistory
         };
 
         pathTracing.Record(commandBuffer, in args);
@@ -117,44 +99,55 @@ internal class Renderer : DisposableObject
         args = args with { Color = rayReconstruction.Color };
         tonemap.Record(commandBuffer, in args);
 
-        args = args with { Color = tonemap.Color };
-        frameGeneration.Record(commandBuffer, in args);
+        compositeArgs = args with { Color = tonemap.Color };
 
-        if (args.FrameGeneration)
-        {
-            pendingComposite = args with
-            {
-                Color = frameGeneration.Color,
-                GeneratedColor = frameGeneration.IsGenerated ? frameGeneration.GeneratedColor : null
-            };
-        }
-        else
-        {
-            pendingComposite = null;
-            composite.Record(commandBuffer, in args);
-        }
+        Matrix4x4.Invert(clipToPrevClip, out Matrix4x4 prevClipToClip);
 
         previousViewProjection = viewProjection;
-        history = true;
+        previousReconstruction = reconstruction;
+        hasHistory = true;
 
         frameIndex++;
+
+        return new()
+        {
+            Color = tonemap.Color,
+            Depth = pathTracing.Depth,
+            MotionVectors = pathTracing.MotionVectors,
+            JitterOffset = new(2.0f * jitter.X / pathTracing.RenderWidth, -2.0f * jitter.Y / pathTracing.RenderHeight),
+            MotionVectorScale = new(-0.5f * pathTracing.RenderWidth, 0.5f * pathTracing.RenderHeight),
+            ViewToClip = projection,
+            ClipToView = inverseProjection,
+            ClipToPrevClip = clipToPrevClip,
+            PrevClipToClip = prevClipToClip,
+            CameraPosition = camera.Position,
+            CameraUp = camera.Up,
+            CameraRight = camera.Right,
+            CameraForward = camera.Forward,
+            CameraNear = camera.NearPlane,
+            CameraFar = camera.FarPlane,
+            CameraFovAngleVer = float.DegreesToRadians(camera.Fov),
+            CameraAspectRatio = camera.AspectRatio,
+            Reset = args.ResetHistory
+        };
     }
 
-    public TimelineValue GenerateFrame(TimelineValue rendered)
+    public (Texture Frame, Texture? GeneratedFrame) Composite(CommandBuffer commandBuffer, Texture color, Texture? generatedColor)
     {
-        if (pendingComposite is not PassArgs args)
+        PassArgs args = compositeArgs with
         {
-            return rendered;
-        }
+            Color = color,
+            GeneratedColor = generatedColor
+        };
 
-        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
-
-        frameGeneration.Dispatch(commandBuffer);
         composite.Record(commandBuffer, in args);
 
-        pendingComposite = null;
+        return (args.BackBuffer, generatedColor is not null ? args.GeneratedFrame : null);
+    }
 
-        return commandBuffer.Submit(rendered);
+    public void ResetHistory()
+    {
+        hasHistory = false;
     }
 
     public void Resize(uint width, uint height)
@@ -162,7 +155,7 @@ internal class Renderer : DisposableObject
         uint renderWidth = width;
         uint renderHeight = height;
 
-        if (RayReconstruction is DLSSMode mode && DLSSCapabilities?.RayReconstructionSupported is true)
+        if (RayReconstruction is DLSSMode mode && App.DLSSCapabilities?.RayReconstructionSupported is true)
         {
             DLSSOptimalSettings settings = App.Context.GetDLSSRayReconstructionOptimalSettings(width, height, mode);
 
@@ -182,14 +175,12 @@ internal class Renderer : DisposableObject
         rayReconstruction.Resize(renderWidth, renderHeight, width, height);
         tonemap.Resize(renderWidth, renderHeight, width, height);
         composite.Resize(renderWidth, renderHeight, width, height);
-        frameGeneration.Resize(renderWidth, renderHeight, width, height);
 
-        history = false;
+        hasHistory = false;
     }
 
     protected override void Destroy()
     {
-        frameGeneration.Dispose();
         composite.Dispose();
         tonemap.Dispose();
         rayReconstruction.Dispose();

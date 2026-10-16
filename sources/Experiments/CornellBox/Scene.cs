@@ -16,18 +16,18 @@ internal unsafe class Scene : DisposableObject
     private readonly Instance[] instances;
     private readonly RayTracingInstance[] rayTracingInstances;
 
-    private float time;
+    private float elapsedSeconds;
 
     public Scene()
     {
         CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials, out Mesh[] meshes);
 
-        vertexBuffer = CreateBuffer(vertices);
-        indexBuffer = CreateBuffer(indices);
-        materialBuffer = CreateBuffer(materials);
+        vertexBuffer = CreateBuffer<Vertex>(vertices);
+        indexBuffer = CreateBuffer<uint>(indices);
+        materialBuffer = CreateBuffer<Material>(materials);
 
         Span<Matrix4x4> transforms = stackalloc Matrix4x4[meshes.Length];
-        Transforms(time, transforms);
+        WriteTransforms(elapsedSeconds, transforms);
 
         instances = new Instance[meshes.Length];
 
@@ -91,7 +91,7 @@ internal unsafe class Scene : DisposableObject
             };
         }
 
-        topLevel = commandBuffer.BuildAccelerationStructure(TopLevelDesc());
+        topLevel = commandBuffer.BuildAccelerationStructure(CreateTopLevelDesc());
 
         commandBuffer.Submit().Wait();
     }
@@ -106,12 +106,12 @@ internal unsafe class Scene : DisposableObject
 
     public ResourceHandle Instances => instanceBuffer.StorageReadOnlyHandle;
 
-    public void Update(CommandBuffer commandBuffer, double delta)
+    public void Update(CommandBuffer commandBuffer, double deltaSeconds)
     {
-        time += (float)delta;
+        elapsedSeconds += (float)deltaSeconds;
 
         Span<Matrix4x4> transforms = stackalloc Matrix4x4[instances.Length];
-        Transforms(time, transforms);
+        WriteTransforms(elapsedSeconds, transforms);
 
         for (int i = 0; i < instances.Length; i++)
         {
@@ -129,16 +129,16 @@ internal unsafe class Scene : DisposableObject
             });
         }
 
-        commandBuffer.UpdateAccelerationStructure(topLevel, TopLevelDesc());
+        commandBuffer.UpdateAccelerationStructure(topLevel, CreateTopLevelDesc());
     }
 
     protected override void Destroy()
     {
         topLevel.Dispose();
 
-        foreach (BottomLevelAccelerationStructure bottomLevel in bottomLevels)
+        for (int i = bottomLevels.Length - 1; i >= 0; i--)
         {
-            bottomLevel.Dispose();
+            bottomLevels[i].Dispose();
         }
 
         instanceBuffer.Dispose();
@@ -147,7 +147,7 @@ internal unsafe class Scene : DisposableObject
         vertexBuffer.Dispose();
     }
 
-    private TopLevelAccelerationStructureDesc TopLevelDesc()
+    private TopLevelAccelerationStructureDesc CreateTopLevelDesc()
     {
         return new()
         {
@@ -156,13 +156,13 @@ internal unsafe class Scene : DisposableObject
         };
     }
 
-    private static void Transforms(float time, Span<Matrix4x4> transforms)
+    private static void WriteTransforms(float elapsedSeconds, Span<Matrix4x4> transforms)
     {
-        Vector3 sphere = new(425.0f + (75.0f * MathF.Cos(0.8f * time)), 45.0f, 125.0f + (70.0f * MathF.Sin(0.8f * time)));
+        Vector3 sphere = new(425.0f + (75.0f * MathF.Cos(0.8f * elapsedSeconds)), 45.0f, 125.0f + (70.0f * MathF.Sin(0.8f * elapsedSeconds)));
 
-        Matrix4x4 outer = Matrix4x4.CreateRotationY(0.6f * time);
-        Matrix4x4 middle = Matrix4x4.CreateRotationX(1.0f * time) * outer;
-        Matrix4x4 inner = Matrix4x4.CreateRotationY(1.6f * time) * middle;
+        Matrix4x4 outer = Matrix4x4.CreateRotationY(0.6f * elapsedSeconds);
+        Matrix4x4 middle = Matrix4x4.CreateRotationX(1.0f * elapsedSeconds) * outer;
+        Matrix4x4 inner = Matrix4x4.CreateRotationY(1.6f * elapsedSeconds) * middle;
         Matrix4x4 gyroscope = Matrix4x4.CreateTranslation(185.5f, 350.0f, 169.0f);
 
         transforms[0] = Matrix4x4.Identity;
@@ -172,7 +172,7 @@ internal unsafe class Scene : DisposableObject
         transforms[4] = inner * gyroscope;
     }
 
-    private static Buffer CreateBuffer<T>(T[] data) where T : unmanaged
+    private static Buffer CreateBuffer<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
         Buffer buffer = App.Context.CreateBuffer(new()
         {

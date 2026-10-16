@@ -28,7 +28,7 @@ internal readonly struct PassArgs
 
     public Texture BackBuffer { get; init; }
 
-    public Texture GeneratedFrame { get; init; }
+    public Texture? GeneratedFrame { get; init; }
 
     public Texture? GeneratedColor { get; init; }
 
@@ -44,23 +44,7 @@ internal readonly struct PassArgs
 
     public Matrix4x4 PreviousViewProjection { get; init; }
 
-    public Matrix4x4 ClipToPrevClip { get; init; }
-
     public Vector3 CameraPosition { get; init; }
-
-    public Vector3 CameraUp { get; init; }
-
-    public Vector3 CameraRight { get; init; }
-
-    public Vector3 CameraForward { get; init; }
-
-    public float CameraNear { get; init; }
-
-    public float CameraFar { get; init; }
-
-    public float CameraFovAngleVer { get; init; }
-
-    public float CameraAspectRatio { get; init; }
 
     public Vector2 Jitter { get; init; }
 
@@ -70,5 +54,5 @@ internal readonly struct PassArgs
 
     public DLSSMode? RayReconstruction { get; init; }
 
-    public bool FrameGeneration { get; init; }
+    public bool ResetHistory { get; init; }
 }

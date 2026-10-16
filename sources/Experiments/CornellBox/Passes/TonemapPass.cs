@@ -11,7 +11,7 @@ internal unsafe class TonemapPass(uint renderWidth, uint renderHeight, uint disp
     private Buffer buffer = null!;
     private Sampler sampler = null!;
     private ComputePipeline pipeline = null!;
-    private bool resourcesInitialized;
+    private bool isInitialized;
 
     public Texture Color { get; private set; } = null!;
 
@@ -46,13 +46,13 @@ internal unsafe class TonemapPass(uint renderWidth, uint renderHeight, uint disp
             SizeInBytes = (uint)sizeof(Constants)
         });
 
-        commandBuffer.Transition(Color, default, resourcesInitialized ? TextureLayout.Sampled : TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Color, default, isInitialized ? TextureLayout.Sampled : TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
         commandBuffer.Dispatch((DisplayWidth + 7) / 8, (DisplayHeight + 7) / 8, 1);
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        resourcesInitialized = true;
+        isInitialized = true;
     }
 
     protected override void ResizeImpl()
@@ -65,7 +65,7 @@ internal unsafe class TonemapPass(uint renderWidth, uint renderHeight, uint disp
         Color.Dispose();
         Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
 
-        resourcesInitialized = false;
+        isInitialized = false;
     }
 
     protected override void Destroy()

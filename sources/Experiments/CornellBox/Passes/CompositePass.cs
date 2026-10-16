@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using CornellBox.Helpers;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -14,7 +15,7 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
     {
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Composite.slang"), "CSMain"));
 
-        buffers = new Buffer[App.SlotCount];
+        buffers = new Buffer[FramePresenter.FrameCount];
 
         for (int i = 0; i < buffers.Length; i++)
         {
@@ -39,7 +40,7 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
             GeneratedColor = args.GeneratedColor?.SampledHandle ?? default,
             UI = args.UI.SampledHandle,
             Output = args.BackBuffer.StorageHandle,
-            GeneratedOutput = args.GeneratedColor is not null ? args.GeneratedFrame.StorageHandle : default
+            GeneratedOutput = args.GeneratedColor is not null ? args.GeneratedFrame!.StorageHandle : default
         };
 
         Buffer buffer = buffers[args.Slot];
@@ -54,7 +55,7 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
 
         if (args.GeneratedColor is not null)
         {
-            commandBuffer.Transition(args.GeneratedFrame, default, TextureLayout.Undefined, TextureLayout.Storage);
+            commandBuffer.Transition(args.GeneratedFrame!, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
         commandBuffer.SetPipeline(pipeline);
@@ -64,7 +65,7 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
 
         if (args.GeneratedColor is not null)
         {
-            commandBuffer.Transition(args.GeneratedFrame, default, TextureLayout.Storage, TextureLayout.CopySrc);
+            commandBuffer.Transition(args.GeneratedFrame!, default, TextureLayout.Storage, TextureLayout.CopySrc);
         }
     }
 
@@ -76,9 +77,9 @@ internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint di
     {
         pipeline.Dispose();
 
-        foreach (Buffer buffer in buffers)
+        for (int i = buffers.Length - 1; i >= 0; i--)
         {
-            buffer.Dispose();
+            buffers[i].Dispose();
         }
     }
 }

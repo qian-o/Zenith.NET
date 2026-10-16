@@ -8,7 +8,7 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
 {
     private DLSSRayReconstruction? rayReconstruction;
     private Texture output = null!;
-    private bool history;
+    private bool hasHistory;
 
     public Texture Color { get; private set; } = null!;
 
@@ -21,29 +21,27 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
     {
         if (args.RayReconstruction is not DLSSMode mode)
         {
-            history = false;
+            hasHistory = false;
             Color = args.Color;
 
             return;
         }
 
-        DLSSRayReconstructionDesc desc = new()
+        if (rayReconstruction is null || rayReconstruction.Desc.Mode != mode)
         {
-            InputWidth = RenderWidth,
-            InputHeight = RenderHeight,
-            OutputWidth = DisplayWidth,
-            OutputHeight = DisplayHeight,
-            Mode = mode,
-            Flags = DLSSRayReconstructionFlags.None
-        };
+            rayReconstruction?.Dispose();
+            rayReconstruction = null;
+            rayReconstruction = App.Context.CreateDLSSRayReconstruction(new()
+            {
+                InputWidth = RenderWidth,
+                InputHeight = RenderHeight,
+                OutputWidth = DisplayWidth,
+                OutputHeight = DisplayHeight,
+                Mode = mode,
+                Flags = DLSSRayReconstructionFlags.None
+            });
 
-        if (rayReconstruction is null || !rayReconstruction.Desc.Equals(desc))
-        {
-            DLSSRayReconstruction? previous = rayReconstruction;
-            rayReconstruction = App.Context.CreateDLSSRayReconstruction(desc);
-            previous?.Dispose();
-
-            history = false;
+            hasHistory = false;
         }
 
         commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
@@ -63,27 +61,29 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
             MotionVectorScale = new(-0.5f * RenderWidth, 0.5f * RenderHeight),
             WorldToView = args.View,
             ViewToClip = args.Projection,
-            Reset = !history
+            Reset = !hasHistory || args.ResetHistory
         });
 
         commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        history = true;
+        hasHistory = true;
         Color = output;
     }
 
     protected override void ResizeImpl()
     {
+        rayReconstruction?.Dispose();
+        rayReconstruction = null;
         output.Dispose();
         output = CreateOutput();
 
-        history = false;
+        hasHistory = false;
     }
 
     protected override void Destroy()
     {
-        output?.Dispose();
         rayReconstruction?.Dispose();
+        output?.Dispose();
     }
 
     private Texture CreateOutput()

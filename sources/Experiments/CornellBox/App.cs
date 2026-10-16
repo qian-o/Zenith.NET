@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Hexa.NET.ImGui;
@@ -15,9 +16,8 @@ namespace CornellBox;
 
 internal static class App
 {
-    public const int SlotCount = 3;
-
-    private static readonly DLSSMode?[] rayReconstructionModes =
+    private static readonly int FramerateTextSizeInBytes = "FPS: ".Length + double.MaxValue.ToString("F1", CultureInfo.InvariantCulture).Length + 1;
+    private static readonly DLSSMode?[] RayReconstructionModes =
     [
         null,
         DLSSMode.DLAA,
@@ -33,11 +33,10 @@ internal static class App
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-    private static readonly Texture[] uiTextures = new Texture[SlotCount];
-    private static readonly Texture[] backBuffers = new Texture[SlotCount];
-    private static readonly Texture[] generatedFrames = new Texture[SlotCount];
+    private static readonly Texture[] uiTextures = new Texture[FramePresenter.FrameCount];
+    private static readonly Texture[] backBuffers = new Texture[FramePresenter.FrameCount];
 
-    private static int slot;
+    private static Texture[] generatedFrames = [];
 
     static App()
     {
@@ -59,7 +58,7 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
         if (!Context.Capabilities.RayTracingSupported)
         {
@@ -90,6 +89,7 @@ internal static class App
                     Directory.CreateDirectory(dataPath);
 
                     Context.InitializeDLSS(dataPath);
+                    DLSSCapabilities = Context.DLSSCapabilities;
                 }
                 break;
         }
@@ -115,8 +115,6 @@ internal static class App
             UsePresentQueue = true
         });
 
-        presenter = new(swapChain, SlotCount);
-
         camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
             FarPlane = 2000.0f,
@@ -126,9 +124,13 @@ internal static class App
         renderer = new();
 
         CreateTargets();
+
+        presenter = new(swapChain, renderer.Composite);
     }
 
     public static GraphicsContext Context { get; }
+
+    public static DLSSCapabilities? DLSSCapabilities { get; }
 
     public static uint Width => (uint)window.FramebufferSize.X;
 
@@ -138,75 +140,95 @@ internal static class App
 
     public static void Run()
     {
-        window.Update += static delta =>
+        window.Update += static deltaSeconds =>
         {
             if (Width is 0 || Height is 0)
             {
+                renderer.ResetHistory();
+
                 return;
             }
 
             uint width = (uint)(Width / DpiScale.X);
             uint height = (uint)(Height / DpiScale.Y);
 
-            camera.Update(delta, width, height);
+            camera.Update(deltaSeconds, width, height);
 
-            Context.BeginImGuiFrame(delta, width, height);
+            Context.BeginImGuiFrame(deltaSeconds, width, height);
 
             ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
-                ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-                ImGui.Text($"FPS: {presenter.Framerate:F1}");
+                ImGui.Text("GraphicsApi:");
+                ImGui.SameLine();
+                ImGui.Text(Enum.GetName(Context.GraphicsApi)!);
+
+                Span<byte> framerateText = stackalloc byte[FramerateTextSizeInBytes];
+                "FPS: "u8.CopyTo(framerateText);
+
+                presenter.Framerate.TryFormat(framerateText["FPS: "u8.Length..^1], out int written, "F1", CultureInfo.InvariantCulture);
+                framerateText["FPS: "u8.Length + written] = 0;
+
+                ImGui.TextUnformatted(framerateText);
             });
 
             ImGuiHelper.Settings(static () =>
             {
                 ImGui.SeparatorText("Scene");
 
-                bool paused = renderer.IsPaused;
-                if (ImGui.Checkbox("Pause", ref paused))
+                bool isPaused = renderer.IsPaused;
+                if (ImGui.Checkbox("Pause", ref isPaused))
                 {
-                    renderer.IsPaused = paused;
+                    renderer.IsPaused = isPaused;
                 }
 
                 ImGui.SeparatorText("DLSS");
 
-                DLSSCapabilities? capabilities = renderer.DLSSCapabilities;
-
-                ImGui.BeginDisabled(capabilities?.RayReconstructionSupported is not true);
+                ImGui.BeginDisabled(DLSSCapabilities?.RayReconstructionSupported is not true);
                 ImGui.SetNextItemWidth(ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f));
 
-                int rayReconstruction = Array.IndexOf(rayReconstructionModes, renderer.RayReconstruction);
+                int rayReconstruction = Array.IndexOf(RayReconstructionModes, renderer.RayReconstruction);
                 if (ImGui.Combo("Ray Reconstruction", ref rayReconstruction, "Off\0DLAA\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
                 {
-                    renderer.RayReconstruction = rayReconstructionModes[rayReconstruction];
+                    renderer.RayReconstruction = RayReconstructionModes[rayReconstruction];
 
-                    presenter.Drain();
+                    presenter.WaitIdle();
                     renderer.Resize(Width, Height);
                 }
 
                 ImGui.EndDisabled();
 
-                ImGui.BeginDisabled(capabilities?.FrameGenerationSupported is not true);
+                ImGui.BeginDisabled(DLSSCapabilities?.FrameGenerationSupported is not true);
 
-                bool frameGeneration = renderer.IsFrameGenerationEnabled;
-                if (ImGui.Checkbox("Frame Generation", ref frameGeneration))
+                bool isFrameGenerationEnabled = presenter.IsFrameGenerationEnabled;
+                if (ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled))
                 {
-                    renderer.IsFrameGenerationEnabled = frameGeneration;
+                    presenter.WaitIdle();
+
+                    if (isFrameGenerationEnabled)
+                    {
+                        CreateGeneratedTargets();
+                    }
+                    else
+                    {
+                        DestroyGeneratedTargets();
+                    }
+
+                    presenter.IsFrameGenerationEnabled = isFrameGenerationEnabled;
                 }
 
                 ImGui.EndDisabled();
             });
         };
 
-        window.Render += static delta =>
+        window.Render += static deltaSeconds =>
         {
             if (Width is 0 || Height is 0)
             {
                 return;
             }
 
-            presenter.Wait(slot);
+            int slot = presenter.BeginFrame();
 
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -214,16 +236,17 @@ internal static class App
             Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(uiTextures[slot], default));
             commandBuffer.Transition(uiTextures[slot], default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 
-            renderer.Render(commandBuffer, camera, delta, slot, uiTextures[slot], backBuffers[slot], generatedFrames[slot]);
+            Texture? generatedFrame = presenter.IsFrameGenerationEnabled ? generatedFrames[slot] : null;
+            DLSSFrameGenerationArgs args = renderer.Render(commandBuffer, camera, deltaSeconds, slot, uiTextures[slot], backBuffers[slot], generatedFrame);
 
-            TimelineValue value = commandBuffer.Submit();
-            TimelineValue presentable = renderer.GenerateFrame(value);
-
-            value.Wait();
-
-            presenter.Present(slot, backBuffers[slot], renderer.IsFrameGenerated ? generatedFrames[slot] : null, presentable);
-
-            slot = (slot + 1) % SlotCount;
+            if (presenter.IsFrameGenerationEnabled)
+            {
+                presenter.EndFrame(commandBuffer, args);
+            }
+            else
+            {
+                presenter.EndFrame(commandBuffer, args.Color);
+            }
         };
 
         window.Resize += static _ =>
@@ -233,12 +256,17 @@ internal static class App
                 return;
             }
 
-            presenter.Drain();
+            presenter.WaitIdle();
 
             swapChain.Resize(Width, Height);
 
             DestroyTargets();
             CreateTargets();
+
+            if (presenter.IsFrameGenerationEnabled)
+            {
+                CreateGeneratedTargets();
+            }
 
             renderer.Resize(Width, Height);
         };
@@ -250,8 +278,8 @@ internal static class App
         DestroyTargets();
 
         renderer.Dispose();
-        imGui.Dispose();
         swapChain.Dispose();
+        imGui.Dispose();
         input.Dispose();
         window.Dispose();
 
@@ -260,7 +288,7 @@ internal static class App
 
     private static void CreateTargets()
     {
-        for (int i = 0; i < SlotCount; i++)
+        for (int i = 0; i < FramePresenter.FrameCount; i++)
         {
             uiTextures[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
             {
@@ -271,21 +299,39 @@ internal static class App
             {
                 Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc
             });
-
-            generatedFrames[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
-            {
-                Usages = TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst
-            });
         }
     }
 
     private static void DestroyTargets()
     {
-        for (int i = 0; i < SlotCount; i++)
+        DestroyGeneratedTargets();
+
+        for (int i = FramePresenter.FrameCount - 1; i >= 0; i--)
         {
-            generatedFrames[i].Dispose();
             backBuffers[i].Dispose();
             uiTextures[i].Dispose();
         }
+    }
+
+    private static void CreateGeneratedTargets()
+    {
+        generatedFrames = new Texture[FramePresenter.FrameCount];
+
+        for (int i = 0; i < generatedFrames.Length; i++)
+        {
+            generatedFrames[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+            {
+                Usages = TextureUsages.Storage | TextureUsages.TransferSrc
+            });
+        }
+    }
+
+    private static void DestroyGeneratedTargets()
+    {
+        for (int i = generatedFrames.Length - 1; i >= 0; i--)
+        {
+            generatedFrames[i].Dispose();
+        }
+        generatedFrames = [];
     }
 }

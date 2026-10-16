@@ -51,38 +51,38 @@ internal class CameraHandler
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double delta, uint width, uint height)
+    public void Update(double deltaSeconds, uint width, uint height)
     {
         Size = new(width, height);
 
         if (keyDowns.Contains(Key.W))
         {
-            Position += Forward * Speed * (float)delta;
+            Position += Forward * Speed * (float)deltaSeconds;
         }
 
         if (keyDowns.Contains(Key.S))
         {
-            Position -= Forward * Speed * (float)delta;
+            Position -= Forward * Speed * (float)deltaSeconds;
         }
 
         if (keyDowns.Contains(Key.A))
         {
-            Position -= Right * Speed * (float)delta;
+            Position -= Right * Speed * (float)deltaSeconds;
         }
 
         if (keyDowns.Contains(Key.D))
         {
-            Position += Right * Speed * (float)delta;
+            Position += Right * Speed * (float)deltaSeconds;
         }
 
         if (keyDowns.Contains(Key.Q))
         {
-            Position -= Up * Speed * (float)delta;
+            Position -= Up * Speed * (float)deltaSeconds;
         }
 
         if (keyDowns.Contains(Key.E))
         {
-            Position += Up * Speed * (float)delta;
+            Position += Up * Speed * (float)deltaSeconds;
         }
     }
 
@@ -111,10 +111,10 @@ internal class CameraHandler
             float pixelToRadianX = MathF.PI / Size.X;
             float pixelToRadianY = MathF.PI / Size.Y;
 
-            Vector2 delta = mouse.Position - lastMousePosition.Value;
+            Vector2 deltaPixels = mouse.Position - lastMousePosition.Value;
 
-            float yaw = -(delta.X * pixelToRadianX);
-            float pitch = -(delta.Y * pixelToRadianY);
+            float yaw = -(deltaPixels.X * pixelToRadianX);
+            float pitch = -(deltaPixels.Y * pixelToRadianY);
 
             float newPitch = MathF.Asin(Forward.Y) + pitch;
 

@@ -124,9 +124,9 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
 
     private void DestroyTextures()
     {
-        foreach (Texture output in outputs)
+        for (int i = outputs.Length - 1; i >= 0; i--)
         {
-            output.Dispose();
+            outputs[i].Dispose();
         }
     }
 }
