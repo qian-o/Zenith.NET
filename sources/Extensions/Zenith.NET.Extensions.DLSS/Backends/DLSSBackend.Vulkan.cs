@@ -150,10 +150,10 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = GetVulkanResource(args.Color) with { ReadWrite = false };
-        NGXResourceVK depth = GetVulkanResource(args.Depth) with { ReadWrite = false };
-        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors) with { ReadWrite = false };
-        NGXResourceVK output = GetVulkanResource(args.Output) with { ReadWrite = true };
+        NGXResourceVK color = EnsureVulkanResource(args.Color) with { ReadWrite = false };
+        NGXResourceVK depth = EnsureVulkanResource(args.Depth) with { ReadWrite = false };
+        NGXResourceVK motionVectors = EnsureVulkanResource(args.MotionVectors) with { ReadWrite = false };
+        NGXResourceVK output = EnsureVulkanResource(args.Output) with { ReadWrite = true };
 
         NGXVKDLSSEvalParams evalParams = new()
         {
@@ -181,7 +181,7 @@ internal unsafe partial class DLSSBackend
 
         if (args.Exposure is not null)
         {
-            exposure = GetVulkanResource(args.Exposure) with { ReadWrite = false };
+            exposure = EnsureVulkanResource(args.Exposure) with { ReadWrite = false };
             evalParams.ExposureTexture = &exposure;
         }
 
@@ -192,15 +192,15 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = GetVulkanResource(args.Color) with { ReadWrite = false };
-        NGXResourceVK depth = GetVulkanResource(args.Depth) with { ReadWrite = false };
-        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors) with { ReadWrite = false };
-        NGXResourceVK diffuseAlbedo = GetVulkanResource(args.DiffuseAlbedo) with { ReadWrite = false };
-        NGXResourceVK specularAlbedo = GetVulkanResource(args.SpecularAlbedo) with { ReadWrite = false };
-        NGXResourceVK normals = GetVulkanResource(args.Normals) with { ReadWrite = false };
-        NGXResourceVK roughness = GetVulkanResource(args.Roughness) with { ReadWrite = false };
-        NGXResourceVK specularHitDistance = GetVulkanResource(args.SpecularHitDistance) with { ReadWrite = false };
-        NGXResourceVK output = GetVulkanResource(args.Output) with { ReadWrite = true };
+        NGXResourceVK color = EnsureVulkanResource(args.Color) with { ReadWrite = false };
+        NGXResourceVK depth = EnsureVulkanResource(args.Depth) with { ReadWrite = false };
+        NGXResourceVK motionVectors = EnsureVulkanResource(args.MotionVectors) with { ReadWrite = false };
+        NGXResourceVK diffuseAlbedo = EnsureVulkanResource(args.DiffuseAlbedo) with { ReadWrite = false };
+        NGXResourceVK specularAlbedo = EnsureVulkanResource(args.SpecularAlbedo) with { ReadWrite = false };
+        NGXResourceVK normals = EnsureVulkanResource(args.Normals) with { ReadWrite = false };
+        NGXResourceVK roughness = EnsureVulkanResource(args.Roughness) with { ReadWrite = false };
+        NGXResourceVK specularHitDistance = EnsureVulkanResource(args.SpecularHitDistance) with { ReadWrite = false };
+        NGXResourceVK output = EnsureVulkanResource(args.Output) with { ReadWrite = true };
 
         NGXVKDLSSDEvalParams evalParams = new()
         {
@@ -231,7 +231,7 @@ internal unsafe partial class DLSSBackend
         NGXResourceVK transparencyLayer;
         if (args.TransparencyLayer is not null)
         {
-            transparencyLayer = GetVulkanResource(args.TransparencyLayer) with { ReadWrite = false };
+            transparencyLayer = EnsureVulkanResource(args.TransparencyLayer) with { ReadWrite = false };
 
             evalParams.TransparencyLayer = &transparencyLayer;
         }
@@ -243,10 +243,10 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = GetVulkanResource(args.Color) with { ReadWrite = false };
-        NGXResourceVK depth = GetVulkanResource(args.Depth) with { ReadWrite = false };
-        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors) with { ReadWrite = false };
-        NGXResourceVK output = GetVulkanResource(args.Output) with { ReadWrite = true };
+        NGXResourceVK color = EnsureVulkanResource(args.Color) with { ReadWrite = false };
+        NGXResourceVK depth = EnsureVulkanResource(args.Depth) with { ReadWrite = false };
+        NGXResourceVK motionVectors = EnsureVulkanResource(args.MotionVectors) with { ReadWrite = false };
+        NGXResourceVK output = EnsureVulkanResource(args.Output) with { ReadWrite = true };
 
         NGXVKDLSSGEvalParams evalParams = new()
         {
@@ -287,7 +287,7 @@ internal unsafe partial class DLSSBackend
         }
     }
 
-    private NGXResourceVK GetVulkanResource(Texture texture)
+    private NGXResourceVK EnsureVulkanResource(Texture texture)
     {
         nint image = texture.GetNativeObject(NativeObjectType.VulkanImage);
 
