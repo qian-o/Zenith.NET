@@ -11,9 +11,9 @@ public static class Extensions
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!backends.TryGetValue(context, out SkiaBackend? backend))
+            if (!backends.ContainsKey(context))
             {
-                backends[context] = backend = new(context);
+                backends[context] = new(context);
 
                 context.Disposing += static (sender, _) =>
                 {

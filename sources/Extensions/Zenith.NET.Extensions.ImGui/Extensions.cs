@@ -13,9 +13,9 @@ public static class Extensions
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!backends.TryGetValue(context, out ImGuiBackend? backend))
+            if (!backends.ContainsKey(context))
             {
-                backends[context] = backend = new(context, platform, attachmentFormats, colorSpace);
+                backends[context] = new(context, platform, attachmentFormats, colorSpace);
 
                 context.Disposing += static (sender, _) =>
                 {
