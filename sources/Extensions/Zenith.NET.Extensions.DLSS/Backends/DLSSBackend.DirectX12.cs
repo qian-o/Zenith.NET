@@ -104,8 +104,12 @@ internal unsafe partial class DLSSBackend
         Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
     }
 
-    private static DLSSBinding CreateDirectX12Binding(Texture texture, NGXDimensions size)
+    private static DLSSBinding CreateDirectX12Binding(Texture texture)
     {
-        return new(texture.GetNativeObject(NativeObjectType.D3D12Resource), default, size);
+        return new(texture.GetNativeObject(NativeObjectType.D3D12Resource), default, new()
+        {
+            Width = texture.Desc.Width,
+            Height = texture.Desc.Height
+        });
     }
 }

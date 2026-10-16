@@ -14,9 +14,9 @@ public static class Extensions
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!backends.TryGetValue(context, out DLSSBackend? backend))
+            if (!backends.ContainsKey(context))
             {
-                backends[context] = backend = new(context, dataPath);
+                backends[context] = new(context, dataPath);
 
                 context.Disposing += static (sender, _) =>
                 {

@@ -251,7 +251,7 @@ internal unsafe partial class DLSSBackend
         Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
     }
 
-    private DLSSBinding CreateVulkanBinding(Texture texture, NGXDimensions size)
+    private DLSSBinding CreateVulkanBinding(Texture texture)
     {
         (uint format, uint aspectFlags) = DLSSFormats.Vulkan(texture.Desc.Format);
 
@@ -286,14 +286,18 @@ internal unsafe partial class DLSSBackend
                     Image = image,
                     SubresourceRange = subresourceRange,
                     Format = (NGXVkFormat)format,
-                    Width = size.Width,
-                    Height = size.Height
+                    Width = texture.Desc.Width,
+                    Height = texture.Desc.Height
                 }
             },
             Type = NGXResourceVKType.VkImageView
         };
 
-        return new(default, vulkan, size);
+        return new(default, vulkan, new()
+        {
+            Width = texture.Desc.Width,
+            Height = texture.Desc.Height
+        });
     }
 
     private void DestroyVulkanBinding(DLSSBinding binding)

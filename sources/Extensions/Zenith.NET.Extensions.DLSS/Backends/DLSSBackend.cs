@@ -131,7 +131,10 @@ internal unsafe partial class DLSSBackend : DisposableObject
                 break;
         }
 
-        SetUI(parameters, Ngx.ParameterFreeMemOnReleaseFeature, 1);
+        fixed (byte* name = Ngx.ParameterFreeMemOnReleaseFeature)
+        {
+            Ngx.Parameter.SetUI(parameters, name, 1);
+        }
 
         return parameters;
     }
@@ -319,24 +322,18 @@ internal unsafe partial class DLSSBackend : DisposableObject
     {
         if (!bindings.TryGetValue(texture, out DLSSBinding binding))
         {
-            NGXDimensions size = new()
-            {
-                Width = texture.Desc.Width,
-                Height = texture.Desc.Height
-            };
-
             bindings[texture] = binding = Context.GraphicsApi switch
             {
-                GraphicsApi.DirectX12 => CreateDirectX12Binding(texture, size),
-                GraphicsApi.Vulkan => CreateVulkanBinding(texture, size),
+                GraphicsApi.DirectX12 => CreateDirectX12Binding(texture),
+                GraphicsApi.Vulkan => CreateVulkanBinding(texture),
                 _ => default
             };
 
             texture.Disposing += (sender, _) =>
             {
-                if (bindings.Remove((Texture)sender!, out DLSSBinding disposedBinding) && Context.GraphicsApi is GraphicsApi.Vulkan)
+                if (bindings.Remove((Texture)sender!, out DLSSBinding disposedBinding))
                 {
-                    DestroyVulkanBinding(disposedBinding);
+                    DestroyBinding(disposedBinding);
                 }
             };
         }
@@ -346,12 +343,9 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     protected override void Destroy()
     {
-        if (Context.GraphicsApi is GraphicsApi.Vulkan)
+        foreach (DLSSBinding binding in bindings.Values)
         {
-            foreach (DLSSBinding binding in bindings.Values)
-            {
-                DestroyVulkanBinding(binding);
-            }
+            DestroyBinding(binding);
         }
 
         DestroyParameters(parameters);
@@ -370,11 +364,13 @@ internal unsafe partial class DLSSBackend : DisposableObject
         bindings.Clear();
     }
 
-    private void SetUI(NGXParameter parameters, ReadOnlySpan<byte> name, uint value)
+    private void DestroyBinding(DLSSBinding binding)
     {
-        fixed (byte* pointer = name)
+        switch (Context.GraphicsApi)
         {
-            Ngx.Parameter.SetUI(parameters, pointer, value);
+            case GraphicsApi.Vulkan:
+                DestroyVulkanBinding(binding);
+                break;
         }
     }
 }
