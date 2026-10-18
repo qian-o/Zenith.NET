@@ -14,6 +14,10 @@ public struct DLSSFrameGenerationArgs
 
     public Buffer? OutputDisableInterpolation;
 
+    public uint GeneratedFrameCount;
+
+    public uint GeneratedFrameIndex;
+
     public Vector2 JitterOffset;
 
     public Vector2 MotionVectorScale;

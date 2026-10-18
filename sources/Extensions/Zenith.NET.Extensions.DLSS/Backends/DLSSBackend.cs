@@ -279,6 +279,8 @@ internal unsafe partial class DLSSBackend : DisposableObject
     {
         NGXDLSSGOptEvalParams optEvalParams = new()
         {
+            MultiFrameCount = args.GeneratedFrameCount,
+            MultiFrameIndex = args.GeneratedFrameIndex + 1,
             CameraViewToClip = args.ViewToClip,
             ClipToCameraView = args.ClipToView,
             ClipToLensClip = Matrix4x4.Identity,

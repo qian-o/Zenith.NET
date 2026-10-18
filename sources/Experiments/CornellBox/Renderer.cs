@@ -314,6 +314,8 @@ internal class Renderer : DisposableObject
             MotionVectors = pathTracingPass.MotionVectors,
             Output = generatedColor!,
             OutputDisableInterpolation = disableInterpolation,
+            GeneratedFrameCount = 1,
+            GeneratedFrameIndex = 0,
             JitterOffset = new(2.0f * jitter.X / pathTracingPass.Width, -2.0f * jitter.Y / pathTracingPass.Height),
             MotionVectorScale = new(-0.5f * pathTracingPass.Width, 0.5f * pathTracingPass.Height),
             ViewToClip = projection,
