@@ -18,8 +18,7 @@ internal class Renderer : DisposableObject
     private DLSSRayReconstruction? rayReconstruction;
     private DLSSFrameGeneration? frameGeneration;
     private Texture? reconstructedColor;
-    private Texture? generatedColor;
-    private Buffer? disableInterpolation;
+    private Texture[] generatedColors = [];
     private Matrix4x4 previousViewProjection;
     private uint width;
     private uint height;
@@ -38,6 +37,7 @@ internal class Renderer : DisposableObject
             DLSSCapabilities capabilities = App.Context.DLSSCapabilities;
             RayReconstructionSupported = capabilities.RayReconstructionSupported;
             FrameGenerationSupported = capabilities.FrameGenerationSupported;
+            MaxGeneratedFrameCount = FrameGenerationSupported ? Math.Max(capabilities.MaxGeneratedFrameCount, 1) : 0;
         }
 
         width = App.Width;
@@ -45,26 +45,28 @@ internal class Renderer : DisposableObject
         scene = new();
         pathTracingPass = new(width, height);
         tonemapPass = new(width, height);
-        compositePass = new(width, height);
+        compositePass = new(width, height, MaxGeneratedFrameCount);
     }
 
     public bool RayReconstructionSupported { get; }
 
     public bool FrameGenerationSupported { get; }
 
+    public uint MaxGeneratedFrameCount { get; }
+
     public bool IsPaused { get; set; }
 
     public DLSSMode? RayReconstruction { get; private set; }
 
-    public bool IsFrameGenerationEnabled { get; private set; }
+    public uint GeneratedFrameCount { get; private set; }
 
     public Texture UI => compositePass.UI;
 
     public Texture Color => compositePass.Color;
 
-    public Texture? GeneratedColor => compositePass.GeneratedColor;
+    public Texture[] GeneratedColors => compositePass.GeneratedColors;
 
-    public Buffer? InterpolationStatus { get; private set; }
+    public Buffer? DisableInterpolation { get; private set; }
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
@@ -95,7 +97,7 @@ internal class Renderer : DisposableObject
             Generate(commandBuffer, camera, jitter);
         }
 
-        compositePass.Record(commandBuffer, tonemapPass.Color, generatedColor);
+        compositePass.Record(commandBuffer, tonemapPass.Color, generatedColors);
 
         previousViewProjection = viewProjection;
         hasHistory = true;
@@ -115,20 +117,20 @@ internal class Renderer : DisposableObject
         RecreateRenderResources();
     }
 
-    public void SetFrameGenerationEnabled(bool enabled)
+    public void SetGeneratedFrameCount(uint generatedFrameCount)
     {
-        enabled &= FrameGenerationSupported;
+        generatedFrameCount = Math.Min(generatedFrameCount, MaxGeneratedFrameCount);
 
-        if (IsFrameGenerationEnabled == enabled)
+        if (GeneratedFrameCount == generatedFrameCount)
         {
             return;
         }
 
         DestroyFrameGeneration();
-        compositePass.SetFrameGenerationEnabled(enabled);
-        IsFrameGenerationEnabled = enabled;
+        compositePass.SetGeneratedFrameCount(generatedFrameCount);
+        GeneratedFrameCount = generatedFrameCount;
 
-        if (enabled)
+        if (generatedFrameCount is not 0)
         {
             CreateFrameGeneration();
         }
@@ -199,7 +201,7 @@ internal class Renderer : DisposableObject
             CreateRayReconstruction();
         }
 
-        if (IsFrameGenerationEnabled)
+        if (GeneratedFrameCount is not 0)
         {
             CreateFrameGeneration();
         }
@@ -234,21 +236,17 @@ internal class Renderer : DisposableObject
 
     private void CreateFrameGeneration()
     {
-        generatedColor = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
+        TextureDesc desc = TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-        disableInterpolation = App.Context.CreateBuffer(new()
+        };
+
+        generatedColors = [.. Enumerable.Range(0, (int)GeneratedFrameCount).Select(_ => App.Context.CreateTexture(desc))];
+        DisableInterpolation = App.Context.CreateBuffer(new()
         {
             SizeInBytes = sizeof(uint),
             Usages = BufferUsages.StorageReadWrite | BufferUsages.TransferSrc,
             Residency = MemoryResidency.GpuOnly
-        });
-        InterpolationStatus = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = sizeof(uint),
-            Usages = BufferUsages.TransferDst,
-            Residency = MemoryResidency.CpuReadOnly
         });
         frameGeneration = App.Context.CreateDLSSFrameGeneration(new()
         {
@@ -264,12 +262,15 @@ internal class Renderer : DisposableObject
     {
         frameGeneration?.Dispose();
         frameGeneration = null;
-        InterpolationStatus?.Dispose();
-        InterpolationStatus = null;
-        disableInterpolation?.Dispose();
-        disableInterpolation = null;
-        generatedColor?.Dispose();
-        generatedColor = null;
+        DisableInterpolation?.Dispose();
+        DisableInterpolation = null;
+
+        foreach (Texture generatedColor in generatedColors)
+        {
+            generatedColor.Dispose();
+        }
+
+        generatedColors = [];
     }
 
     private void Reconstruct(CommandBuffer commandBuffer, CameraHandler camera, Vector2 jitter)
@@ -306,16 +307,13 @@ internal class Renderer : DisposableObject
         Matrix4x4 clipToPrevClip = viewProjection == previousViewProjection ? Matrix4x4.Identity : inverseProjection * (inverseView * previousViewProjection);
         Matrix4x4.Invert(clipToPrevClip, out Matrix4x4 prevClipToClip);
 
-        commandBuffer.Transition(generatedColor!, default, TextureLayout.Undefined, TextureLayout.Storage);
-        frameGeneration!.Dispatch(commandBuffer, new()
+        DLSSFrameGenerationArgs args = new()
         {
             Color = tonemapPass.Color,
             Depth = pathTracingPass.Depth,
             MotionVectors = pathTracingPass.MotionVectors,
-            Output = generatedColor!,
-            OutputDisableInterpolation = disableInterpolation,
-            GeneratedFrameCount = 1,
-            GeneratedFrameIndex = 0,
+            OutputDisableInterpolation = DisableInterpolation,
+            GeneratedFrameCount = GeneratedFrameCount,
             JitterOffset = new(2.0f * jitter.X / pathTracingPass.Width, -2.0f * jitter.Y / pathTracingPass.Height),
             MotionVectorScale = new(-0.5f * pathTracingPass.Width, 0.5f * pathTracingPass.Height),
             ViewToClip = projection,
@@ -331,10 +329,16 @@ internal class Renderer : DisposableObject
             CameraFovAngleVer = float.DegreesToRadians(camera.Fov),
             CameraAspectRatio = camera.AspectRatio,
             Reset = !hasHistory
-        });
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.Copy);
-        commandBuffer.CopyBuffer(disableInterpolation!, 0, InterpolationStatus!, 0, sizeof(uint));
-        commandBuffer.Transition(generatedColor!, default, TextureLayout.Storage, TextureLayout.Sampled);
+        };
+
+        for (uint i = 0; i < GeneratedFrameCount; i++)
+        {
+            Texture generatedColor = generatedColors[i];
+
+            commandBuffer.Transition(generatedColor, default, TextureLayout.Undefined, TextureLayout.Storage);
+            frameGeneration!.Dispatch(commandBuffer, args with { Output = generatedColor, GeneratedFrameIndex = i });
+            commandBuffer.Transition(generatedColor, default, TextureLayout.Storage, TextureLayout.Sampled);
+        }
     }
 
     private static float Halton(uint index, uint radix)

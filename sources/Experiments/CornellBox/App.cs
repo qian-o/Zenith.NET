@@ -22,6 +22,7 @@ internal static class App
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
     private static readonly FramePresenter presenter;
+    private static readonly string[] frameGenerationNames;
 
     static App()
     {
@@ -87,6 +88,7 @@ internal static class App
 
         renderer = new();
         presenter = new(Context, surface, PixelFormat.B8G8R8A8UNorm);
+        frameGenerationNames = ["Off", .. Enumerable.Range(2, (int)renderer.MaxGeneratedFrameCount).Select(static multiplier => $"{multiplier}x")];
     }
 
     public static GraphicsContext Context { get; }
@@ -155,7 +157,7 @@ internal static class App
         renderer.Render(commandBuffer, camera, deltaSeconds);
 
         TimelineValue ready = commandBuffer.Submit();
-        presenter.Present(renderer.Color, renderer.GeneratedColor, renderer.InterpolationStatus, [ready]);
+        presenter.Present(renderer.Color, renderer.GeneratedColors, renderer.DisableInterpolation, [ready]);
     }
 
     private static void OnResize(Vector2D<int> size)
@@ -191,6 +193,8 @@ internal static class App
 
         ImGui.SeparatorText("DLSS");
 
+        float comboWidth = ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f);
+
         ImGui.BeginDisabled(!renderer.RayReconstructionSupported);
 
         string rayReconstructionName = renderer.RayReconstruction switch
@@ -203,7 +207,7 @@ internal static class App
             _ => "Off"
         };
 
-        ImGui.SetNextItemWidth(ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f));
+        ImGui.SetNextItemWidth(comboWidth);
 
         if (ImGui.BeginCombo("Ray Reconstruction", rayReconstructionName))
         {
@@ -220,11 +224,16 @@ internal static class App
 
         ImGui.BeginDisabled(!renderer.FrameGenerationSupported);
 
-        bool isFrameGenerationEnabled = renderer.IsFrameGenerationEnabled;
-        if (ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled))
+        ImGui.SetNextItemWidth(comboWidth);
+
+        if (ImGui.BeginCombo("Frame Generation", frameGenerationNames[renderer.GeneratedFrameCount]))
         {
-            presenter.WaitIdle();
-            renderer.SetFrameGenerationEnabled(isFrameGenerationEnabled);
+            for (int i = 0; i < frameGenerationNames.Length; i++)
+            {
+                DrawFrameGenerationMode(frameGenerationNames[i], (uint)i);
+            }
+
+            ImGui.EndCombo();
         }
 
         ImGui.EndDisabled();
@@ -236,8 +245,22 @@ internal static class App
 
         if (ImGui.Selectable(name, isSelected))
         {
-            presenter.WaitIdle();
             renderer.SetRayReconstruction(mode);
+        }
+
+        if (isSelected)
+        {
+            ImGui.SetItemDefaultFocus();
+        }
+    }
+
+    private static void DrawFrameGenerationMode(string name, uint generatedFrameCount)
+    {
+        bool isSelected = renderer.GeneratedFrameCount == generatedFrameCount;
+
+        if (ImGui.Selectable(name, isSelected))
+        {
+            renderer.SetGeneratedFrameCount(generatedFrameCount);
         }
 
         if (isSelected)

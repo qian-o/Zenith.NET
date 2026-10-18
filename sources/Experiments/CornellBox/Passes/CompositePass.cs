@@ -9,7 +9,7 @@ internal unsafe class CompositePass : DisposableObject
     private readonly Buffer buffer;
     private readonly ComputePipeline computePipeline;
 
-    public CompositePass(uint width, uint height)
+    public CompositePass(uint width, uint height, uint maxGeneratedFrameCount)
     {
         Width = width;
         Height = height;
@@ -18,7 +18,7 @@ internal unsafe class CompositePass : DisposableObject
 
         buffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(CompositeConstants),
+            SizeInBytes = (uint)sizeof(CompositeConstants) * (maxGeneratedFrameCount + 1),
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
@@ -36,59 +36,23 @@ internal unsafe class CompositePass : DisposableObject
 
     public Texture Color { get; private set; } = null!;
 
-    public Texture? GeneratedColor { get; private set; }
+    public Texture[] GeneratedColors { get; private set; } = [];
 
-    public void Record(CommandBuffer commandBuffer, Texture color, Texture? generatedColor)
+    public void Record(CommandBuffer commandBuffer, Texture color, ReadOnlySpan<Texture> generatedColors)
     {
-        CompositeConstants constants = new()
+        Composite(commandBuffer, color, Color, 0);
+
+        for (int i = 0; i < generatedColors.Length; i++)
         {
-            Width = Width,
-            Height = Height,
-            Color = color.SampledHandle,
-            GeneratedColor = generatedColor?.SampledHandle ?? default,
-            UI = UI.SampledHandle,
-            Output = Color.StorageHandle,
-            GeneratedOutput = generatedColor is not null ? GeneratedColor!.StorageHandle : default
-        };
-
-        buffer.Upload(0, new()
-        {
-            Pointer = (nint)(&constants),
-            SizeInBytes = (uint)sizeof(CompositeConstants)
-        });
-
-        ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
-        uint depth = generatedColor is not null ? 2u : 1u;
-
-        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
-
-        if (generatedColor is not null)
-        {
-            commandBuffer.Transition(GeneratedColor!, default, TextureLayout.Undefined, TextureLayout.Storage);
-        }
-
-        commandBuffer.SetPipeline(computePipeline);
-        commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, (depth + group.Z - 1) / group.Z);
-        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.CopySrc);
-
-        if (generatedColor is not null)
-        {
-            commandBuffer.Transition(GeneratedColor!, default, TextureLayout.Storage, TextureLayout.CopySrc);
+            Composite(commandBuffer, generatedColors[i], GeneratedColors[i], (uint)i + 1);
         }
     }
 
-    public void SetFrameGenerationEnabled(bool enabled)
+    public void SetGeneratedFrameCount(uint generatedFrameCount)
     {
-        if (enabled)
-        {
-            GeneratedColor ??= CreateTexture();
-        }
-        else
-        {
-            GeneratedColor?.Dispose();
-            GeneratedColor = null;
-        }
+        DestroyGeneratedColors();
+
+        GeneratedColors = [.. Enumerable.Range(0, (int)generatedFrameCount).Select(_ => CreateTexture())];
     }
 
     public void Resize(uint width, uint height)
@@ -98,7 +62,7 @@ internal unsafe class CompositePass : DisposableObject
             return;
         }
 
-        bool isFrameGenerationEnabled = GeneratedColor is not null;
+        uint generatedFrameCount = (uint)GeneratedColors.Length;
 
         DestroyTextures();
 
@@ -106,11 +70,7 @@ internal unsafe class CompositePass : DisposableObject
         Height = height;
 
         CreateTextures();
-
-        if (isFrameGenerationEnabled)
-        {
-            GeneratedColor = CreateTexture();
-        }
+        SetGeneratedFrameCount(generatedFrameCount);
     }
 
     protected override void Destroy()
@@ -118,6 +78,34 @@ internal unsafe class CompositePass : DisposableObject
         DestroyTextures();
         computePipeline?.Dispose();
         buffer?.Dispose();
+    }
+
+    private void Composite(CommandBuffer commandBuffer, Texture input, Texture output, uint index)
+    {
+        uint offsetInBytes = (uint)sizeof(CompositeConstants) * index;
+
+        CompositeConstants constants = new()
+        {
+            Width = Width,
+            Height = Height,
+            Color = input.SampledHandle,
+            UI = UI.SampledHandle,
+            Output = output.StorageHandle
+        };
+
+        buffer.Upload(offsetInBytes, new()
+        {
+            Pointer = (nint)(&constants),
+            SizeInBytes = (uint)sizeof(CompositeConstants)
+        });
+
+        ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+
+        commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.SetPipeline(computePipeline);
+        commandBuffer.SetConstantBuffer(buffer, offsetInBytes);
+        commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
+        commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.CopySrc);
     }
 
     private void CreateTextures()
@@ -137,10 +125,19 @@ internal unsafe class CompositePass : DisposableObject
         });
     }
 
+    private void DestroyGeneratedColors()
+    {
+        foreach (Texture generatedColor in GeneratedColors)
+        {
+            generatedColor.Dispose();
+        }
+
+        GeneratedColors = [];
+    }
+
     private void DestroyTextures()
     {
-        GeneratedColor?.Dispose();
-        GeneratedColor = null;
+        DestroyGeneratedColors();
 
         Color?.Dispose();
         Color = null!;
@@ -150,7 +147,7 @@ internal unsafe class CompositePass : DisposableObject
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 64)]
+[StructLayout(LayoutKind.Explicit, Size = 256)]
 file struct CompositeConstants
 {
     [FieldOffset(0)]
@@ -163,14 +160,8 @@ file struct CompositeConstants
     public ResourceHandle Color;
 
     [FieldOffset(24)]
-    public ResourceHandle GeneratedColor;
-
-    [FieldOffset(32)]
     public ResourceHandle UI;
 
-    [FieldOffset(40)]
+    [FieldOffset(32)]
     public ResourceHandle Output;
-
-    [FieldOffset(48)]
-    public ResourceHandle GeneratedOutput;
 }

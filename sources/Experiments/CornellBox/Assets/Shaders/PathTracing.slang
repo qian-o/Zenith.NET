@@ -9,6 +9,7 @@ static const float RayOffset = 0.01;
 static const float MissDistance = 10000.0;
 static const float PI = 3.14159265;
 static const int MaxBounces = 8;
+static const uint SamplesPerPixel = 4;
 
 struct Vertex
 {
@@ -512,7 +513,7 @@ void WriteSkyGuides(uint2 pixel, float3 direction)
     }
 }
 
-float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
+float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng, bool writeGuides)
 {
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
@@ -533,7 +534,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
 
         if (query.CommittedStatus() == COMMITTED_NOTHING)
         {
-            if (bounce == 0)
+            if (bounce == 0 && writeGuides)
             {
                 WriteSkyGuides(pixel, direction);
             }
@@ -554,7 +555,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
         float roughness = max(surface.Roughness, 0.04);
 
-        if (bounce == 0)
+        if (bounce == 0 && writeGuides)
         {
             WriteGuides(pixel, surface, V, F0);
         }
@@ -663,7 +664,12 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
     float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InverseProjection);
     float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), pathTracing.InverseView).xyz);
-    float3 color = TracePath(pixel, pathTracing.PositionFrame.xyz, direction, seed);
+    float3 color = float3(0.0, 0.0, 0.0);
 
-    pathTracing.Color[pixel] = float4(min(color, float3(30.0)), 1.0);
+    for (uint sampleIndex = 0; sampleIndex < SamplesPerPixel; sampleIndex++)
+    {
+        color += min(TracePath(pixel, pathTracing.PositionFrame.xyz, direction, seed, sampleIndex == 0), float3(30.0));
+    }
+
+    pathTracing.Color[pixel] = float4(color / float(SamplesPerPixel), 1.0);
 }
