@@ -33,7 +33,7 @@ concepts.execution.queues.table.computeQueue.workToRecord: '그래픽스 렌더 
 concepts.execution.queues.table.graphicsQueue.workToRecord: '렌더 패스, 그리기, 컴퓨트 및 전송 작업.'
 concepts.execution.queues.table.headings.queue: 큐
 concepts.execution.queues.table.headings.workToRecord: '지원 작업'
-concepts.execution.queues.table.presentQueue.workToRecord: '그래픽스 큐와 같은 작업. {swapChainDescUsePresentQueue}를 켠 스왑 체인의 출력 텍스처 쓰기와 화면 표시에 사용합니다.'
+concepts.execution.queues.table.presentQueue.workToRecord: '그래픽스 큐와 같은 작업. {swapChainDescIsPresentQueueEnabled}를 {true}로 설정한 스왑 체인의 출력 텍스처 쓰기와 화면 표시에 사용합니다.'
 concepts.execution.queues.table.transferQueue.workToRecord: '업로드, 다운로드 및 복사 작업. 그리기나 컴퓨트 디스패치는 지원하지 않습니다.'
 concepts.execution.queues.title: '큐 선택'
 concepts.execution.recording.context: '큐는 완료된 명령 버퍼를 회수해 재사용합니다. 명령을 기록할 때마다 {queueCommandBuffer}로 버퍼를 가져오고, 한 번에 한 스레드에서 기록한 뒤 한 번만 제출합니다. 제출 후에는 큐가 버퍼를 관리하므로 수정하거나 다시 제출하거나 해제하지 않습니다.'
@@ -79,7 +79,7 @@ concepts.platforms.ownership.details: '렌더링 리소스를 교체하기 전�
 concepts.platforms.ownership.guidance: '공통 {frameSchedulerCs}는 뷰의 UI 디스패처를 통해 프레임 핸들러를 실행합니다. 핸들러에서는 장면 데이터 갱신과 명령 기록에 집중합니다. 여기서 CPU 작업이 오래 걸리면 인터페이스의 응답도 지연됩니다.'
 concepts.platforms.ownership.title: '애플리케이션과 컨트롤의 소유권'
 concepts.platforms.presentQueue.context: '여기서 {rendered}는 {frame}을 {copySrc} 레이아웃으로 남긴 렌더링 제출의 완료 값이고, {extent}는 출력 텍스처의 크기와 같습니다. 대기는 이 복사만 대상으로 하므로, 표시를 담당하는 스레드는 이후에 제출된 렌더링 작업을 기다리지 않습니다.'
-concepts.platforms.presentQueue.description: '기본적으로 스왑 체인은 {graphicsQueue}에서 표시하므로, 각 표시는 그보다 먼저 제출된 렌더링 작업 뒤에 이루어집니다. {swapChainDescUsePresentQueue}를 켜면 스왑 체인은 대신 {presentQueue}에서 표시합니다. 장치에 여분의 큐가 있으면 표시가 더 이상 그래픽스 큐의 렌더링 작업을 기다리지 않으므로, 별도 스레드가 자체 속도로 프레임을 표시할 수 있습니다. 예를 들어 생성된 프레임을 렌더링된 프레임 사이에 끼워 넣을 때 유용합니다.'
+concepts.platforms.presentQueue.description: '기본적으로 스왑 체인은 {graphicsQueue}에서 표시하므로, 각 표시는 그보다 먼저 제출된 렌더링 작업 뒤에 이루어집니다. {swapChainDescIsPresentQueueEnabled}가 {true}이면 스왑 체인은 대신 {presentQueue}에서 표시합니다. 장치에 여분의 큐가 있으면 표시가 더 이상 그래픽스 큐의 렌더링 작업을 기다리지 않으므로, 별도 스레드가 자체 속도로 프레임을 표시할 수 있습니다. 예를 들어 생성된 프레임을 렌더링된 프레임 사이에 끼워 넣을 때 유용합니다.'
 concepts.platforms.presentQueue.details: '{swapChainQueue}는 스왑 체인이 표시에 사용하는 큐를 반환합니다. {swapChainDrawable}에 대한 모든 쓰기는 이 큐의 명령 버퍼에 기록합니다. DirectX 12에서는 스왑 체인 이미지에 쓰는 작업을 그 이미지를 표시하는 큐에서 실행해야 합니다. 이 쓰기 작업은 입력 이미지를 만든 렌더링 작업에 대한 의존 관계와 함께 제출하고, 완료될 때까지 기다린 뒤 표시합니다.'
 concepts.platforms.presentQueue.guidance: '{swapChainPresent}는 {swapChainQueue}만 기다립니다. 렌더링 작업의 리소스를 재사용하거나 해제하기 전에 그 완료를 별도로 추적하고, {swapChainResize}를 호출하거나 스왑 체인을 해제하기 전에 표시를 중단합니다.'
 concepts.platforms.presentQueue.title: '표시 큐 사용'
@@ -99,6 +99,10 @@ concepts.platforms.surface.table.xlib.backend: X11 또는 XWayland를 사용하�
 concepts.platforms.surface.table.xlib.handles: 'X11 디스플레이 및 창'
 concepts.platforms.surface.title: '네이티브 표시 서피스'
 concepts.platforms.title: 플랫폼 통합
+concepts.platforms.verticalSync.description: '수직 동기화를 사용하면 표시가 화면의 수직 귀선 기간, 즉 두 번의 화면 갱신 사이의 간격을 기다립니다. 따라서 각 이미지는 갱신과 갱신 사이에만 이전 이미지를 대체하므로 찢어져 보이지 않고, 프레임 속도도 화면 주사율을 넘지 않습니다. {swapChainDescIsVerticalSyncEnabled}의 기본값은 {false}이며, 이때 {swapChainPresent}는 수직 귀선 기간을 기다리지 않고 표시할 수 있습니다. 그러면 애플리케이션은 주사율보다 빠르게 렌더링할 수 있지만, 한 번의 갱신 동안 두 이미지의 일부가 함께 표시되어 가로 방향의 찢김이 보일 수 있습니다.'
+concepts.platforms.verticalSync.details: '표시를 화면에 맞춰야 할 때는 {swapChainDescIsVerticalSyncEnabled}를 {true}로 설정합니다. 그러면 {swapChainPresent}는 화면이 이미지를 해제할 때까지 기다릴 수 있으므로, 표시하는 스레드가 주사율에 맞춰 진행됩니다. 수직 동기화를 사용하지 않으면 DirectX 12는 즉시 표시하며, macOS와 Mac Catalyst의 Metal도 마찬가지입니다. Vulkan은 플랫폼이 지원하면 즉시 표시하고, 그렇지 않으면 다음 갱신에 쓸 최신 이미지만 유지하여 기다리지 않고도 찢김을 피합니다. iOS에서는 항상, 그리고 Vulkan에서 두 방식을 모두 지원하지 않을 때는 표시가 동기화된 상태로 유지됩니다.'
+concepts.platforms.verticalSync.guidance: '이 설정은 스왑 체인을 만들 때 정해집니다. 바꾸려면 {swapChainResize}를 호출하기 전과 마찬가지로 표시를 중단하고, GPU가 출력 텍스처 사용을 마칠 때까지 기다립니다. 그런 다음 스왑 체인을 해제하고 바뀐 설명으로 새 스왑 체인을 만듭니다.'
+concepts.platforms.verticalSync.title: '수직 동기화'
 concepts.resources.allocation.context: '힙에 배치한 리소스는 수명 내내 그 힙의 저장 공간에 의존합니다. GPU의 마지막 사용이 끝난 뒤 리소스를 먼저 해제하고 힙을 해제합니다.'
 concepts.resources.allocation.description: '애플리케이션이 메모리 할당을 직접 관리해야 한다면 {heap}을 사용합니다. 힙은 리소스를 지정한 바이트 오프셋에 배치할 저장 공간을 제공합니다. 오프셋을 선택하고 어느 영역이 사용 중인지 추적하는 일은 애플리케이션이 맡습니다.'
 concepts.resources.allocation.details: '리소스를 만들 때 사용할 버퍼 또는 텍스처 설명으로 {contextGetSizeAndAlignment}를 호출합니다. 반환된 정렬 값의 배수인 오프셋에 반환된 크기만큼 공간을 확보하되, 힙의 범위를 벗어나거나 아직 사용 중인 다른 할당과 겹치지 않도록 합니다. 텍스처에는 패딩이 포함될 수 있으므로 픽셀 수와 픽셀당 바이트 수만으로 할당 크기를 계산할 수 없습니다.'

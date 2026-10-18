@@ -6,5 +6,7 @@ public struct SwapChainDesc
 
     public PixelFormat Format;
 
-    public bool UsePresentQueue;
+    public bool IsVerticalSyncEnabled;
+
+    public bool IsPresentQueueEnabled;
 }

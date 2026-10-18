@@ -56,7 +56,8 @@ title: '@concepts.execution.title'
             </td>
             <td>
                 <resource key="concepts.execution.queues.table.presentQueue.workToRecord">
-                    <slot name="swapChainDescUsePresentQueue"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.UsePresentQueue"><code>SwapChainDesc.UsePresentQueue</code></a></slot>
+                    <slot name="swapChainDescIsPresentQueueEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsPresentQueueEnabled"><code>SwapChainDesc.IsPresentQueueEnabled</code></a></slot>
+                    <slot name="true"><code>true</code></slot>
                 </resource>
             </td>
         </tr>

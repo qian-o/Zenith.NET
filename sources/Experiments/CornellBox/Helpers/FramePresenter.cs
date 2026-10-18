@@ -32,7 +32,8 @@ internal unsafe class FramePresenter : DisposableObject
         {
             Surface = surface,
             Format = format,
-            UsePresentQueue = true
+            IsVerticalSyncEnabled = true,
+            IsPresentQueueEnabled = true
         });
 
         thread = new(Run)

@@ -61,7 +61,7 @@ concepts.execution.queues.table.graphicsQueue.workToRecord: Render passes and dr
 concepts.execution.queues.table.headings.queue: Queue
 concepts.execution.queues.table.headings.workToRecord: Supported work
 concepts.execution.queues.table.presentQueue.workToRecord: The same operations as the graphics queue, used to write
-  and present the drawables of swap chains with {swapChainDescUsePresentQueue} enabled.
+  and present the drawables of swap chains with {swapChainDescIsPresentQueueEnabled} set to {true}.
 concepts.execution.queues.table.transferQueue.workToRecord: Upload, download and copy work, without drawing or compute
   dispatches.
 concepts.execution.queues.title: Queue selection
@@ -161,7 +161,7 @@ concepts.platforms.presentQueue.context: Here, {rendered} is the completion valu
   left {frame} in {copySrc} layout, and {extent} matches the drawable's size. The wait covers only this copy; the
   presenting thread does not wait for rendering work submitted later.
 concepts.platforms.presentQueue.description: By default, a swap chain presents on {graphicsQueue}, so each presentation
-  follows the rendering work submitted before it. When {swapChainDescUsePresentQueue} is enabled, the swap chain
+  follows the rendering work submitted before it. When {swapChainDescIsPresentQueueEnabled} is {true}, the swap chain
   presents on {presentQueue} instead. If the device has a spare queue, presentation then no longer waits for rendering
   work on the graphics queue, and a separate thread can present frames at its own pace, for example to insert generated
   frames between rendered ones.
@@ -193,6 +193,22 @@ concepts.platforms.surface.table.xlib.backend: Vulkan on Linux with X11 or XWayl
 concepts.platforms.surface.table.xlib.handles: X11 display and window
 concepts.platforms.surface.title: Native presentation surfaces
 concepts.platforms.title: Platform Integration
+concepts.platforms.verticalSync.description: Vertical synchronization makes presentation wait for the display's vertical
+  blank, the interval between two refreshes. Each image then replaces the previous one between refreshes, so no image
+  appears torn, and the frame rate does not exceed the display's refresh rate. {swapChainDescIsVerticalSyncEnabled}
+  is {false} by default, which allows {swapChainPresent} to present without waiting for the vertical blank. The
+  application can then render faster than the display refreshes, but the display can show parts of two images in
+  one refresh, visible as a horizontal tear.
+concepts.platforms.verticalSync.details: Set {swapChainDescIsVerticalSyncEnabled} to {true} when presentation should
+  follow the display. {swapChainPresent} can then wait for the display to release an image, which paces the presenting
+  thread to the refresh rate. Without vertical synchronization, DirectX 12 presents immediately, as does Metal on macOS
+  and Mac Catalyst. Vulkan presents immediately where the platform supports it and otherwise keeps only the newest
+  image for the next refresh, which avoids tearing without waiting. On iOS, and with Vulkan when the platform supports
+  neither, presentation remains synchronized.
+concepts.platforms.verticalSync.guidance: The setting is fixed when the swap chain is created. To change it, stop
+  presenting and wait for outstanding GPU uses of the drawables, as before calling {swapChainResize}; then release
+  the swap chain and create a new one with the updated description.
+concepts.platforms.verticalSync.title: Vertical synchronization
 concepts.resources.allocation.context: Resources placed in a heap depend on its storage for their entire lifetime.
   After their final GPU use, release the resources before releasing the heap.
 concepts.resources.allocation.description: Use a {heap} when the application needs to manage allocation itself.

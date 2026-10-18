@@ -99,6 +99,11 @@ internal class MTLSwapChain : SwapChain
             DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height)
         };
 
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
+        {
+            MetalLayer.DisplaySyncEnabled = Desc.IsVerticalSyncEnabled;
+        }
+
         MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }
 }

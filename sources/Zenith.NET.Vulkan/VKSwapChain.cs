@@ -205,13 +205,19 @@ internal unsafe class VKSwapChain : SwapChain
         }
 
         PresentModeKHR presentMode = PresentModeKHR.FifoKhr;
-        foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
+        if (!Desc.IsVerticalSyncEnabled)
         {
-            if (item is PresentModeKHR.MailboxKhr)
+            foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
             {
-                presentMode = PresentModeKHR.MailboxKhr;
+                if (item is PresentModeKHR.ImmediateKhr or PresentModeKHR.MailboxKhr)
+                {
+                    presentMode = item;
 
-                break;
+                    if (item is PresentModeKHR.ImmediateKhr)
+                    {
+                        break;
+                    }
+                }
             }
         }
 

@@ -134,6 +134,28 @@ title: '@concepts.platforms.title'
         <slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs"><resource key="concepts.platforms.lifecycle.guidance.link"></resource></a></slot>
     </resource>
 </p>
+<h2 id="synchronize-presentation-with-the-display">
+    <resource key="concepts.platforms.verticalSync.title"></resource>
+</h2>
+<p>
+    <resource key="concepts.platforms.verticalSync.description">
+        <slot name="swapChainDescIsVerticalSyncEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsVerticalSyncEnabled"><code>SwapChainDesc.IsVerticalSyncEnabled</code></a></slot>
+        <slot name="false"><code>false</code></slot>
+        <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
+    </resource>
+</p>
+<p>
+    <resource key="concepts.platforms.verticalSync.details">
+        <slot name="swapChainDescIsVerticalSyncEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsVerticalSyncEnabled"><code>SwapChainDesc.IsVerticalSyncEnabled</code></a></slot>
+        <slot name="true"><code>true</code></slot>
+        <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
+    </resource>
+</p>
+<p>
+    <resource key="concepts.platforms.verticalSync.guidance">
+        <slot name="swapChainResize"><a class="xref" href="xref:Zenith.NET.SwapChain.Resize(System.UInt32,System.UInt32)"><code>SwapChain.Resize</code></a></slot>
+    </resource>
+</p>
 <p>
     <a id="present-queue"></a>
 </p>
@@ -143,7 +165,8 @@ title: '@concepts.platforms.title'
 <p>
     <resource key="concepts.platforms.presentQueue.description">
         <slot name="graphicsQueue"><a class="xref" href="xref:Zenith.NET.GraphicsContext.GraphicsQueue"><code>GraphicsQueue</code></a></slot>
-        <slot name="swapChainDescUsePresentQueue"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.UsePresentQueue"><code>SwapChainDesc.UsePresentQueue</code></a></slot>
+        <slot name="swapChainDescIsPresentQueueEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsPresentQueueEnabled"><code>SwapChainDesc.IsPresentQueueEnabled</code></a></slot>
+        <slot name="true"><code>true</code></slot>
         <slot name="presentQueue"><a class="xref" href="xref:Zenith.NET.GraphicsContext.PresentQueue"><code>PresentQueue</code></a></slot>
     </resource>
 </p>

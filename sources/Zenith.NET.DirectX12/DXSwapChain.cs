@@ -29,7 +29,14 @@ internal unsafe class DXSwapChain : SwapChain
 
     protected override void PresentImpl()
     {
-        SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+        if (Desc.IsVerticalSyncEnabled)
+        {
+            SwapChain.Present(1, 0).Success();
+        }
+        else
+        {
+            SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+        }
 
         index = SwapChain.GetCurrentBackBufferIndex();
     }
