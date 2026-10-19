@@ -9,6 +9,7 @@ using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.DLSS;
 using Zenith.NET.Extensions.ImGui;
+using Zenith.NET.Helpers;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -87,7 +88,13 @@ internal static class App
         };
 
         renderer = new();
-        presenter = new(Context, surface, PixelFormat.B8G8R8A8UNorm);
+        presenter = new(Context, new()
+        {
+            Surface = surface,
+            Format = PixelFormat.B8G8R8A8UNorm,
+            IsVerticalSyncEnabled = true,
+            IsPresentQueueEnabled = true
+        });
         frameGenerationNames = ["Off", .. Enumerable.Range(2, (int)renderer.MaxGeneratedFrameCount).Select(static multiplier => $"{multiplier}x")];
     }
 

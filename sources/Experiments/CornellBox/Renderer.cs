@@ -24,6 +24,7 @@ internal class Renderer : DisposableObject
     private uint height;
     private uint frameIndex;
     private bool hasHistory;
+    private bool hasFrameGenerationHistory;
 
     public Renderer()
     {
@@ -101,6 +102,7 @@ internal class Renderer : DisposableObject
 
         previousViewProjection = viewProjection;
         hasHistory = true;
+        hasFrameGenerationHistory = frameGeneration is not null;
         frameIndex++;
     }
 
@@ -134,13 +136,12 @@ internal class Renderer : DisposableObject
         {
             CreateFrameGeneration();
         }
-
-        ResetHistory();
     }
 
     public void ResetHistory()
     {
         hasHistory = false;
+        hasFrameGenerationHistory = false;
     }
 
     public void Resize(uint width, uint height)
@@ -236,6 +237,8 @@ internal class Renderer : DisposableObject
 
     private void CreateFrameGeneration()
     {
+        hasFrameGenerationHistory = false;
+
         TextureDesc desc = TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage
@@ -260,6 +263,8 @@ internal class Renderer : DisposableObject
 
     private void DestroyFrameGeneration()
     {
+        hasFrameGenerationHistory = false;
+
         frameGeneration?.Dispose();
         frameGeneration = null;
         DisableInterpolation?.Dispose();
@@ -328,7 +333,7 @@ internal class Renderer : DisposableObject
             CameraFar = camera.FarPlane,
             CameraFovAngleVer = float.DegreesToRadians(camera.Fov),
             CameraAspectRatio = camera.AspectRatio,
-            Reset = !hasHistory
+            Reset = !hasFrameGenerationHistory
         };
 
         for (uint i = 0; i < GeneratedFrameCount; i++)

@@ -2,6 +2,8 @@
 
 基于提交 `cdd1c1b` 整理，测试环境为 RTX 4070 Ti SUPER（`MaxGeneratedFrameCount = 1`）和 240 Hz 显示器。
 
+本轮只调整 CornellBox 和可复制的公开工具类 `Zenith.NET.Helpers.FramePresenter`，不修改 RHI 或 DLSS 共享扩展，不引入多帧在途。第 10、14 条不属于当前需求。下述原测试观察未经本轮 GPU 复测。
+
 参考资料：
 
 - [NGX DLSS-G 头文件](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx_defs_dlssg.h)
@@ -28,7 +30,7 @@
    - 开启 FG 或卡顿超过 100ms 后，头 1~2 组没有节奏（测到过 0.82ms 的间隔）。
    - GPU 繁忙时，呈现拷贝要和下一帧的路径追踪抢 GPU，启发式可能误判；这种情况没有测过。
 
-6. **自旋等待占满一个核。** [FramePresenter.cs](Helpers/FramePresenter.cs) 的 `WaitUntil` 每帧大部分时间在 `Thread.Yield` 自旋。可以先粗粒度 sleep，最后约 1ms 再自旋。
+6. **等待 CPU 开销已优化，目标机效果待验证。** [FramePresenter.cs](Helpers/FramePresenter.cs) 的 `WaitUntil` 已改为整毫秒粗等待加短尾部 `Thread.Yield`，依据实际测得的超时开销留出余量；旧估计在每次等待时衰减，不依赖新休眠样本才能恢复。每次唤醒仍检查原来的绝对截止时间。后台错误会唤醒等待；这项修改不改变帧排期算法，也不保证操作系统能准时唤醒。
 
 ## 吞吐与开销
 
@@ -38,7 +40,7 @@
 
 ## 卡顿
 
-9. **切换 FG 会重置 RR 历史。** [Renderer.cs](Renderer.cs) 的 `SetGeneratedFrameCount` 调用了 `ResetHistory()`，RR 的累积也被清空，切换时会闪一下噪点。
+9. **已修复 FG 切换连带重置 RR 历史。** [Renderer.cs](Renderer.cs) 现将 FG 历史与相机/RR 历史分开。切换或重建 FG 只使 FG 历史失效；全局 `ResetHistory()` 仍同时重置两者。代码状态转换已调整，切换时的画质仍需 NVIDIA GPU 验证。
 
 10. **FG feature 重建太多，而且是同步创建。**
     - 切倍数（2x→3x→4x）也会重建，但 `MultiFrameCount` 是 eval 参数，不需要重建（只有 50 系会遇到）。
@@ -64,8 +66,9 @@
 
 16. [DLSSFrameGenerationArgs.cs](../../Extensions/Zenith.NET.Extensions.DLSS/Structs/DLSSFrameGenerationArgs.cs) 的 `GeneratedFrameCount` 默认为 0，会原样传给 NGX；[DLSSCapabilities.cs](../../Extensions/Zenith.NET.Extensions.DLSS/DLSSCapabilities.cs) 的 `MaxGeneratedFrameCount` 为 0 表示 NGX 没设置，调用方要按 1 处理。这是最小封装的取舍，调用方需要知道这两点。
 
-## 优先级建议
+## 当前处理范围
 
-- 第 1 条先目测确认。
-- 第 9、10 条改动小，可以先做。
-- 第 3、4、5、7 条收益最大，但需要 RHI 支持或较大重构。
+- 第 6、9 条已完成上述代码调整，实际 GPU 表现和目标机等待精度待验证。
+- `FramePresenter` 已公开为可复制源码类，交换链配置由调用方传入；捕获或后台呈现失败会终止该实例并向后续调用传递异常，部分初始化或纹理创建失败时会立即回收已创建的资源，释放时仍回收其余资源。调整尺寸后会清空旧的节奏估计。
+- 第 1、2、5、11、12 条保留为验证事项；第 8、15 条保留现有资源快照和回读时机，不为减少拷贝额外增加等待或改变资源生命周期。
+- 第 3、4、7、13 条本轮不处理；第 10、14 条不属于当前需求。
