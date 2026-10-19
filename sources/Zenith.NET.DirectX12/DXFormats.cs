@@ -188,10 +188,9 @@ internal static class DXFormats
     {
         return commandQueueType switch
         {
-            CommandQueueType.Graphics => CommandListType.Direct,
+            CommandQueueType.Graphics or CommandQueueType.Present => CommandListType.Direct,
             CommandQueueType.Compute => CommandListType.Compute,
             CommandQueueType.Transfer => CommandListType.Copy,
-            CommandQueueType.Present => CommandListType.Direct,
             _ => default
         };
     }
