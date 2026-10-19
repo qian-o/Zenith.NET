@@ -355,16 +355,11 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
         }
 
-        Vk.GetDeviceQueue(Device, QueueFamilies.Graphics.FamilyIndex, QueueFamilies.Graphics.QueueIndex, out Queue graphics);
-        Vk.GetDeviceQueue(Device, QueueFamilies.Compute.FamilyIndex, QueueFamilies.Compute.QueueIndex, out Queue compute);
-        Vk.GetDeviceQueue(Device, QueueFamilies.Transfer.FamilyIndex, QueueFamilies.Transfer.QueueIndex, out Queue transfer);
-        Vk.GetDeviceQueue(Device, QueueFamilies.Present.FamilyIndex, QueueFamilies.Present.QueueIndex, out Queue present);
-
         capabilities = new VKCapabilities(this);
-        graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, graphics, QueueFamilies.Graphics.FamilyIndex);
-        computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, compute, QueueFamilies.Compute.FamilyIndex);
-        transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, transfer, QueueFamilies.Transfer.FamilyIndex);
-        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, present, QueueFamilies.Present.FamilyIndex);
+        graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, QueueFamilies.Graphics);
+        computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, QueueFamilies.Compute);
+        transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, QueueFamilies.Transfer);
+        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, QueueFamilies.Present);
         validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 
