@@ -72,17 +72,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ExtMeshShader? MeshShader { get; private set; }
 
-    public ExtMetalObjects? MetalObjects { get; private set; }
-
     public KhrAccelerationStructure? AccelerationStructure { get; private set; }
-
-    public KhrDeferredHostOperations? DeferredHostOperations { get; private set; }
-
-    public KhrExternalMemoryFd? ExternalMemoryFd { get; private set; }
-
-    public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
-
-    public KhrFragmentShadingRate? FragmentShadingRate { get; private set; }
 
     public KhrSwapchain? Swapchain { get; private set; }
 
@@ -208,8 +198,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
         }
 
-        (Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex, Queue PresentQueue, uint PresentQueueFamilyIndex) queues = default;
-
         // Select physical device and create logical device
         {
             uint physicalDeviceCount = 0;
@@ -298,171 +286,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 throw new NotSupportedException("This device does not support Vulkan 1.4 or higher.");
             }
 
-            uint graphicsQueueFamilyIndex = 0;
-            uint graphicsQueueFamilyCount = 0;
-
-            uint computeQueueFamilyIndex = 0;
-            uint computeQueueFamilyCount = 0;
-
-            uint transferQueueFamilyIndex = 0;
-            uint transferQueueFamilyCount = 0;
-
-            uint queueFamilyCount = 0;
-            Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, default);
-
-            QueueFamilyProperties* queueFamilies = (QueueFamilyProperties*)ZenithMarshal.Allocate<QueueFamilyProperties>(scope, queueFamilyCount);
-            Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, queueFamilies);
-
-            uint index = 0;
-            foreach (QueueFamilyProperties queueFamilyProperties in new ReadOnlySpan<QueueFamilyProperties>(queueFamilies, (int)queueFamilyCount))
-            {
-                if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.GraphicsBit) && queueFamilyProperties.QueueCount > graphicsQueueFamilyCount)
-                {
-                    graphicsQueueFamilyIndex = index;
-                    graphicsQueueFamilyCount = queueFamilyProperties.QueueCount;
-                }
-                else if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.ComputeBit) && queueFamilyProperties.QueueCount > computeQueueFamilyCount)
-                {
-                    computeQueueFamilyIndex = index;
-                    computeQueueFamilyCount = queueFamilyProperties.QueueCount;
-                }
-                else if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.TransferBit) && queueFamilyProperties.QueueCount > transferQueueFamilyCount)
-                {
-                    transferQueueFamilyIndex = index;
-                    transferQueueFamilyCount = queueFamilyProperties.QueueCount;
-                }
-
-                index++;
-            }
-
-            HashSet<uint> queueFamilyIndices = [graphicsQueueFamilyIndex, computeQueueFamilyIndex, transferQueueFamilyIndex];
-
-            uint queueCreateInfoCount;
-            DeviceQueueCreateInfo* queueCreateInfos;
-            Action loadQueues;
-            if (queueFamilyIndices.Count is 3)
-            {
-                queueCreateInfoCount = 3;
-
-                bool hasSpareQueue = graphicsQueueFamilyCount >= 2;
-
-                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 2);
-                queuePriorities[0] = 1.0f;
-                queuePriorities[1] = 1.0f;
-
-                queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 3);
-
-                queueCreateInfos[0] = new()
-                {
-                    SType = StructureType.DeviceQueueCreateInfo,
-                    QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = hasSpareQueue ? 2u : 1u,
-                    PQueuePriorities = queuePriorities
-                };
-
-                queueCreateInfos[1] = new()
-                {
-                    SType = StructureType.DeviceQueueCreateInfo,
-                    QueueFamilyIndex = computeQueueFamilyIndex,
-                    QueueCount = 1,
-                    PQueuePriorities = queuePriorities
-                };
-
-                queueCreateInfos[2] = new()
-                {
-                    SType = StructureType.DeviceQueueCreateInfo,
-                    QueueFamilyIndex = transferQueueFamilyIndex,
-                    QueueCount = 1,
-                    PQueuePriorities = queuePriorities
-                };
-
-                loadQueues = () =>
-                {
-                    Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, hasSpareQueue ? 1u : 0u, &graphicsQueue);
-
-                    Queue computeQueue = default;
-                    Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, &computeQueue);
-
-                    Queue transferQueue = default;
-                    Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
-
-                    Queue presentQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
-
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex, presentQueue, graphicsQueueFamilyIndex);
-                };
-            }
-            else if (graphicsQueueFamilyCount >= 3)
-            {
-                queueCreateInfoCount = 1;
-
-                bool hasSpareQueue = graphicsQueueFamilyCount >= 4;
-
-                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 4);
-                queuePriorities[0] = 1.0f;
-                queuePriorities[1] = 1.0f;
-                queuePriorities[2] = 1.0f;
-                queuePriorities[3] = 1.0f;
-
-                queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 1);
-                queueCreateInfos[0] = new()
-                {
-                    SType = StructureType.DeviceQueueCreateInfo,
-                    QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = hasSpareQueue ? 4u : 3u,
-                    PQueuePriorities = queuePriorities
-                };
-
-                loadQueues = () =>
-                {
-                    Queue graphicsQueue = default;
-                    Queue computeQueue = default;
-                    Queue transferQueue = default;
-                    Queue presentQueue = default;
-
-                    if (hasSpareQueue)
-                    {
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &graphicsQueue);
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &computeQueue);
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 3, &transferQueue);
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
-                    }
-                    else
-                    {
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
-                    }
-
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex, presentQueue, graphicsQueueFamilyIndex);
-                };
-            }
-            else
-            {
-                queueCreateInfoCount = 1;
-
-                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 1);
-                queuePriorities[0] = 1.0f;
-
-                queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 1);
-                queueCreateInfos[0] = new()
-                {
-                    SType = StructureType.DeviceQueueCreateInfo,
-                    QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = 1,
-                    PQueuePriorities = queuePriorities
-                };
-
-                loadQueues = () =>
-                {
-                    Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
-
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
-                };
-            }
+            QueueFamilies = new(this, (float*)ZenithMarshal.AllocateAndFill(scope, [1.0f, 1.0f, 1.0f, 1.0f]), out DeviceQueueCreateInfo[] queueCreateInfos);
 
             uint extensionCount = 0;
             Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, default(byte*), &extensionCount, default).Success();
@@ -476,8 +300,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             DeviceCreateInfo createInfo = new()
             {
                 SType = StructureType.DeviceCreateInfo,
-                QueueCreateInfoCount = queueCreateInfoCount,
-                PQueueCreateInfos = queueCreateInfos,
+                QueueCreateInfoCount = (uint)queueCreateInfos.Length,
+                PQueueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.AllocateAndFill(scope, queueCreateInfos),
                 EnabledExtensionCount = (uint)enabledExtensions.Length,
                 PpEnabledExtensionNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledExtensions, StringEncoding.UTF8)
             };
@@ -527,24 +351,20 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             ExternalMemoryAndroidHardwareBuffer = enabledExtensions.Contains(AndroidExternalMemoryAndroidHardwareBuffer.ExtensionName) ? new(context) : null;
             DescriptorHeap = enabledExtensions.Contains(ExtDescriptorHeap.ExtensionName) ? new(context) : null;
             MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
-            MetalObjects = enabledExtensions.Contains(ExtMetalObjects.ExtensionName) ? new(context) : null;
             AccelerationStructure = enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName) ? new(context) : null;
-            DeferredHostOperations = enabledExtensions.Contains(KhrDeferredHostOperations.ExtensionName) ? new(context) : null;
-            ExternalMemoryFd = enabledExtensions.Contains(KhrExternalMemoryFd.ExtensionName) ? new(context) : null;
-            ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
-            FragmentShadingRate = enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName) ? new(context) : null;
             Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
-
-            loadQueues();
-
-            QueueFamilies = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex, queues.PresentQueueFamilyIndex }]);
         }
 
+        Vk.GetDeviceQueue(Device, QueueFamilies.Graphics.FamilyIndex, QueueFamilies.Graphics.QueueIndex, out Queue graphics);
+        Vk.GetDeviceQueue(Device, QueueFamilies.Compute.FamilyIndex, QueueFamilies.Compute.QueueIndex, out Queue compute);
+        Vk.GetDeviceQueue(Device, QueueFamilies.Transfer.FamilyIndex, QueueFamilies.Transfer.QueueIndex, out Queue transfer);
+        Vk.GetDeviceQueue(Device, QueueFamilies.Present.FamilyIndex, QueueFamilies.Present.QueueIndex, out Queue present);
+
         capabilities = new VKCapabilities(this);
-        graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, queues.GraphicsQueue, queues.GraphicsQueueFamilyIndex);
-        computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, queues.ComputeQueue, queues.ComputeQueueFamilyIndex);
-        transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, queues.TransferQueue, queues.TransferQueueFamilyIndex);
-        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, queues.PresentQueue, queues.PresentQueueFamilyIndex);
+        graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, graphics, QueueFamilies.Graphics.FamilyIndex);
+        computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, compute, QueueFamilies.Compute.FamilyIndex);
+        transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, transfer, QueueFamilies.Transfer.FamilyIndex);
+        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, present, QueueFamilies.Present.FamilyIndex);
         validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 
