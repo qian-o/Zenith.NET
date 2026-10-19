@@ -50,10 +50,10 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue presentQueue,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
+                                       out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer)
     {
         using ComPtr<ID3D12Debug> debug = new();
@@ -119,10 +119,10 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         Device.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchMeshSignature.GetAddressOf()).Success();
 
         capabilities = new DXCapabilities(this);
-        presentQueue = new DXCommandQueue(this, CommandQueueType.Present);
         graphicsQueue = new DXCommandQueue(this, CommandQueueType.Graphics);
         computeQueue = new DXCommandQueue(this, CommandQueueType.Compute);
         transferQueue = new DXCommandQueue(this, CommandQueueType.Transfer);
+        presentQueue = new DXCommandQueue(this, CommandQueueType.Present);
         validationLayer = useValidationLayer ? new DXValidationLayer(this) : null;
     }
 

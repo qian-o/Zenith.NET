@@ -145,10 +145,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue presentQueue,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
+                                       out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer)
     {
         Version32 apiVersion = new(1, 4, 0);
@@ -208,7 +208,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
         }
 
-        (Queue PresentQueue, uint PresentQueueFamilyIndex, Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex) queues = default;
+        (Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex, Queue PresentQueue, uint PresentQueueFamilyIndex) queues = default;
 
         // Select physical device and create logical device
         {
@@ -378,9 +378,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
                 loadQueues = () =>
                 {
-                    Queue presentQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
-
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, hasSpareQueue ? 1u : 0u, &graphicsQueue);
 
@@ -390,7 +387,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue transferQueue = default;
                     Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
 
-                    queues = (presentQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
+                    Queue presentQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
+
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex, presentQueue, graphicsQueueFamilyIndex);
                 };
             }
             else if (graphicsQueueFamilyCount >= 3)
@@ -416,27 +416,27 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
                 loadQueues = () =>
                 {
-                    Queue presentQueue = default;
                     Queue graphicsQueue = default;
                     Queue computeQueue = default;
                     Queue transferQueue = default;
+                    Queue presentQueue = default;
 
                     if (hasSpareQueue)
                     {
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
                         Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &graphicsQueue);
                         Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &computeQueue);
                         Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 3, &transferQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
                     }
                     else
                     {
-                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
                         Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
                         Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
                         Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
                     }
 
-                    queues = (presentQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex, presentQueue, graphicsQueueFamilyIndex);
                 };
             }
             else
@@ -537,14 +537,14 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             loadQueues();
 
-            QueueFamilies = new([.. new HashSet<uint>() { queues.PresentQueueFamilyIndex, queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
+            QueueFamilies = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex, queues.PresentQueueFamilyIndex }]);
         }
 
         capabilities = new VKCapabilities(this);
-        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, queues.PresentQueue, queues.PresentQueueFamilyIndex);
         graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, queues.GraphicsQueue, queues.GraphicsQueueFamilyIndex);
         computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, queues.ComputeQueue, queues.ComputeQueueFamilyIndex);
         transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, queues.TransferQueue, queues.TransferQueueFamilyIndex);
+        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, queues.PresentQueue, queues.PresentQueueFamilyIndex);
         validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 

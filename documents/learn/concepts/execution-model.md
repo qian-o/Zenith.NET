@@ -50,19 +50,6 @@ title: '@concepts.execution.title'
     <tbody>
         <tr>
             <td>
-                <a class="xref" href="xref:Zenith.NET.GraphicsContext.PresentQueue">
-                    <code>PresentQueue</code>
-                </a>
-            </td>
-            <td>
-                <resource key="concepts.execution.queues.table.presentQueue.workToRecord">
-                    <slot name="swapChainDescIsPresentQueueEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsPresentQueueEnabled"><code>SwapChainDesc.IsPresentQueueEnabled</code></a></slot>
-                    <slot name="true"><code>true</code></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
                 <a class="xref" href="xref:Zenith.NET.GraphicsContext.GraphicsQueue">
                     <code>GraphicsQueue</code>
                 </a>
@@ -89,6 +76,19 @@ title: '@concepts.execution.title'
             </td>
             <td>
                 <resource key="concepts.execution.queues.table.transferQueue.workToRecord"></resource>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <a class="xref" href="xref:Zenith.NET.GraphicsContext.PresentQueue">
+                    <code>PresentQueue</code>
+                </a>
+            </td>
+            <td>
+                <resource key="concepts.execution.queues.table.presentQueue.workToRecord">
+                    <slot name="swapChainDescIsPresentQueueEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsPresentQueueEnabled"><code>SwapChainDesc.IsPresentQueueEnabled</code></a></slot>
+                    <slot name="true"><code>true</code></slot>
+                </resource>
             </td>
         </tr>
     </tbody>

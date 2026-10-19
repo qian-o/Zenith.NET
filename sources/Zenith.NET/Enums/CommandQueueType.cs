@@ -2,11 +2,11 @@
 
 public enum CommandQueueType
 {
-    Present,
-
     Graphics,
 
     Compute,
 
-    Transfer
+    Transfer,
+
+    Present
 }

@@ -1,5 +1,5 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: 'Un {graphicsContext} relie l’application à un périphérique GPU par l’API graphique choisie et fournit ses files de présentation, graphiques, de calcul et de transfert. Les ressources utilisées ensemble doivent appartenir au même contexte : tampons, textures, shaders, pipelines et handles ne peuvent pas être liés d’un contexte à un autre.'
+concepts.execution.context.description: 'Un {graphicsContext} relie l’application à un périphérique GPU par l’API graphique choisie et fournit ses files graphiques, de calcul, de transfert et de présentation. Les ressources utilisées ensemble doivent appartenir au même contexte : tampons, textures, shaders, pipelines et handles ne peuvent pas être liés d’un contexte à un autre.'
 concepts.execution.context.details: '{capabilities} indique le nom du périphérique et les fonctions prises en charge. Vérifiez {rayTracingSupported} et {meshShadingSupported} avant de créer les ressources nécessaires à ces fonctions. Les exemples de {link} et de {detail} effectuent ces vérifications à l’initialisation.'
 concepts.execution.context.details.detail: mesh shading
 concepts.execution.context.details.link: lancer de rayons

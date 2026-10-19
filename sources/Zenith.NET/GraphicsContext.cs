@@ -11,17 +11,17 @@ public abstract class GraphicsContext : DisposableObject
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
-                   out CommandQueue presentQueue,
                    out CommandQueue graphicsQueue,
                    out CommandQueue computeQueue,
                    out CommandQueue transferQueue,
+                   out CommandQueue presentQueue,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
-        PresentQueue = presentQueue;
         GraphicsQueue = graphicsQueue;
         ComputeQueue = computeQueue;
         TransferQueue = transferQueue;
+        PresentQueue = presentQueue;
         ValidationLayer = validationLayer;
 
         Uploader = new(this);
@@ -32,13 +32,13 @@ public abstract class GraphicsContext : DisposableObject
 
     public Capabilities Capabilities { get; }
 
-    public CommandQueue PresentQueue { get; }
-
     public CommandQueue GraphicsQueue { get; }
 
     public CommandQueue ComputeQueue { get; }
 
     public CommandQueue TransferQueue { get; }
+
+    public CommandQueue PresentQueue { get; }
 
     internal ValidationLayer? ValidationLayer { get; }
 
@@ -132,10 +132,10 @@ public abstract class GraphicsContext : DisposableObject
 
     protected override void Destroy()
     {
-        PresentQueue.Dispose();
         GraphicsQueue.Dispose();
         ComputeQueue.Dispose();
         TransferQueue.Dispose();
+        PresentQueue.Dispose();
         ValidationLayer?.Dispose();
 
         Uploader.Dispose();
@@ -144,10 +144,10 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue presentQueue,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
+                                       out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
