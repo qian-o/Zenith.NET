@@ -2,7 +2,6 @@
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Hexa.NET.ImGui;
-using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
@@ -18,11 +17,11 @@ namespace CornellBox;
 internal static class App
 {
     private static readonly IWindow window;
-    private static readonly IInputContext input;
+    private static readonly PlatformInput platformInput;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-    private static readonly FramePresenter presenter;
+    private static readonly FrameScheduler scheduler;
     private static readonly string[] frameGenerationNames;
 
     static App()
@@ -56,12 +55,15 @@ internal static class App
         {
             Size = new(1280, 720),
             API = GraphicsAPI.None,
+            IsEventDriven = true,
             Title = "Cornell Box - Zenith.NET"
         });
         window.Initialize();
         window.Center();
+        DpiScale = (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
-        Context.InitializeImGui(imGui = new(input = window.CreateInput()), new()
+        platformInput = new(window);
+        Context.InitializeImGui(imGui = new(window, platformInput.Context), new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             SampleCount = SampleCount.Count1
@@ -81,14 +83,14 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
+        camera = new(Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
             FarPlane = 2000.0f,
             Speed = 240.0f
         };
 
         renderer = new();
-        presenter = new(Context, new()
+        scheduler = new(Context, new()
         {
             Surface = surface,
             Format = PixelFormat.B8G8R8A8UNorm,
@@ -104,44 +106,53 @@ internal static class App
 
     public static uint Height => (uint)window.FramebufferSize.Y;
 
-    public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
+    public static Vector2 DpiScale { get; private set; }
 
     public static void Run()
     {
-        window.Update += OnUpdate;
-        window.Render += OnRender;
+        scheduler.Update += OnUpdate;
+        scheduler.Render += OnRender;
+        window.Update += OnWindowUpdate;
         window.Resize += OnResize;
+        window.FramebufferResize += OnResize;
+        window.Closing += OnClosing;
 
+        scheduler.Start();
         window.Run();
 
-        window.Update -= OnUpdate;
-        window.Render -= OnRender;
+        window.Closing -= OnClosing;
+        window.FramebufferResize -= OnResize;
         window.Resize -= OnResize;
+        window.Update -= OnWindowUpdate;
+        scheduler.Render -= OnRender;
+        scheduler.Update -= OnUpdate;
 
-        presenter.Dispose();
+        scheduler.Dispose();
         renderer.Dispose();
-        camera.Dispose();
-        imGui.Dispose();
-        input.Dispose();
+        platformInput.Dispose();
         window.Dispose();
 
         Context.Dispose();
     }
 
+    private static void OnWindowUpdate(double deltaSeconds)
+    {
+        imGui.UpdatePlatform();
+        platformInput.Publish();
+    }
+
     private static void OnUpdate(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0)
-        {
-            renderer.ResetHistory();
+        TextureDesc desc = renderer.Color.Desc;
+        uint width = (uint)(desc.Width / DpiScale.X);
+        uint height = (uint)(desc.Height / DpiScale.Y);
+        ReadOnlySpan<InputEvent> events = platformInput.Drain();
 
-            return;
-        }
+        camera.Update(deltaSeconds, width, height, events);
+        imGui.ProcessInput(events);
 
-        uint width = (uint)(Width / DpiScale.X);
-        uint height = (uint)(Height / DpiScale.Y);
-
-        camera.Update(deltaSeconds, width, height);
         Context.BeginImGuiFrame(deltaSeconds, width, height);
+        ImGui.GetIO().DisplayFramebufferScale = DpiScale;
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
@@ -149,11 +160,6 @@ internal static class App
 
     private static void OnRender(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0)
-        {
-            return;
-        }
-
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
         Texture ui = renderer.UI;
 
@@ -164,28 +170,47 @@ internal static class App
         renderer.Render(commandBuffer, camera, deltaSeconds);
 
         TimelineValue ready = commandBuffer.Submit();
-        presenter.Present(renderer.Color, renderer.GeneratedColors, renderer.DisableInterpolation, [ready]);
+        scheduler.Present(renderer.Color, renderer.GeneratedColors, renderer.DisableInterpolation, [ready]);
     }
 
     private static void OnResize(Vector2D<int> size)
     {
-        if (Width is 0 || Height is 0)
+        if (window.IsClosing)
+        {
+            return;
+        }
+
+        scheduler.Stop();
+
+        Vector2D<int> framebufferSize = window.FramebufferSize;
+        Vector2D<int> windowSize = window.Size;
+        if (framebufferSize.X is 0 || framebufferSize.Y is 0 || windowSize.X is 0 || windowSize.Y is 0)
         {
             renderer.ResetHistory();
+            platformInput.Reset();
 
             return;
         }
 
-        presenter.Resize(Width, Height);
+        DpiScale = (Vector2)framebufferSize / (Vector2)windowSize;
 
-        renderer.Resize(Width, Height);
+        scheduler.Resize((uint)framebufferSize.X, (uint)framebufferSize.Y);
+        renderer.Resize((uint)framebufferSize.X, (uint)framebufferSize.Y);
+        scheduler.Start();
+    }
+
+    private static void OnClosing()
+    {
+        // Silk polls events once more after Run, so closing must disable its event wait.
+        window.IsEventDriven = false;
+        scheduler.Stop();
     }
 
     private static void DrawOverlay()
     {
         ImGui.Text(Context.Capabilities.DeviceName);
         ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-        ImGui.Text($"FPS: {presenter.Framerate:F1}");
+        ImGui.Text($"FPS: {scheduler.Framerate:F1}");
     }
 
     private static void DrawSettings()

@@ -1,28 +1,16 @@
 ﻿using System.Numerics;
 using Silk.NET.Input;
-using Zenith.NET;
 
 namespace CornellBox.Handlers;
 
-internal class CameraHandler : DisposableObject
+internal class CameraHandler
 {
-    private readonly IMouse mouse;
-    private readonly IKeyboard keyboard;
     private readonly HashSet<Key> keyDowns = [];
 
     private Vector2? lastMousePosition;
 
-    public CameraHandler(IInputContext input, Matrix4x4 initial)
+    public CameraHandler(Matrix4x4 initial)
     {
-        mouse = input.Mice[0];
-        mouse.MouseDown += OnMouseDown;
-        mouse.MouseUp += OnMouseUp;
-        mouse.MouseMove += OnMouseMove;
-
-        keyboard = input.Keyboards[0];
-        keyboard.KeyDown += OnKeyDown;
-        keyboard.KeyUp += OnKeyUp;
-
         Position = Vector3.Transform(Position, initial);
         Forward = Vector3.TransformNormal(Forward, initial);
 
@@ -54,9 +42,10 @@ internal class CameraHandler : DisposableObject
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height)
+    public void Update(double deltaSeconds, uint width, uint height, ReadOnlySpan<InputEvent> inputs = default)
     {
         Size = new(width, height);
+        ProcessInput(inputs);
 
         float distance = Speed * (float)deltaSeconds;
 
@@ -91,35 +80,41 @@ internal class CameraHandler : DisposableObject
         }
     }
 
-    protected override void Destroy()
+    private void ProcessInput(ReadOnlySpan<InputEvent> inputs)
     {
-        mouse.MouseDown -= OnMouseDown;
-        mouse.MouseUp -= OnMouseUp;
-        mouse.MouseMove -= OnMouseMove;
-        keyboard.KeyDown -= OnKeyDown;
-        keyboard.KeyUp -= OnKeyUp;
-
-        keyDowns.Clear();
-        lastMousePosition = null;
-    }
-
-    private void OnMouseDown(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
+        foreach (InputEvent input in inputs)
         {
-            lastMousePosition = mouse.Position;
+            switch (input.Type)
+            {
+                case InputEventType.MouseDown when input.MouseButton is MouseButton.Right:
+                    lastMousePosition = input.Position;
+                    break;
+
+                case InputEventType.MouseUp when input.MouseButton is MouseButton.Right:
+                    lastMousePosition = null;
+                    break;
+
+                case InputEventType.MouseMove:
+                    OnMouseMove(input.Position);
+                    break;
+
+                case InputEventType.KeyDown:
+                    keyDowns.Add(input.Key);
+                    break;
+
+                case InputEventType.KeyUp:
+                    keyDowns.Remove(input.Key);
+                    break;
+
+                case InputEventType.Reset:
+                    keyDowns.Clear();
+                    lastMousePosition = null;
+                    break;
+            }
         }
     }
 
-    private void OnMouseUp(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
-        {
-            lastMousePosition = null;
-        }
-    }
-
-    private void OnMouseMove(IMouse mouse, Vector2 position)
+    private void OnMouseMove(Vector2 position)
     {
         const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
@@ -144,15 +139,5 @@ internal class CameraHandler : DisposableObject
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
 
         lastMousePosition = position;
-    }
-
-    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
-    {
-        keyDowns.Add(key);
-    }
-
-    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
-    {
-        keyDowns.Remove(key);
     }
 }
