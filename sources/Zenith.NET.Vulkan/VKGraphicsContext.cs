@@ -214,6 +214,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 PhysicalDeviceProperties properties;
                 Vk.GetPhysicalDeviceProperties(physicalDevice, &properties);
 
+                PhysicalDeviceFeatures features;
+                Vk.GetPhysicalDeviceFeatures(physicalDevice, &features);
+
                 if (properties.ApiVersion < apiVersion)
                 {
                     continue;
@@ -227,9 +230,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     PhysicalDeviceType.Other => 10000,
                     _ => 0
                 };
-
-                PhysicalDeviceFeatures features;
-                Vk.GetPhysicalDeviceFeatures(physicalDevice, &features);
 
                 if (features.MultiDrawIndirect)
                 {
