@@ -575,36 +575,36 @@ file readonly unsafe struct QueueSelection
         QueueFamilyProperties* queueFamilies = (QueueFamilyProperties*)ZenithMarshal.Allocate<QueueFamilyProperties>(scope, queueFamilyCount);
         context.Vk.GetPhysicalDeviceQueueFamilyProperties(context.PhysicalDevice, &queueFamilyCount, queueFamilies);
 
-        QueueFamilyState graphicsFamily = default;
-        QueueFamilyState computeFamily = default;
-        QueueFamilyState transferFamily = default;
+        QueueFamilyState graphicsState = default;
+        QueueFamilyState computeState = default;
+        QueueFamilyState transferState = default;
         uint index = 0;
         foreach (QueueFamilyProperties queueFamily in new ReadOnlySpan<QueueFamilyProperties>(queueFamilies, (int)queueFamilyCount))
         {
-            if (queueFamily.QueueFlags.HasFlag(QueueFlags.GraphicsBit | QueueFlags.ComputeBit | QueueFlags.TransferBit) && queueFamily.QueueCount > graphicsFamily.QueueCount)
+            if (queueFamily.QueueFlags.HasFlag(QueueFlags.GraphicsBit | QueueFlags.ComputeBit | QueueFlags.TransferBit) && queueFamily.QueueCount > graphicsState.QueueCount)
             {
-                graphicsFamily = new(index, queueFamily.QueueCount);
+                graphicsState = new(index, queueFamily.QueueCount);
             }
             else if (queueFamily.QueueFlags.HasFlag(QueueFlags.ComputeBit | QueueFlags.TransferBit))
             {
-                computeFamily = new(index, queueFamily.QueueCount);
+                computeState = new(index, queueFamily.QueueCount);
             }
             else if (queueFamily.QueueFlags.HasFlag(QueueFlags.TransferBit))
             {
-                transferFamily = new(index, queueFamily.QueueCount);
+                transferState = new(index, queueFamily.QueueCount);
             }
 
             index++;
         }
 
-        Graphics = Allocate(ref graphicsFamily)!.Value;
-        Present = Allocate(ref graphicsFamily) ?? Graphics;
-        Compute = Allocate(ref computeFamily) ?? Allocate(ref graphicsFamily) ?? Graphics;
-        Transfer = Allocate(ref transferFamily) ?? Allocate(ref computeFamily) ?? Allocate(ref graphicsFamily) ?? Graphics;
+        Graphics = Allocate(ref graphicsState)!.Value;
+        Present = Allocate(ref graphicsState) ?? Graphics;
+        Compute = Allocate(ref computeState) ?? Allocate(ref graphicsState) ?? Graphics;
+        Transfer = Allocate(ref transferState) ?? Allocate(ref computeState) ?? Allocate(ref graphicsState) ?? Graphics;
 
         float* queuePriorities = (float*)ZenithMarshal.AllocateAndFill(scope, [1.0f, 1.0f, 1.0f, 1.0f]);
 
-        CreateInfos = [.. new QueueFamilyState[] { graphicsFamily, computeFamily, transferFamily }.Where(static item => item.AllocatedQueueCount is not 0).Select(item => new DeviceQueueCreateInfo()
+        CreateInfos = [.. new QueueFamilyState[] { graphicsState, computeState, transferState }.Where(static item => item.AllocatedQueueCount is not 0).Select(item => new DeviceQueueCreateInfo()
         {
             SType = StructureType.DeviceQueueCreateInfo,
             QueueFamilyIndex = item.Index,
@@ -612,9 +612,9 @@ file readonly unsafe struct QueueSelection
             PQueuePriorities = queuePriorities
         })];
 
-        static (uint FamilyIndex, uint QueueIndex)? Allocate(ref QueueFamilyState family)
+        static (uint QueueFamilyIndex, uint QueueIndex)? Allocate(ref QueueFamilyState state)
         {
-            return family.AllocatedQueueCount < family.QueueCount ? (family.Index, family.AllocatedQueueCount++) : null;
+            return state.AllocatedQueueCount < state.QueueCount ? (state.Index, state.AllocatedQueueCount++) : null;
         }
     }
 }
