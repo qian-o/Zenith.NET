@@ -8,10 +8,10 @@ internal unsafe class VKCommandQueue : CommandQueue
 
     public uint QueueFamilyIndex;
 
-    public VKCommandQueue(VKGraphicsContext context, CommandQueueType type, (uint FamilyIndex, uint QueueIndex) location) : base(context, type)
+    public VKCommandQueue(VKGraphicsContext context, CommandQueueType type, uint queueFamilyIndex, uint queueIndex) : base(context, type)
     {
-        context.Vk.GetDeviceQueue(context.Device, location.FamilyIndex, location.QueueIndex, out Queue);
-        QueueFamilyIndex = location.FamilyIndex;
+        context.Vk.GetDeviceQueue(context.Device, queueFamilyIndex, queueIndex, out Queue);
+        QueueFamilyIndex = queueFamilyIndex;
 
         Timeline = new VKTimeline(context, this);
     }
