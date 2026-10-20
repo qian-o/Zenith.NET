@@ -219,28 +219,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     continue;
                 }
 
-                uint queueFamilyCount = 0;
-                Vk.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, default);
-
-                QueueFamilyProperties* queueFamilies = (QueueFamilyProperties*)ZenithMarshal.Allocate<QueueFamilyProperties>(scope, queueFamilyCount);
-                Vk.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies);
-
-                bool hasUniversalQueueFamily = false;
-                foreach (QueueFamilyProperties queueFamily in new ReadOnlySpan<QueueFamilyProperties>(queueFamilies, (int)queueFamilyCount))
-                {
-                    if (queueFamily.QueueCount is not 0 && queueFamily.QueueFlags.HasFlag(QueueFlags.GraphicsBit | QueueFlags.ComputeBit | QueueFlags.TransferBit))
-                    {
-                        hasUniversalQueueFamily = true;
-
-                        break;
-                    }
-                }
-
-                if (!hasUniversalQueueFamily)
-                {
-                    continue;
-                }
-
                 ulong score = properties.DeviceType switch
                 {
                     PhysicalDeviceType.DiscreteGpu => 40000,
@@ -288,7 +266,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             if (PhysicalDevice.Handle is 0)
             {
-                throw new NotSupportedException("This device does not support Vulkan 1.4 or higher with a queue family supporting graphics, compute, and transfer operations.");
+                throw new NotSupportedException("This device does not support Vulkan 1.4 or higher.");
             }
 
             queueSelection = new(this, scope);
