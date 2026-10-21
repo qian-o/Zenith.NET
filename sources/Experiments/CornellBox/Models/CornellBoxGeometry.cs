@@ -319,9 +319,9 @@ internal static class CornellBoxGeometry
         AddExhibitPaving(vertices, indices);
 
         AddBox(vertices, indices, new(-35.0f, -32.0f, -30.0f), new(590.0f, -1.0f, 590.0f), 15);
-        AddBox(vertices, indices, new(60.0f, -32.0f, -330.0f), new(496.0f, -24.0f, -30.0f), 14);
-        AddBox(vertices, indices, new(60.0f, -24.0f, -230.0f), new(496.0f, -16.0f, -30.0f), 14);
-        AddBox(vertices, indices, new(60.0f, -16.0f, -130.0f), new(496.0f, -8.0f, -30.0f), 14);
+        AddBox(vertices, indices, new(60.0f, -32.0f, -330.0f), new(496.0f, -24.0f, -230.0f), 14);
+        AddBox(vertices, indices, new(60.0f, -32.0f, -230.0f), new(496.0f, -16.0f, -130.0f), 14);
+        AddBox(vertices, indices, new(60.0f, -32.0f, -130.0f), new(496.0f, -8.0f, -30.0f), 14);
 
         for (int i = 0; i < 3; i++)
         {
@@ -353,7 +353,7 @@ internal static class CornellBoxGeometry
 
         AddBox(vertices, indices, new(-1150.0f, 650.0f, -220.0f), new(-1010.0f, 705.0f, 1060.0f), 14);
         AddBox(vertices, indices, new(1566.0f, 650.0f, -220.0f), new(1706.0f, 705.0f, 1060.0f), 14);
-        AddBox(vertices, indices, new(-1150.0f, 650.0f, 920.0f), new(1706.0f, 705.0f, 1060.0f), 14);
+        AddBox(vertices, indices, new(-1010.0f, 650.0f, 920.0f), new(1566.0f, 705.0f, 1060.0f), 14);
         AddBox(vertices, indices, new(-1162.0f, 705.0f, -232.0f), new(-998.0f, 723.0f, 1072.0f), 15);
         AddBox(vertices, indices, new(1554.0f, 705.0f, -232.0f), new(1718.0f, 723.0f, 1072.0f), 15);
         AddBox(vertices, indices, new(-998.0f, 705.0f, 908.0f), new(1554.0f, 723.0f, 1072.0f), 15);
@@ -373,15 +373,14 @@ internal static class CornellBoxGeometry
         AddPlinth(vertices, indices, new(-320.0f, 0.0f, 840.0f), 140.0f, 45.0f);
         AddPlinth(vertices, indices, new(876.0f, 0.0f, 840.0f), 140.0f, 45.0f);
 
-        ReadOnlySpan<float> benchPositions = [-400.0f, 800.0f];
+        ReadOnlySpan<float> benchPositions = [-320.0f, 876.0f];
         foreach (float x in benchPositions)
         {
-            AddBench(vertices, indices, x);
+            AddBench(vertices, indices, new(x, -700.0f));
         }
 
-        ReadOnlySpan<float> planterPositionsX = [-1030.0f, 1586.0f];
-        ReadOnlySpan<float> planterPositionsZ = [-820.0f, 1260.0f];
-        foreach (float x in planterPositionsX)
+        ReadOnlySpan<float> planterPositionsZ = [-860.0f, 1260.0f];
+        foreach (float x in columnPositions)
         {
             foreach (float z in planterPositionsZ)
             {
@@ -403,31 +402,37 @@ internal static class CornellBoxGeometry
         }
     }
 
-    private static void AddBench(List<Vertex> vertices, List<uint> indices, float x)
+    private static void AddBench(List<Vertex> vertices, List<uint> indices, Vector2 center)
     {
-        AddBox(vertices, indices, new(x, -32.0f, -820.0f), new(x + 155.0f, 55.0f, -785.0f), 14);
-        AddBox(vertices, indices, new(x, -32.0f, -565.0f), new(x + 155.0f, 55.0f, -530.0f), 14);
-        AddBox(vertices, indices, new(x + 15.0f, 35.0f, -840.0f), new(x + 140.0f, 54.0f, -510.0f), 15);
+        float x = center.X;
+        float z = center.Y;
+        ReadOnlySpan<float> endPositions = [-160.0f, 160.0f];
+        foreach (float offset in endPositions)
+        {
+            AddBox(vertices, indices, new(x - 77.0f, -32.0f, z + offset - 14.0f), new(x + 77.0f, 55.0f, z + offset + 14.0f), 14);
+        }
 
-        ReadOnlySpan<float> fastenerPositions = [12.0f, 143.0f];
+        AddBox(vertices, indices, new(x - 62.0f, 35.0f, z - 170.0f), new(x + 62.0f, 54.0f, z + 170.0f), 15);
+
+        ReadOnlySpan<float> fastenerPositions = [-65.0f, 65.0f];
         for (int i = 0; i < 9; i++)
         {
-            float z = -854.0f + (i * 40.0f);
+            float slatZ = z - 176.0f + (i * 40.0f);
             uint material = (i % 3) == 1 ? LightWoodMaterial : 19;
-            AddBox(vertices, indices, new(x - 8.0f, 55.0f, z), new(x + 163.0f, 70.0f, z + 32.0f), material);
+            AddBox(vertices, indices, new(x - 86.0f, 55.0f, slatZ), new(x + 86.0f, 70.0f, slatZ + 32.0f), material);
 
             foreach (float offset in fastenerPositions)
             {
-                AddBox(vertices, indices, new(x + offset - 2.0f, 70.0f, z + 14.0f), new(x + offset + 2.0f, 71.0f, z + 18.0f), BronzeMaterial);
+                AddBox(vertices, indices, new(x + offset - 2.0f, 70.0f, slatZ + 7.0f), new(x + offset + 2.0f, 71.0f, slatZ + 11.0f), BronzeMaterial);
             }
         }
 
-        ReadOnlySpan<float> armrestPositions = [-827.0f, -539.0f];
-        foreach (float z in armrestPositions)
+        foreach (float offset in endPositions)
         {
-            AddBox(vertices, indices, new(x + 5.0f, 70.0f, z), new(x + 14.0f, 94.0f, z + 9.0f), 15);
-            AddBox(vertices, indices, new(x + 141.0f, 70.0f, z), new(x + 150.0f, 94.0f, z + 9.0f), 15);
-            AddBox(vertices, indices, new(x + 5.0f, 94.0f, z - 1.0f), new(x + 150.0f, 102.0f, z + 10.0f), BronzeMaterial);
+            float armrestZ = z + offset;
+            AddBox(vertices, indices, new(x - 62.0f, 70.0f, armrestZ - 5.0f), new(x - 52.0f, 96.0f, armrestZ + 5.0f), 15);
+            AddBox(vertices, indices, new(x + 52.0f, 70.0f, armrestZ - 5.0f), new(x + 62.0f, 96.0f, armrestZ + 5.0f), 15);
+            AddBox(vertices, indices, new(x - 65.0f, 96.0f, armrestZ - 7.0f), new(x + 65.0f, 104.0f, armrestZ + 7.0f), BronzeMaterial);
         }
     }
 
