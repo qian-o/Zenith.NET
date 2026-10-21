@@ -1,24 +1,22 @@
-﻿# Welcome to the Zenith.NET Experiments!
+﻿# Experiments
 
-Here you'll find applications and utilities used to test Zenith.NET, as well as other experimental projects.
+Standalone applications for exploring rendering techniques, testing integrations, and inspecting graphics capabilities with Zenith.NET. These projects are experimental and may change as the library evolves.
 
-## CornellBox
+For guided examples, see the [samples](https://qian-o.github.io/Zenith.NET/learn/samples.html).
 
-[CornellBox](CornellBox) is a native-resolution, noisy path-tracing sample requiring a ray-tracing-capable GPU. It traces 4 samples per pixel per frame with up to 8 bounces, without temporal accumulation, denoising, upscaling, or frame generation.
+## Projects
 
-The structure follows [FluidTank](FluidTank):
+| Project | Purpose |
+| --- | --- |
+| [CornellBox](CornellBox) | Interactive path tracing with animated geometry and PBR materials. Requires a ray-tracing-capable GPU; the output is intentionally noisy, without temporal accumulation or denoising. |
+| [FluidTank](FluidTank) | GPU particle-and-grid fluid simulation with water surface rendering. |
+| [InkCanvas](InkCanvas) | Interactive drawing canvas using the Skia extension. |
+| [PlatformDetection](PlatformDetection) | Console utility that attempts to initialize each graphics backend and reports device, ray tracing, and mesh shading capabilities. |
 
-- `App` owns the window, direct input handlers, swap chain, and the single-threaded update/render loop.
-- `Renderer` coordinates scene animation and two passes: `PathTracingPass` produces HDR color, then `OutputPass` applies tone mapping, display gamma, and 8-bit dithering.
-- ImGui displays the output texture as its background and draws the controls directly into the swap-chain drawable. No separate UI-compositing pass or presentation scheduler is needed.
-- `SceneResources` owns geometry, materials, instance transforms, and acceleration structures. Only the current transforms and the HDR color output are retained.
+## Requirements
 
-Use **W/A/S/D** to move, **Q/E** to move down/up, and hold the **right mouse button** to look around. **Pause** freezes scene animation; camera movement and per-frame path-tracing noise remain active.
+Use the .NET 10 SDK and a graphics driver that supports the selected backend. The graphical applications select DirectX 12 on Windows, Metal on macOS, and Vulkan on Linux.
 
-Run from the repository root:
+## Navigation
 
-```powershell
-dotnet run --project sources\Experiments\CornellBox\CornellBox.csproj
-```
-
-The sample uses DirectX 12 on Windows, Metal on macOS, and Vulkan on Linux. It does not reference or initialize the DLSS extension; the shared extension remains available for other applications.
+In CornellBox and FluidTank, use **W/A/S/D** to move, **Q/E** to move down/up, and hold the **right mouse button** to look around. Additional controls are available in each application's settings panel.

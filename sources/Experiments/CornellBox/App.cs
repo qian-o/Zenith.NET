@@ -82,9 +82,9 @@ internal static class App
             Format = PixelFormat.B8G8R8A8UNorm
         });
 
-        camera = new(input, new(278.0f, 273.0f, -800.0f), new(278.0f, 273.0f, 0.0f))
+        camera = new(input, new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
         {
-            FarPlane = 2000.0f,
+            FarPlane = 8000.0f,
             Speed = 240.0f
         };
 

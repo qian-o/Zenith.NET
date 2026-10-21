@@ -350,6 +350,27 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
     return lightEmission * brdf * NdotL * misWeight / pdfLight;
 }
 
+float3 SampleSunDirect(Surface surface, float3 V, float roughness)
+{
+    float3 L = normalize(float3(-0.45, 1.0, 0.35));
+    float NdotL = dot(surface.Normal, L);
+
+    if (NdotL <= 0.0)
+    {
+        return float3(0.0);
+    }
+
+    float3 shadowOrigin =
+        surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, L) > 0.0 ? RayOffset : -RayOffset);
+
+    if (TraceShadowRay(shadowOrigin, L, 100000.0))
+    {
+        return float3(0.0);
+    }
+
+    return float3(2.5, 2.25, 1.95) * EvaluateBRDF(surface.Normal, V, L, surface, roughness) * NdotL;
+}
+
 float3 PatternAlbedo(Material material, float3 position, float3 normal)
 {
     if (material.Pattern != CheckerPattern && material.Pattern != GridPattern)
@@ -473,6 +494,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
         float specProb = specWeight / total;
 
         radiance += throughput * SampleLightDirect(surface, V, roughness, specProb, rng);
+        radiance += throughput * SampleSunDirect(surface, V, roughness);
 
         if (bounce == MaxBounces - 1)
         {
