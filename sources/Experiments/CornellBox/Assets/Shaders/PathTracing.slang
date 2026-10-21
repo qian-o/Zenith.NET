@@ -350,9 +350,17 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
     return lightEmission * brdf * NdotL * misWeight / pdfLight;
 }
 
-float3 SampleSunDirect(Surface surface, float3 V, float roughness)
+float3 SampleSunDirect(Surface surface, float3 V, float roughness, inout uint rng)
 {
-    float3 L = normalize(float3(-0.45, 1.0, 0.35));
+    const float AngularRadius = 0.1;
+
+    float3 sunDirection = normalize(float3(-0.45, 1.0, 0.35));
+    float3 u = normalize(cross(float3(0.0, 0.0, 1.0), sunDirection));
+    float3 v = cross(sunDirection, u);
+    float cosTheta = lerp(1.0, cos(AngularRadius), RandomFloat(rng));
+    float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+    float phi = 2.0 * PI * RandomFloat(rng);
+    float3 L = normalize(sunDirection * cosTheta + (u * cos(phi) + v * sin(phi)) * sinTheta);
     float NdotL = dot(surface.Normal, L);
 
     if (NdotL <= 0.0)
@@ -494,7 +502,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
         float specProb = specWeight / total;
 
         radiance += throughput * SampleLightDirect(surface, V, roughness, specProb, rng);
-        radiance += throughput * SampleSunDirect(surface, V, roughness);
+        radiance += throughput * SampleSunDirect(surface, V, roughness, rng);
 
         if (bounce == MaxBounces - 1)
         {
