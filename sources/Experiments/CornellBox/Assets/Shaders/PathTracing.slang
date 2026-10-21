@@ -610,7 +610,6 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     float3 color = float3(0.0, 0.0, 0.0);
     Surface firstSurface;
     float firstDistance;
-    // All samples share the same unjittered primary ray.
     bool hasFirstHit = TraceSurface(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance);
 
     for (uint sampleIndex = 0; sampleIndex < SamplesPerPixel; sampleIndex++)
