@@ -35,7 +35,7 @@ internal class FramePresenter : DisposableObject
 
 - Dispose 使用项目现有 DisposableObject 实现。
 - 构造参数提供初始有效尺寸、颜色格式及交换链选项；内部使用独立 PresentQueue，创建交换链和三张输出纹理。
-- Update、Render、Resize 都在渲染线程同步触发。帧事件参数为实际经过秒数；首轮及恢复首轮使用内部目标周期。
+- Update、Render、Resize 都在渲染线程同步触发。帧事件参数为实际经过秒数；首轮从渲染循环开始计时，Resize 后重新计时。
 - 用户在 Render 内按显示顺序调用 Submit，一次 Render 可以提交 n 张生成帧及一张真实帧。
 - Width、Height 表示已采用的 framebuffer 像素尺寸，初值来自构造参数，供渲染线程读取。
 - RequestResize 只记录最新待处理尺寸，不更新 Width、Height，不影响当前任务，也不立即暂停呈现线程。
@@ -45,23 +45,22 @@ internal class FramePresenter : DisposableObject
 
 ### 渲染线程
 
-渲染线程使用 Godot 式累积截止时间，目标周期保留为类内部常量，初版为 1/60 秒：
+渲染线程按实际执行耗时自然推进，不设目标帧率或额外限频等待：
 
 ```text
-period = Stopwatch.Frequency / 60.0
-deadline = 当前单调时钟
+previousStart = 当前单调时钟
 
 循环：
     检查停止及尺寸请求
-    等待 deadline 和可用输出容量，再次检查控制请求
+    等待可用输出容量或零尺寸暂停恢复，再次检查控制请求
+    start = 当前单调时钟
+    deltaSeconds = (start - previousStart) / Stopwatch.Frequency
+    previousStart = start
     Update(deltaSeconds)
     Render(deltaSeconds)
-    deadline += period
-    now = 当前单调时钟
-    deadline = Clamp(deadline, now - period, now + period)
 ```
 
-等待放在输入消费之前。deltaSeconds 按相邻实际启动时刻计算；工作耗时计入周期，暂停及 Resize 后重置计时基准，不补跑积累的更新。
+容量及暂停等待放在输入消费之前。deltaSeconds 按相邻实际启动时刻计算，包含工作耗时和容量等待；Resize 后重置计时基准，不将暂停及资源重建耗时带入恢复后的首轮更新。
 
 ### 呈现线程
 
@@ -135,6 +134,7 @@ RequestResize 只保存最新请求。实际 Resize 在渲染线程当前任务�
 - 窗口 Update 读取 DPI 缩放和剪贴板，并按需应用待写的剪贴板和鼠标状态；不保存逻辑尺寸或 framebuffer 尺寸。
 - 渲染线程读取已保存参数，设置参数时记录待写值，下一次窗口 Update 应用。
 - 消息追加、批次取出和参数更新加锁；平台调用、相机处理和 ImGui 调用都在锁外执行。未应用的写入不能被旧读取值覆盖。
+- 取走待写剪贴板值时同步更新缓存，保证系统调用期间仍能读到该值；期间追加的新写入留待下一次窗口 Update 应用。
 
 只用消息集合、参数字段和待写标记，不增加命令调度器、消费游标或版本系统。
 
@@ -169,7 +169,4 @@ Stop
 
 实现文件：[FramePresenter.cs](FramePresenter.cs)、[PlatformHandler.cs](Handlers/PlatformHandler.cs)。平台输入在 [PlatformInput.cs](Handlers/PlatformInput.cs) 中定义。
 
-## 参考
-
-- [Godot 累积截止时间](https://github.com/godotengine/godot/blob/master/core/os/os.cpp)
 - [Apple 独立呈现线程](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)

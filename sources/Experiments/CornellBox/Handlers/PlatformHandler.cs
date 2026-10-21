@@ -138,6 +138,12 @@ internal class PlatformHandler : DisposableObject
             using Lock.Scope _ = @lock.EnterScope();
 
             text = pendingClipboardText;
+
+            if (text is not null)
+            {
+                clipboardText = text;
+            }
+
             pendingClipboardText = null;
             shape = cursor;
             mode = cursorMode;

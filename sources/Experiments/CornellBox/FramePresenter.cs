@@ -5,8 +5,6 @@ namespace CornellBox;
 
 internal class FramePresenter : DisposableObject
 {
-    private const double FramePeriodInSeconds = 1.0 / 60.0;
-
     private readonly GraphicsContext context;
     private readonly PixelFormat format;
     private readonly SwapChain swapChain;
@@ -174,11 +172,9 @@ internal class FramePresenter : DisposableObject
 
     private void RenderLoop()
     {
-        double period = Stopwatch.Frequency * FramePeriodInSeconds;
-        double deadline = Stopwatch.GetTimestamp();
-        long previousStart = 0;
+        long previousStart = Stopwatch.GetTimestamp();
 
-        while (WaitForFrame(deadline))
+        while (WaitForFrame())
         {
             (uint Width, uint Height)? resize;
 
@@ -197,24 +193,19 @@ internal class FramePresenter : DisposableObject
             if (resize.HasValue)
             {
                 ResizeResources(resize.Value);
-                deadline = Stopwatch.GetTimestamp();
-                previousStart = 0;
+                previousStart = Stopwatch.GetTimestamp();
 
                 continue;
             }
 
             group++;
             long start = Stopwatch.GetTimestamp();
-            double deltaSeconds = previousStart is 0 ? FramePeriodInSeconds : (double)(start - previousStart) / Stopwatch.Frequency;
+            double deltaSeconds = (double)(start - previousStart) / Stopwatch.Frequency;
             previousStart = start;
             Update?.Invoke(deltaSeconds);
             isRendering = true;
             Render?.Invoke(deltaSeconds);
             isRendering = false;
-            deadline += period;
-
-            long now = Stopwatch.GetTimestamp();
-            deadline = double.Clamp(deadline, now - period, now + period);
         }
 
         context.GraphicsQueue.Timeline.Signal().Wait();
@@ -229,7 +220,7 @@ internal class FramePresenter : DisposableObject
         presentWake.Set();
     }
 
-    private bool WaitForFrame(double deadline)
+    private bool WaitForFrame()
     {
         while (true)
         {
@@ -241,15 +232,13 @@ internal class FramePresenter : DisposableObject
                     return false;
                 }
 
-                if (pendingSize.HasValue || (!isPresentPaused && Stopwatch.GetTimestamp() >= deadline && Array.Exists(slots, static slot => !slot.IsInUse)))
+                if (pendingSize.HasValue || (!isPresentPaused && Array.Exists(slots, static slot => !slot.IsInUse)))
                 {
                     return true;
                 }
             }
 
-            double remaining = (deadline - Stopwatch.GetTimestamp()) * 1000.0 / Stopwatch.Frequency;
-            int timeout = !isPresentPaused && remaining > 0.0 ? (int)Math.Ceiling(remaining) : Timeout.Infinite;
-            renderWake.WaitOne(timeout);
+            renderWake.WaitOne();
         }
     }
 
