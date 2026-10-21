@@ -4,14 +4,24 @@ namespace CornellBox.Models;
 
 internal static class CornellBoxGeometry
 {
+    internal const int SculpturePartCount = 3;
+    internal const int FirstCubeMesh = 5;
+    internal const int FirstSphereMesh = FirstCubeMesh + SculpturePartCount;
+    internal const int MeshCount = FirstSphereMesh + SculpturePartCount;
+
     private const int InitialVertexCapacity = 40_000;
     private const int InitialIndexCapacity = 200_000;
+    private const uint LimestoneMaterial = 22;
+    private const uint LightWoodMaterial = 23;
+    private const uint SageMaterial = 24;
+    private const uint BronzeMaterial = 25;
+    private const uint TerracottaMaterial = 26;
 
     public static void Create(out Vertex[] vertices, out uint[] indices, out Material[] materials, out Mesh[] meshes)
     {
         List<Vertex> verticesList = new(InitialVertexCapacity);
         List<uint> indicesList = new(InitialIndexCapacity);
-        meshes = new Mesh[5];
+        meshes = new Mesh[MeshCount];
 
         AddQuad(verticesList,
                 indicesList,
@@ -94,6 +104,25 @@ internal static class CornellBoxGeometry
         firstIndex = (uint)indicesList.Count;
         AddTorus(verticesList, indicesList, 49.0f, 1.8f, 12);
         meshes[4] = new(firstIndex, (uint)indicesList.Count - firstIndex);
+
+        ReadOnlySpan<float> cubeSizes = [35.0f, 28.0f, 22.0f];
+        ReadOnlySpan<uint> cubeMaterials = [8, 9, 10];
+        for (int i = 0; i < SculpturePartCount; i++)
+        {
+            firstIndex = (uint)indicesList.Count;
+            Vector3 halfSize = new(cubeSizes[i]);
+            AddBox(verticesList, indicesList, -halfSize, halfSize, cubeMaterials[i]);
+            meshes[FirstCubeMesh + i] = new(firstIndex, (uint)indicesList.Count - firstIndex);
+        }
+
+        ReadOnlySpan<float> sphereRadii = [48.0f, 32.0f, 22.0f];
+        ReadOnlySpan<uint> sphereMaterials = [12, 8, 12];
+        for (int i = 0; i < SculpturePartCount; i++)
+        {
+            firstIndex = (uint)indicesList.Count;
+            AddSphere(verticesList, indicesList, Vector3.Zero, sphereRadii[i], sphereMaterials[i]);
+            meshes[FirstSphereMesh + i] = new(firstIndex, (uint)indicesList.Count - firstIndex);
+        }
 
         vertices = [.. verticesList];
         indices = [.. indicesList];
@@ -190,26 +219,26 @@ internal static class CornellBoxGeometry
             {
                 Albedo = new(0.10f, 0.25f, 0.80f),
                 Emission = 0.00f,
-                Metallic = 0.0f,
-                Roughness = 0.30f
+                Metallic = 1.0f,
+                Roughness = 0.12f
             },
             new()
             {
-                Albedo = new(0.42f, 0.48f, 0.52f),
-                Roughness = 0.65f,
+                Albedo = new(0.36f, 0.42f, 0.46f),
+                Roughness = 0.58f,
                 Pattern = SurfacePattern.Grid,
                 PatternScale = 140.0f
             },
             new()
             {
                 Albedo = new(0.76f, 0.70f, 0.58f),
-                Roughness = 0.80f
+                Roughness = 0.72f
             },
             new()
             {
                 Albedo = new(0.08f, 0.11f, 0.15f),
-                Metallic = 0.65f,
-                Roughness = 0.35f
+                Metallic = 0.80f,
+                Roughness = 0.28f
             },
             new()
             {
@@ -243,6 +272,32 @@ internal static class CornellBoxGeometry
             {
                 Albedo = new(0.12f, 0.075f, 0.035f),
                 Roughness = 1.0f
+            },
+            new()
+            {
+                Albedo = new(0.64f, 0.59f, 0.48f),
+                Roughness = 0.48f
+            },
+            new()
+            {
+                Albedo = new(0.39f, 0.19f, 0.075f),
+                Roughness = 0.52f
+            },
+            new()
+            {
+                Albedo = new(0.20f, 0.32f, 0.10f),
+                Roughness = 0.88f
+            },
+            new()
+            {
+                Albedo = new(0.55f, 0.30f, 0.12f),
+                Metallic = 1.0f,
+                Roughness = 0.32f
+            },
+            new()
+            {
+                Albedo = new(0.42f, 0.18f, 0.10f),
+                Roughness = 0.82f
             }
         ];
     }
@@ -260,6 +315,8 @@ internal static class CornellBoxGeometry
         AddBox(vertices, indices, new(1840.0f, -55.0f, -1350.0f), new(1900.0f, -24.0f, 1500.0f), 14);
         AddBox(vertices, indices, new(-1290.0f, -55.0f, 1440.0f), new(1840.0f, -24.0f, 1500.0f), 14);
         AddBox(vertices, indices, new(-1290.0f, -55.0f, -1350.0f), new(1840.0f, -24.0f, -1290.0f), 14);
+
+        AddExhibitPaving(vertices, indices);
 
         AddBox(vertices, indices, new(-35.0f, -32.0f, -30.0f), new(590.0f, -1.0f, 590.0f), 15);
         AddBox(vertices, indices, new(60.0f, -32.0f, -330.0f), new(496.0f, -24.0f, -30.0f), 14);
@@ -287,6 +344,10 @@ internal static class CornellBoxGeometry
                 AddBox(vertices, indices, new(x - 44.0f, 24.0f, z - 44.0f), new(x + 44.0f, 42.0f, z + 44.0f), 14);
                 AddBox(vertices, indices, new(x - 47.0f, 584.0f, z - 47.0f), new(x + 47.0f, 604.0f, z + 47.0f), 14);
                 AddBox(vertices, indices, new(x - 55.0f, 604.0f, z - 55.0f), new(x + 55.0f, 620.0f, z + 55.0f), 15);
+
+                AddBox(vertices, indices, new(x - 25.0f, 65.0f, z - 39.0f), new(x + 25.0f, 550.0f, z - 38.0f), LimestoneMaterial);
+                AddBox(vertices, indices, new(x - 25.0f, 65.0f, z + 38.0f), new(x + 25.0f, 550.0f, z + 39.0f), LimestoneMaterial);
+                AddBox(vertices, indices, new(x - 40.0f, 558.0f, z - 40.0f), new(x + 40.0f, 566.0f, z + 40.0f), BronzeMaterial);
             }
         }
 
@@ -310,25 +371,12 @@ internal static class CornellBoxGeometry
         }
 
         AddPlinth(vertices, indices, new(-320.0f, 0.0f, 840.0f), 140.0f, 45.0f);
-        AddTorus(vertices, indices, 125.0f, 22.0f, 8, new(-320.0f, 192.0f, 840.0f));
-        AddSphere(vertices, indices, new(-320.0f, 192.0f, 840.0f), 48.0f, 12);
-
         AddPlinth(vertices, indices, new(876.0f, 0.0f, 840.0f), 140.0f, 45.0f);
-        AddTorus(vertices, indices, 125.0f, 22.0f, 9, new(876.0f, 192.0f, 840.0f));
-        AddSphere(vertices, indices, new(876.0f, 192.0f, 840.0f), 48.0f, 8);
 
         ReadOnlySpan<float> benchPositions = [-400.0f, 800.0f];
         foreach (float x in benchPositions)
         {
-            AddBox(vertices, indices, new(x, -32.0f, -820.0f), new(x + 155.0f, 55.0f, -785.0f), 14);
-            AddBox(vertices, indices, new(x, -32.0f, -565.0f), new(x + 155.0f, 55.0f, -530.0f), 14);
-            AddBox(vertices, indices, new(x + 15.0f, 35.0f, -840.0f), new(x + 140.0f, 55.0f, -510.0f), 15);
-
-            for (int i = 0; i < 9; i++)
-            {
-                float z = -854.0f + (i * 40.0f);
-                AddBox(vertices, indices, new(x - 8.0f, 55.0f, z), new(x + 163.0f, 70.0f, z + 32.0f), 19);
-            }
+            AddBench(vertices, indices, x);
         }
 
         ReadOnlySpan<float> planterPositionsX = [-1030.0f, 1586.0f];
@@ -337,17 +385,71 @@ internal static class CornellBoxGeometry
         {
             foreach (float z in planterPositionsZ)
             {
-                AddBox(vertices, indices, new(x - 118.0f, -32.0f, z - 118.0f), new(x + 118.0f, -12.0f, z + 118.0f), 15);
-                AddBox(vertices, indices, new(x - 110.0f, -12.0f, z - 110.0f), new(x + 110.0f, 55.0f, z + 110.0f), 14);
-                AddBox(vertices, indices, new(x - 96.0f, 55.0f, z - 96.0f), new(x + 96.0f, 58.0f, z + 96.0f), 21);
-                AddBox(vertices, indices, new(x - 118.0f, 55.0f, z - 118.0f), new(x - 96.0f, 70.0f, z + 118.0f), 14);
-                AddBox(vertices, indices, new(x + 96.0f, 55.0f, z - 118.0f), new(x + 118.0f, 70.0f, z + 118.0f), 14);
-                AddBox(vertices, indices, new(x - 96.0f, 55.0f, z - 118.0f), new(x + 96.0f, 70.0f, z - 96.0f), 14);
-                AddBox(vertices, indices, new(x - 96.0f, 55.0f, z + 96.0f), new(x + 96.0f, 70.0f, z + 118.0f), 14);
-                AddSphere(vertices, indices, new(x - 42.0f, 105.0f, z - 20.0f), 60.0f, 20, 12, 8);
-                AddSphere(vertices, indices, new(x + 40.0f, 100.0f, z + 28.0f), 56.0f, 20, 12, 8);
-                AddSphere(vertices, indices, new(x, 145.0f, z + 5.0f), 62.0f, 20, 12, 8);
+                AddPlanter(vertices, indices, new(x, 0.0f, z));
             }
+        }
+    }
+
+    private static void AddExhibitPaving(List<Vertex> vertices, List<uint> indices)
+    {
+        ReadOnlySpan<float> pavingCenters = [-670.0f, 1226.0f];
+        foreach (float x in pavingCenters)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                float z = -380.0f + (i * 380.0f);
+                AddBox(vertices, indices, new(x - 125.0f, -32.0f, z - 125.0f), new(x + 125.0f, -30.0f, z + 125.0f), LimestoneMaterial);
+            }
+        }
+    }
+
+    private static void AddBench(List<Vertex> vertices, List<uint> indices, float x)
+    {
+        AddBox(vertices, indices, new(x, -32.0f, -820.0f), new(x + 155.0f, 55.0f, -785.0f), 14);
+        AddBox(vertices, indices, new(x, -32.0f, -565.0f), new(x + 155.0f, 55.0f, -530.0f), 14);
+        AddBox(vertices, indices, new(x + 15.0f, 35.0f, -840.0f), new(x + 140.0f, 54.0f, -510.0f), 15);
+
+        ReadOnlySpan<float> fastenerPositions = [12.0f, 143.0f];
+        for (int i = 0; i < 9; i++)
+        {
+            float z = -854.0f + (i * 40.0f);
+            uint material = (i % 3) == 1 ? LightWoodMaterial : 19;
+            AddBox(vertices, indices, new(x - 8.0f, 55.0f, z), new(x + 163.0f, 70.0f, z + 32.0f), material);
+
+            foreach (float offset in fastenerPositions)
+            {
+                AddBox(vertices, indices, new(x + offset - 2.0f, 70.0f, z + 14.0f), new(x + offset + 2.0f, 71.0f, z + 18.0f), BronzeMaterial);
+            }
+        }
+
+        ReadOnlySpan<float> armrestPositions = [-827.0f, -539.0f];
+        foreach (float z in armrestPositions)
+        {
+            AddBox(vertices, indices, new(x + 5.0f, 70.0f, z), new(x + 14.0f, 94.0f, z + 9.0f), 15);
+            AddBox(vertices, indices, new(x + 141.0f, 70.0f, z), new(x + 150.0f, 94.0f, z + 9.0f), 15);
+            AddBox(vertices, indices, new(x + 5.0f, 94.0f, z - 1.0f), new(x + 150.0f, 102.0f, z + 10.0f), BronzeMaterial);
+        }
+    }
+
+    private static void AddPlanter(List<Vertex> vertices, List<uint> indices, Vector3 center)
+    {
+        float x = center.X;
+        float z = center.Z;
+        AddBox(vertices, indices, new(x - 118.0f, -32.0f, z - 118.0f), new(x + 118.0f, -12.0f, z + 118.0f), 15);
+        AddBox(vertices, indices, new(x - 110.0f, -12.0f, z - 110.0f), new(x + 110.0f, 55.0f, z + 110.0f), TerracottaMaterial);
+        AddBox(vertices, indices, new(x - 96.0f, 55.0f, z - 96.0f), new(x + 96.0f, 58.0f, z + 96.0f), 21);
+        AddBox(vertices, indices, new(x - 118.0f, 55.0f, z - 118.0f), new(x - 96.0f, 70.0f, z + 118.0f), 14);
+        AddBox(vertices, indices, new(x + 96.0f, 55.0f, z - 118.0f), new(x + 118.0f, 70.0f, z + 118.0f), 14);
+        AddBox(vertices, indices, new(x - 96.0f, 55.0f, z - 118.0f), new(x + 96.0f, 70.0f, z - 96.0f), 14);
+        AddBox(vertices, indices, new(x - 96.0f, 55.0f, z + 96.0f), new(x + 96.0f, 70.0f, z + 118.0f), 14);
+        AddSphere(vertices, indices, new(x - 42.0f, 105.0f, z - 20.0f), 60.0f, SageMaterial, 12, 8);
+        AddSphere(vertices, indices, new(x + 40.0f, 100.0f, z + 28.0f), 56.0f, 20, 12, 8);
+        AddSphere(vertices, indices, new(x, 145.0f, z + 5.0f), 62.0f, 20, 12, 8);
+
+        ReadOnlySpan<Vector2> pebbleOffsets = [new(-77.0f, -72.0f), new(-28.0f, -80.0f), new(30.0f, -78.0f), new(78.0f, -65.0f)];
+        foreach (Vector2 offset in pebbleOffsets)
+        {
+            AddSphere(vertices, indices, new(x + offset.X, 62.0f, z + offset.Y), 6.0f, LimestoneMaterial, 8, 6);
         }
     }
 
@@ -359,6 +461,17 @@ internal static class CornellBoxGeometry
         AddBox(vertices, indices, minimum - new Vector3(8.0f, 0.0f, 8.0f), new(maximum.X + 8.0f, -18.0f, maximum.Z + 8.0f), 14);
         AddBox(vertices, indices, new(minimum.X - 5.0f, height - 10.0f, minimum.Z - 5.0f), new(maximum.X + 5.0f, height, maximum.Z + 5.0f), 14);
         AddBox(vertices, indices, new(center.X - 26.0f, height - 32.0f, minimum.Z - 1.0f), new(center.X + 26.0f, height - 17.0f, minimum.Z), 8);
+
+        ReadOnlySpan<float> cornerOffsets = [-1.0f, 1.0f];
+        foreach (float x in cornerOffsets)
+        {
+            foreach (float z in cornerOffsets)
+            {
+                float cornerX = center.X + (x * (halfSize - 9.0f));
+                float cornerZ = center.Z + (z * (halfSize - 9.0f));
+                AddBox(vertices, indices, new(cornerX - 2.0f, height, cornerZ - 2.0f), new(cornerX + 2.0f, height + 1.0f, cornerZ + 2.0f), BronzeMaterial);
+            }
+        }
     }
 
     private static void AddBox(List<Vertex> vertices, List<uint> indices, Vector3 minimum, Vector3 maximum, uint materialId)
@@ -473,7 +586,7 @@ internal static class CornellBoxGeometry
         }
     }
 
-    private static void AddTorus(List<Vertex> vertices, List<uint> indices, float majorRadius, float minorRadius, uint materialId, Vector3 center = default)
+    private static void AddTorus(List<Vertex> vertices, List<uint> indices, float majorRadius, float minorRadius, uint materialId)
     {
         const int MajorSegments = 128;
         const int MinorSegments = 16;
@@ -499,7 +612,7 @@ internal static class CornellBoxGeometry
 
                 vertices.Add(new()
                 {
-                    Position = center + ringCenter + (normal * minorRadius),
+                    Position = ringCenter + (normal * minorRadius),
                     Normal = normal,
                     MaterialId = materialId
                 });

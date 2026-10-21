@@ -6,6 +6,13 @@ namespace CornellBox.Models;
 
 internal unsafe class SceneResources : DisposableObject
 {
+    private static readonly Matrix4x4[] CubeTilts =
+    [
+        Matrix4x4.CreateRotationX(0.35f) * Matrix4x4.CreateRotationZ(0.25f),
+        Matrix4x4.CreateRotationX(0.35f + 0.3f) * Matrix4x4.CreateRotationZ(0.25f + 0.2f),
+        Matrix4x4.CreateRotationX(0.35f + (2 * 0.3f)) * Matrix4x4.CreateRotationZ(0.25f + (2 * 0.2f))
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer materialBuffer;
@@ -163,6 +170,23 @@ internal unsafe class SceneResources : DisposableObject
         transforms[2] = outer * gyroscope;
         transforms[3] = middle * gyroscope;
         transforms[4] = inner * gyroscope;
+
+        Matrix4x4 cubeOrbit = Matrix4x4.CreateRotationY(0.18f * elapsedSeconds);
+        Matrix4x4 sphereOrbit = Matrix4x4.CreateRotationY(-0.14f * elapsedSeconds);
+        ReadOnlySpan<Vector3> cubeOffsets = [new(-60.0f, 125.0f, -15.0f), new(45.0f, 220.0f, 20.0f), new(-10.0f, 310.0f, -5.0f)];
+        ReadOnlySpan<Vector3> sphereOffsets = [new(-45.0f, 125.0f, -10.0f), new(55.0f, 220.0f, 15.0f), new(5.0f, 300.0f, -5.0f)];
+        for (int i = 0; i < CornellBoxGeometry.SculpturePartCount; i++)
+        {
+            float phase = i * 1.7f;
+            float cubeBob = 8.0f * MathF.Sin((0.55f * elapsedSeconds) + phase);
+            Vector3 cubePosition = Vector3.Transform(cubeOffsets[i], cubeOrbit) + new Vector3(-320.0f, cubeBob, 840.0f);
+            Matrix4x4 cubeRotation = CubeTilts[i] * Matrix4x4.CreateRotationY((0.24f * elapsedSeconds) + phase);
+            transforms[CornellBoxGeometry.FirstCubeMesh + i] = cubeRotation * Matrix4x4.CreateTranslation(cubePosition);
+
+            float sphereBob = 7.0f * MathF.Sin((0.45f * elapsedSeconds) + phase + 0.8f);
+            Vector3 spherePosition = Vector3.Transform(sphereOffsets[i], sphereOrbit) + new Vector3(876.0f, sphereBob, 840.0f);
+            transforms[CornellBoxGeometry.FirstSphereMesh + i] = Matrix4x4.CreateTranslation(spherePosition);
+        }
     }
 
     private static Buffer CreateBuffer<T>(ReadOnlySpan<T> data) where T : unmanaged
