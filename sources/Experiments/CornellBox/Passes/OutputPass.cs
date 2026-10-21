@@ -53,6 +53,7 @@ internal unsafe class OutputPass : DisposableObject
             FrameIndex = frameIndex,
             Input = color.SampledHandle
         };
+
         buffer.Upload(0, new()
         {
             Pointer = (nint)(&constants),
@@ -77,6 +78,7 @@ internal unsafe class OutputPass : DisposableObject
     protected override void Destroy()
     {
         DestroyTexture();
+
         pipeline?.Dispose();
         buffer?.Dispose();
     }

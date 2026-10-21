@@ -211,6 +211,7 @@ float PowerHeuristic(float pdfA, float pdfB)
 float ComputeBRDFPDF(float3 N, float3 V, float3 L, float roughness, float specProb)
 {
     float NdotL = max(dot(N, L), 0.0);
+
     if (NdotL <= 0.0)
     {
         return 0.0;
@@ -316,12 +317,14 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
     float3 L = toLight / dist;
 
     float NdotL = dot(surface.Normal, L);
+
     if (NdotL <= 0.0)
     {
         return float3(0.0, 0.0, 0.0);
     }
 
     float lightCosine = max(dot(LightNormal, -L), 0.0);
+
     if (lightCosine <= 0.0)
     {
         return float3(0.0, 0.0, 0.0);
@@ -329,6 +332,7 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
 
     float3 shadowOrigin =
         surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, L) > 0.0 ? RayOffset : -RayOffset);
+
     if (TraceShadowRay(shadowOrigin, L, dist))
     {
         return float3(0.0, 0.0, 0.0);
@@ -484,6 +488,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
             newDir = reflect(-V, H);
 
             float NdotL = dot(surface.Normal, newDir);
+
             if (NdotL <= 0.0)
             {
                 break;
