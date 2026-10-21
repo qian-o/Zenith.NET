@@ -1,28 +1,16 @@
 ﻿using System.Numerics;
 using Silk.NET.Input;
-using Zenith.NET;
 
 namespace CornellBox.Handlers;
 
-internal class CameraHandler : DisposableObject
+internal class CameraHandler
 {
-    private readonly IMouse mouse;
-    private readonly IKeyboard keyboard;
     private readonly HashSet<Key> keyDowns = [];
 
     private Vector2? lastMousePosition;
 
-    public CameraHandler(IInputContext input, Vector3 position, Vector3 target)
+    public CameraHandler(Vector3 position, Vector3 target)
     {
-        mouse = input.Mice[0];
-        keyboard = input.Keyboards[0];
-
-        mouse.MouseDown += OnMouseDown;
-        mouse.MouseUp += OnMouseUp;
-        mouse.MouseMove += OnMouseMove;
-        keyboard.KeyDown += OnKeyDown;
-        keyboard.KeyUp += OnKeyUp;
-
         Position = position;
         Forward = Vector3.Normalize(target - position);
         Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
@@ -53,9 +41,46 @@ internal class CameraHandler : DisposableObject
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height)
+    public void Update(double deltaSeconds, uint width, uint height, Vector2 dpiScale, ReadOnlySpan<PlatformInput> inputs)
     {
         Size = new(width, height);
+
+        foreach (PlatformInput input in inputs)
+        {
+            switch (input.Type)
+            {
+                case PlatformInputType.KeyDown:
+                    keyDowns.Add(input.Key);
+                    break;
+
+                case PlatformInputType.KeyUp:
+                    keyDowns.Remove(input.Key);
+                    break;
+
+                case PlatformInputType.MouseDown:
+                    if (input.Button is MouseButton.Right)
+                    {
+                        lastMousePosition = input.Position * dpiScale;
+                    }
+                    break;
+
+                case PlatformInputType.MouseUp:
+                    if (input.Button is MouseButton.Right)
+                    {
+                        lastMousePosition = null;
+                    }
+                    break;
+
+                case PlatformInputType.MouseMove:
+                    Rotate(input.Position * dpiScale);
+                    break;
+
+                case PlatformInputType.FocusLost:
+                    keyDowns.Clear();
+                    lastMousePosition = null;
+                    break;
+            }
+        }
 
         float distance = Speed * (float)deltaSeconds;
 
@@ -90,42 +115,7 @@ internal class CameraHandler : DisposableObject
         }
     }
 
-    protected override void Destroy()
-    {
-        if (keyboard is not null)
-        {
-            keyboard.KeyUp -= OnKeyUp;
-            keyboard.KeyDown -= OnKeyDown;
-        }
-
-        if (mouse is not null)
-        {
-            mouse.MouseMove -= OnMouseMove;
-            mouse.MouseUp -= OnMouseUp;
-            mouse.MouseDown -= OnMouseDown;
-        }
-
-        keyDowns.Clear();
-        lastMousePosition = null;
-    }
-
-    private void OnMouseDown(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
-        {
-            lastMousePosition = mouse.Position;
-        }
-    }
-
-    private void OnMouseUp(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
-        {
-            lastMousePosition = null;
-        }
-    }
-
-    private void OnMouseMove(IMouse mouse, Vector2 position)
+    private void Rotate(Vector2 position)
     {
         const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
@@ -150,15 +140,5 @@ internal class CameraHandler : DisposableObject
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
 
         lastMousePosition = position;
-    }
-
-    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
-    {
-        keyDowns.Add(key);
-    }
-
-    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
-    {
-        keyDowns.Remove(key);
     }
 }

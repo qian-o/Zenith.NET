@@ -11,7 +11,7 @@
 以下为接口草图：
 
 ```csharp
-internal sealed class FramePresenter : IDisposable
+internal class FramePresenter : DisposableObject
 {
     public FramePresenter(GraphicsContext context, SwapChainDesc desc);
 
@@ -30,11 +30,10 @@ internal sealed class FramePresenter : IDisposable
         Texture texture,
         TextureLayout currentLayout,
         params ReadOnlySpan<TimelineValue> waits);
-
-    public void Dispose();
 }
 ```
 
+- Dispose 使用项目现有 DisposableObject 实现。
 - 构造参数提供初始有效尺寸、颜色格式及交换链选项；内部使用独立 PresentQueue，创建交换链和三张输出纹理。
 - Update、Render、Resize 都在渲染线程同步触发。帧事件参数为实际经过秒数；首轮及恢复首轮使用内部目标周期。
 - 用户在 Render 内按显示顺序调用 Submit，一次 Render 可以提交 n 张生成帧及一张真实帧。
@@ -66,7 +65,7 @@ deadline = 当前单调时钟
 
 ### 呈现线程
 
-呈现线程无输出时等待，有输出时依次复制到 drawable 并调用现有 Present，不增加软件限速。保留最终复制后的 GPU 等待，以满足当前 Vulkan 呈现同步要求。交换链是否按刷新率推进取决于垂直同步等平台条件，不承诺固定呈现耗时或实际帧率。
+呈现线程无输出时等待，有输出时依次向呈现队列提交复制到 drawable 的命令，再调用现有 Present；Present 返回后归还槽位，不额外等待复制或增加软件限速。只使用 RHI 接口，不检测图形 API 或原生队列，不在用户层补偿后端差异。交换链是否按刷新率推进取决于垂直同步等平台条件，不承诺固定呈现耗时或实际帧率。
 
 ## 4. Submit 与输出缓冲
 
@@ -81,7 +80,7 @@ Submit 是同步快照复制：
 
 输入要求同 Context、与呈现器当前尺寸及格式一致、单采样 2D，具备 TransferSrc 用途。内部纹理具备 TransferSrc、TransferDst 用途并记录实际布局。不内置缩放、格式转换或 resolve。
 
-槽位状态：
+槽位流转：
 
 ```text
 Free -> Copying -> Queued -> Presenting -> Free
@@ -89,6 +88,8 @@ Queued -> Free（丢弃）
 ```
 
 发布前复制已经完成；呈现结束后才归还正在读取的槽位。状态变更用短临界区保护，GPU 等待和回调不放在锁内。
+
+实现只记录槽位是否占用，待呈现队列区分可丢弃输出，无须为每个阶段保存枚举状态。
 
 每次 Submit 独立发布，不等 Render 结束，所以提交数量可以超过槽位数量。
 
@@ -116,6 +117,8 @@ Stop 不再启动新一轮回调。当前 Render 需要槽位时，呈现线程�
 ### 尺寸调整
 
 RequestResize 只保存最新请求。实际 Resize 在渲染线程当前任务结束后串行处理：
+
+尺寸仅保存当前 Width、Height 和一组可为空的待处理尺寸。渲染线程在锁内取走待处理尺寸，作为本次重建的固定快照；后续请求保留到下一轮。呈现暂停标记同时用于零尺寸挂起，不另存一份挂起状态。
 
 1. 呈现线程完成当前操作并暂停。
 2. 清空待呈现输出，等待相关 GPU 使用结束。
@@ -153,7 +156,7 @@ Stop
 - 窗口尺寸通知直接将 framebuffer 尺寸交给 RequestResize；渲染期间统一使用呈现器 Width、Height。相机宽高比使用该尺寸，ImGui 逻辑尺寸由该尺寸除以本轮固定的 DPI 缩放得到，不再读取窗口尺寸。
 - 当前 UI 直接写 drawable，需改为写入 B8G8R8A8UNorm 离屏合成纹理，用途包含 ColorAttachment、TransferSrc，然后提交该纹理，不能只提交场景颜色。
 - 场景及 UI 生产命令先提交，再调用呈现器 Submit。其同步等待覆盖同 GraphicsQueue 的先前工作，正常路径不需要额外保存上一轮完成值；没有调用 Submit 或另有其他队列工作时，应用自行保证资源复用安全。
-- 交换链初始化时明确选择垂直同步。Context 和窗口由应用持有，所有工作停止后再释放。
+- 交换链关闭垂直同步，启用独立呈现队列。Context 和窗口由应用持有，所有工作停止后再释放。
 
 ## 8. 验证重点
 
@@ -163,6 +166,8 @@ Stop
 - 尺寸请求不改变当前帧的 Width、Height；实际重建后、Resize 事件触发前才更新，同一轮 Update/Render 使用一致尺寸。
 - 相机和 ImGui 收到同批输入，参数写入在窗口 Update 生效。
 - DX12、Vulkan、Metal 验证层无相关同步错误。
+
+实现文件：[FramePresenter.cs](FramePresenter.cs)、[PlatformHandler.cs](Handlers/PlatformHandler.cs)。平台输入在 [PlatformInput.cs](Handlers/PlatformInput.cs) 中定义。
 
 ## 参考
 

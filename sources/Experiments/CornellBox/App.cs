@@ -2,7 +2,6 @@
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Hexa.NET.ImGui;
-using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
@@ -16,11 +15,14 @@ namespace CornellBox;
 internal static class App
 {
     private static readonly IWindow window;
-    private static readonly IInputContext input;
-    private static readonly SwapChain swapChain;
+    private static readonly PlatformHandler platform;
+    private static readonly FramePresenter presenter;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
+
+    private static Texture composition = null!;
+    private static TextureLayout compositionLayout;
 
     static App()
     {
@@ -48,13 +50,15 @@ internal static class App
         {
             Size = new(1280, 720),
             API = GraphicsAPI.None,
+            UpdatesPerSecond = 60.0,
+            FramesPerSecond = 60.0,
             Title = "Cornell Box - Zenith.NET"
         });
         window.Initialize();
         window.Center();
 
-        input = window.CreateInput();
-        imGui = new(input);
+        platform = new(window);
+        imGui = new(platform);
 
         Context.InitializeImGui(imGui, new()
         {
@@ -62,60 +66,67 @@ internal static class App
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
 
+        uint width = (uint)window.FramebufferSize.X;
+        uint height = (uint)window.FramebufferSize.Y;
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, width, height);
         }
         else if (OperatingSystem.IsMacOS())
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), width, height);
         }
         else
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, width, height);
         }
 
-        swapChain = Context.CreateSwapChain(new()
+        presenter = new(Context, new()
         {
             Surface = surface,
-            Format = PixelFormat.B8G8R8A8UNorm
+            Format = PixelFormat.B8G8R8A8UNorm,
+            IsVerticalSyncEnabled = false,
+            IsPresentQueueEnabled = true
         });
 
-        camera = new(input, new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
+        camera = new(new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
         {
             FarPlane = 8000.0f,
             Speed = 240.0f
         };
 
         renderer = new();
+
+        CreateComposition();
     }
 
     public static GraphicsContext Context { get; }
 
-    public static uint Width => (uint)window.FramebufferSize.X;
+    public static uint Width => presenter.Width;
 
-    public static uint Height => (uint)window.FramebufferSize.Y;
-
-    public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
+    public static uint Height => presenter.Height;
 
     public static void Run()
     {
-        window.Update += OnUpdate;
-        window.Render += OnRender;
-        window.Resize += OnResize;
+        presenter.Update += OnUpdate;
+        presenter.Render += OnRender;
+        presenter.Resize += OnResize;
+        window.FramebufferResize += OnFramebufferResize;
 
+        presenter.Start();
         window.Run();
+        presenter.Stop();
 
-        window.Update -= OnUpdate;
-        window.Render -= OnRender;
-        window.Resize -= OnResize;
+        window.FramebufferResize -= OnFramebufferResize;
+        presenter.Resize -= OnResize;
+        presenter.Render -= OnRender;
+        presenter.Update -= OnUpdate;
 
+        DestroyComposition();
         renderer.Dispose();
-        camera.Dispose();
-        swapChain.Dispose();
-        imGui.Dispose();
-        input.Dispose();
+        presenter.Dispose();
+        platform.Dispose();
         window.Dispose();
 
         Context.Dispose();
@@ -123,19 +134,15 @@ internal static class App
 
     private static void OnUpdate(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0)
-        {
-            return;
-        }
-
-        Vector2 dpiScale = DpiScale;
+        Vector2 dpiScale = platform.DpiScale;
         uint width = (uint)(Width / dpiScale.X);
         uint height = (uint)(Height / dpiScale.Y);
 
-        camera.Update(deltaSeconds, width, height);
+        ReadOnlySpan<PlatformInput> inputs = platform.CollectInput();
+        camera.Update(deltaSeconds, Width, Height, dpiScale, inputs);
+        imGui.Update(inputs, dpiScale);
         renderer.Update(deltaSeconds);
 
-        ImGui.GetIO().DisplayFramebufferScale = dpiScale;
         Context.BeginImGuiFrame(deltaSeconds, width, height);
 
         ImGuiHelper.Overlay(DrawOverlay);
@@ -146,33 +153,44 @@ internal static class App
 
     private static void OnRender(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0)
-        {
-            return;
-        }
-
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
         renderer.Render(commandBuffer, camera);
 
-        Texture drawable = swapChain.Drawable;
-        commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
-        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
-        commandBuffer.Submit().Wait();
+        commandBuffer.Transition(composition, default, compositionLayout, TextureLayout.ColorAttachment);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(composition, default));
+        commandBuffer.Transition(composition, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+        commandBuffer.Submit();
+        compositionLayout = TextureLayout.CopySrc;
 
-        swapChain.Present();
+        presenter.Submit(composition, compositionLayout);
     }
 
-    private static void OnResize(Vector2D<int> size)
+    private static void OnFramebufferResize(Vector2D<int> size)
     {
-        if (Width is 0 || Height is 0)
-        {
-            return;
-        }
+        presenter.RequestResize((uint)size.X, (uint)size.Y);
+    }
 
-        renderer.Resize(Width, Height);
-        swapChain.Resize(Width, Height);
+    private static void OnResize(uint width, uint height)
+    {
+        renderer.Resize(width, height);
+        DestroyComposition();
+        CreateComposition();
+    }
+
+    private static void CreateComposition()
+    {
+        composition = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc
+        });
+        compositionLayout = TextureLayout.Undefined;
+    }
+
+    private static void DestroyComposition()
+    {
+        composition.Dispose();
+        composition = null!;
     }
 
     private static void DrawOverlay()
