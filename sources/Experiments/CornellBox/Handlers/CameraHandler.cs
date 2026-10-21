@@ -1,32 +1,43 @@
 ﻿using System.Numerics;
 using Silk.NET.Input;
+using Zenith.NET;
 
 namespace CornellBox.Handlers;
 
-internal class CameraHandler
+internal class CameraHandler : DisposableObject
 {
+    private readonly IMouse mouse;
+    private readonly IKeyboard keyboard;
     private readonly HashSet<Key> keyDowns = [];
 
     private Vector2? lastMousePosition;
 
-    public CameraHandler(Matrix4x4 initial)
+    public CameraHandler(IInputContext input, Vector3 position, Vector3 target)
     {
-        Position = Vector3.Transform(Position, initial);
-        Forward = Vector3.TransformNormal(Forward, initial);
+        mouse = input.Mice[0];
+        keyboard = input.Keyboards[0];
 
+        mouse.MouseDown += OnMouseDown;
+        mouse.MouseUp += OnMouseUp;
+        mouse.MouseMove += OnMouseMove;
+        keyboard.KeyDown += OnKeyDown;
+        keyboard.KeyUp += OnKeyUp;
+
+        Position = position;
+        Forward = Vector3.Normalize(target - position);
         Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
     public Vector2 Size { get; private set; } = new(800, 600);
 
-    public Vector3 Position { get; private set; } = Vector3.Zero;
+    public Vector3 Position { get; private set; }
 
-    public Vector3 Forward { get; private set; } = Vector3.UnitZ;
+    public Vector3 Forward { get; private set; }
 
-    public Vector3 Right { get; private set; } = Vector3.UnitX;
+    public Vector3 Right { get; private set; }
 
-    public Vector3 Up { get; private set; } = Vector3.UnitY;
+    public Vector3 Up { get; private set; }
 
     public float NearPlane { get; set; } = 0.1f;
 
@@ -42,10 +53,9 @@ internal class CameraHandler
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height, ReadOnlySpan<InputEvent> inputs = default)
+    public void Update(double deltaSeconds, uint width, uint height)
     {
         Size = new(width, height);
-        ProcessInput(inputs);
 
         float distance = Speed * (float)deltaSeconds;
 
@@ -80,41 +90,42 @@ internal class CameraHandler
         }
     }
 
-    private void ProcessInput(ReadOnlySpan<InputEvent> inputs)
+    protected override void Destroy()
     {
-        foreach (InputEvent input in inputs)
+        if (keyboard is not null)
         {
-            switch (input.Type)
-            {
-                case InputEventType.MouseDown when input.MouseButton is MouseButton.Right:
-                    lastMousePosition = input.Position;
-                    break;
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
+        }
 
-                case InputEventType.MouseUp when input.MouseButton is MouseButton.Right:
-                    lastMousePosition = null;
-                    break;
+        if (mouse is not null)
+        {
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
+        }
 
-                case InputEventType.MouseMove:
-                    OnMouseMove(input.Position);
-                    break;
+        keyDowns.Clear();
+        lastMousePosition = null;
+    }
 
-                case InputEventType.KeyDown:
-                    keyDowns.Add(input.Key);
-                    break;
-
-                case InputEventType.KeyUp:
-                    keyDowns.Remove(input.Key);
-                    break;
-
-                case InputEventType.Reset:
-                    keyDowns.Clear();
-                    lastMousePosition = null;
-                    break;
-            }
+    private void OnMouseDown(IMouse mouse, MouseButton button)
+    {
+        if (button is MouseButton.Right)
+        {
+            lastMousePosition = mouse.Position;
         }
     }
 
-    private void OnMouseMove(Vector2 position)
+    private void OnMouseUp(IMouse mouse, MouseButton button)
+    {
+        if (button is MouseButton.Right)
+        {
+            lastMousePosition = null;
+        }
+    }
+
+    private void OnMouseMove(IMouse mouse, Vector2 position)
     {
         const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
@@ -139,5 +150,15 @@ internal class CameraHandler
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
 
         lastMousePosition = position;
+    }
+
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
+    {
+        keyDowns.Add(key);
+    }
+
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
+    {
+        keyDowns.Remove(key);
     }
 }

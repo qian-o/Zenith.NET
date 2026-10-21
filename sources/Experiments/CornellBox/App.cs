@@ -2,13 +2,12 @@
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Hexa.NET.ImGui;
+using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
-using Zenith.NET.Extensions.DLSS;
 using Zenith.NET.Extensions.ImGui;
-using Zenith.NET.Helpers;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -17,12 +16,11 @@ namespace CornellBox;
 internal static class App
 {
     private static readonly IWindow window;
-    private static readonly PlatformInput platformInput;
+    private static readonly IInputContext input;
+    private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-    private static readonly FrameScheduler scheduler;
-    private static readonly string[] frameGenerationNames;
 
     static App()
     {
@@ -46,24 +44,19 @@ internal static class App
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
-        if (!Context.Capabilities.RayTracingSupported)
-        {
-            throw new NotSupportedException("Cornell Box requires ray tracing support.");
-        }
-
         window = Window.Create(WindowOptions.Default with
         {
             Size = new(1280, 720),
             API = GraphicsAPI.None,
-            IsEventDriven = true,
             Title = "Cornell Box - Zenith.NET"
         });
         window.Initialize();
         window.Center();
-        DpiScale = (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
-        platformInput = new(window);
-        Context.InitializeImGui(imGui = new(window, platformInput.Context), new()
+        input = window.CreateInput();
+        imGui = new(input);
+
+        Context.InitializeImGui(imGui, new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             SampleCount = SampleCount.Count1
@@ -83,21 +76,19 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        camera = new(Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
+        swapChain = Context.CreateSwapChain(new()
+        {
+            Surface = surface,
+            Format = PixelFormat.B8G8R8A8UNorm
+        });
+
+        camera = new(input, new(278.0f, 273.0f, -800.0f), new(278.0f, 273.0f, 0.0f))
         {
             FarPlane = 2000.0f,
             Speed = 240.0f
         };
 
         renderer = new();
-        scheduler = new(Context, new()
-        {
-            Surface = surface,
-            Format = PixelFormat.B8G8R8A8UNorm,
-            IsVerticalSyncEnabled = true,
-            IsPresentQueueEnabled = true
-        });
-        frameGenerationNames = ["Off", .. Enumerable.Range(2, (int)renderer.MaxGeneratedFrameCount).Select(static multiplier => $"{multiplier}x")];
     }
 
     public static GraphicsContext Context { get; }
@@ -106,111 +97,89 @@ internal static class App
 
     public static uint Height => (uint)window.FramebufferSize.Y;
 
-    public static Vector2 DpiScale { get; private set; }
+    public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
     public static void Run()
     {
-        scheduler.Update += OnUpdate;
-        scheduler.Render += OnRender;
-        window.Update += OnWindowUpdate;
+        window.Update += OnUpdate;
+        window.Render += OnRender;
         window.Resize += OnResize;
-        window.FramebufferResize += OnResize;
-        window.Closing += OnClosing;
 
-        scheduler.Start();
         window.Run();
 
-        window.Closing -= OnClosing;
-        window.FramebufferResize -= OnResize;
+        window.Update -= OnUpdate;
+        window.Render -= OnRender;
         window.Resize -= OnResize;
-        window.Update -= OnWindowUpdate;
-        scheduler.Render -= OnRender;
-        scheduler.Update -= OnUpdate;
 
-        scheduler.Dispose();
         renderer.Dispose();
-        platformInput.Dispose();
+        camera.Dispose();
+        swapChain.Dispose();
+        imGui.Dispose();
+        input.Dispose();
         window.Dispose();
 
         Context.Dispose();
     }
 
-    private static void OnWindowUpdate(double deltaSeconds)
-    {
-        imGui.UpdatePlatform();
-        platformInput.Publish();
-    }
-
     private static void OnUpdate(double deltaSeconds)
     {
-        TextureDesc desc = renderer.Color.Desc;
-        uint width = (uint)(desc.Width / DpiScale.X);
-        uint height = (uint)(desc.Height / DpiScale.Y);
-        ReadOnlySpan<InputEvent> events = platformInput.Drain();
+        if (Width is 0 || Height is 0)
+        {
+            return;
+        }
 
-        camera.Update(deltaSeconds, width, height, events);
-        imGui.ProcessInput(events);
+        Vector2 dpiScale = DpiScale;
+        uint width = (uint)(Width / dpiScale.X);
+        uint height = (uint)(Height / dpiScale.Y);
 
+        camera.Update(deltaSeconds, width, height);
+        renderer.Update(deltaSeconds);
+
+        ImGui.GetIO().DisplayFramebufferScale = dpiScale;
         Context.BeginImGuiFrame(deltaSeconds, width, height);
-        ImGui.GetIO().DisplayFramebufferScale = DpiScale;
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
+
+        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(width, height));
     }
 
     private static void OnRender(double deltaSeconds)
     {
+        if (Width is 0 || Height is 0)
+        {
+            return;
+        }
+
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-        Texture ui = renderer.UI;
 
-        commandBuffer.Transition(ui, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(ui, default));
-        commandBuffer.Transition(ui, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+        renderer.Render(commandBuffer, camera);
 
-        renderer.Render(commandBuffer, camera, deltaSeconds);
+        Texture drawable = swapChain.Drawable;
+        commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+        commandBuffer.Submit().Wait();
 
-        TimelineValue ready = commandBuffer.Submit();
-        scheduler.Present(renderer.Color, renderer.GeneratedColors, renderer.DisableInterpolation, [ready]);
+        swapChain.Present();
     }
 
     private static void OnResize(Vector2D<int> size)
     {
-        if (window.IsClosing)
+        if (Width is 0 || Height is 0)
         {
             return;
         }
 
-        scheduler.Stop();
-
-        Vector2D<int> framebufferSize = window.FramebufferSize;
-        Vector2D<int> windowSize = window.Size;
-        if (framebufferSize.X is 0 || framebufferSize.Y is 0 || windowSize.X is 0 || windowSize.Y is 0)
-        {
-            renderer.ResetHistory();
-            platformInput.Reset();
-
-            return;
-        }
-
-        DpiScale = (Vector2)framebufferSize / (Vector2)windowSize;
-
-        scheduler.Resize((uint)framebufferSize.X, (uint)framebufferSize.Y);
-        renderer.Resize((uint)framebufferSize.X, (uint)framebufferSize.Y);
-        scheduler.Start();
-    }
-
-    private static void OnClosing()
-    {
-        // Silk polls events once more after Run, so closing must disable its event wait.
-        window.IsEventDriven = false;
-        scheduler.Stop();
+        renderer.Resize(Width, Height);
+        swapChain.Resize(Width, Height);
     }
 
     private static void DrawOverlay()
     {
         ImGui.Text(Context.Capabilities.DeviceName);
         ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-        ImGui.Text($"FPS: {scheduler.Framerate:F1}");
+        ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
     }
 
     private static void DrawSettings()
@@ -221,83 +190,6 @@ internal static class App
         if (ImGui.Checkbox("Pause", ref isPaused))
         {
             renderer.IsPaused = isPaused;
-        }
-
-        ImGui.SeparatorText("DLSS");
-
-        float comboWidth = ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f);
-
-        ImGui.BeginDisabled(!renderer.RayReconstructionSupported);
-
-        string rayReconstructionName = renderer.RayReconstruction switch
-        {
-            DLSSMode.DLAA => "DLAA",
-            DLSSMode.Quality => "Quality",
-            DLSSMode.Balanced => "Balanced",
-            DLSSMode.Performance => "Performance",
-            DLSSMode.UltraPerformance => "Ultra Performance",
-            _ => "Off"
-        };
-
-        ImGui.SetNextItemWidth(comboWidth);
-
-        if (ImGui.BeginCombo("Ray Reconstruction", rayReconstructionName))
-        {
-            DrawRayReconstructionMode("Off", null);
-            DrawRayReconstructionMode("DLAA", DLSSMode.DLAA);
-            DrawRayReconstructionMode("Quality", DLSSMode.Quality);
-            DrawRayReconstructionMode("Balanced", DLSSMode.Balanced);
-            DrawRayReconstructionMode("Performance", DLSSMode.Performance);
-            DrawRayReconstructionMode("Ultra Performance", DLSSMode.UltraPerformance);
-            ImGui.EndCombo();
-        }
-
-        ImGui.EndDisabled();
-
-        ImGui.BeginDisabled(!renderer.FrameGenerationSupported);
-
-        ImGui.SetNextItemWidth(comboWidth);
-
-        if (ImGui.BeginCombo("Frame Generation", frameGenerationNames[renderer.GeneratedFrameCount]))
-        {
-            for (int i = 0; i < frameGenerationNames.Length; i++)
-            {
-                DrawFrameGenerationMode(frameGenerationNames[i], (uint)i);
-            }
-
-            ImGui.EndCombo();
-        }
-
-        ImGui.EndDisabled();
-    }
-
-    private static void DrawRayReconstructionMode(string name, DLSSMode? mode)
-    {
-        bool isSelected = renderer.RayReconstruction == mode;
-
-        if (ImGui.Selectable(name, isSelected))
-        {
-            renderer.SetRayReconstruction(mode);
-        }
-
-        if (isSelected)
-        {
-            ImGui.SetItemDefaultFocus();
-        }
-    }
-
-    private static void DrawFrameGenerationMode(string name, uint generatedFrameCount)
-    {
-        bool isSelected = renderer.GeneratedFrameCount == generatedFrameCount;
-
-        if (ImGui.Selectable(name, isSelected))
-        {
-            renderer.SetGeneratedFrameCount(generatedFrameCount);
-        }
-
-        if (isSelected)
-        {
-            ImGui.SetItemDefaultFocus();
         }
     }
 }

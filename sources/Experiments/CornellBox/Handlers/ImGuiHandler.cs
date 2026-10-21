@@ -1,21 +1,30 @@
-﻿using Hexa.NET.ImGui;
+﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using Silk.NET.Input;
-using Silk.NET.Windowing;
+using Zenith.NET;
 using Zenith.NET.Extensions.ImGui;
 
 namespace CornellBox.Handlers;
 
-internal unsafe class ImGuiHandler(IWindow window, IInputContext input) : IImGuiPlatform
+internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
-    private readonly IMouse mouse = input.Mice[0];
-    private readonly IKeyboard keyboard = input.Keyboards[0];
-    private readonly HashSet<Key> keyDowns = [];
-    private readonly HashSet<MouseButton> mouseDowns = [];
+    private readonly IMouse mouse;
+    private readonly IKeyboard keyboard;
 
-    private int requestedCursor = (int)StandardCursor.Default;
-    private StandardCursor appliedCursor = StandardCursor.Default;
-    private string clipboardText = input.Keyboards[0].ClipboardText;
-    private string? requestedClipboardText;
+    public ImGuiHandler(IInputContext input)
+    {
+        mouse = input.Mice[0];
+        keyboard = input.Keyboards[0];
+
+        mouse.MouseDown += OnMouseDown;
+        mouse.MouseUp += OnMouseUp;
+        mouse.MouseMove += OnMouseMove;
+        mouse.Scroll += OnMouseScroll;
+
+        keyboard.KeyDown += OnKeyDown;
+        keyboard.KeyUp += OnKeyUp;
+        keyboard.KeyChar += OnKeyChar;
+    }
 
     public event EventHandler<ImGuiInputArgs>? Input;
 
@@ -29,7 +38,7 @@ internal unsafe class ImGuiHandler(IWindow window, IInputContext input) : IImGui
 
     public void SetCursor(ImGuiMouseCursor cursor)
     {
-        StandardCursor value = cursor switch
+        mouse.Cursor.StandardCursor = cursor switch
         {
             ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
             ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
@@ -42,147 +51,93 @@ internal unsafe class ImGuiHandler(IWindow window, IInputContext input) : IImGui
             ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
             _ => StandardCursor.Default
         };
-
-        if (Interlocked.Exchange(ref requestedCursor, (int)value) != (int)value)
-        {
-            window.ContinueEvents();
-        }
     }
 
     public string GetClipboardText()
     {
-        return Volatile.Read(ref requestedClipboardText) ?? Volatile.Read(ref clipboardText);
+        return keyboard.ClipboardText;
     }
 
     public void SetClipboardText(string text)
     {
-        Volatile.Write(ref requestedClipboardText, text);
-        window.ContinueEvents();
+        keyboard.ClipboardText = text;
     }
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
     }
 
-    public void UpdatePlatform()
+    protected override void Destroy()
     {
-        StandardCursor cursor = (StandardCursor)Volatile.Read(ref requestedCursor);
-        if (appliedCursor != cursor)
+        if (keyboard is not null)
         {
-            mouse.Cursor.StandardCursor = cursor;
-            appliedCursor = cursor;
+            keyboard.KeyChar -= OnKeyChar;
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
         }
 
-        string? text = Volatile.Read(ref requestedClipboardText);
-        if (text is not null)
+        if (mouse is not null)
         {
-            keyboard.ClipboardText = text;
-        }
-
-        Volatile.Write(ref clipboardText, keyboard.ClipboardText);
-
-        if (text is not null)
-        {
-            Interlocked.CompareExchange(ref requestedClipboardText, null, text);
+            mouse.Scroll -= OnMouseScroll;
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
         }
     }
 
-    public void ProcessInput(ReadOnlySpan<InputEvent> inputs)
+    private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        foreach (InputEvent input in inputs)
+        Input?.Invoke(this, new(ImGuiInput.MouseDown)
         {
-            switch (input.Type)
+            MouseButton = button switch
             {
-                case InputEventType.MouseDown when input.MouseButton >= MouseButton.Left && input.MouseButton <= MouseButton.Button5:
-                    mouseDowns.Add(input.MouseButton);
-                    SendMouseButton(input.MouseButton, isDown: true);
-                    break;
-
-                case InputEventType.MouseUp when input.MouseButton >= MouseButton.Left && input.MouseButton <= MouseButton.Button5:
-                    mouseDowns.Remove(input.MouseButton);
-                    SendMouseButton(input.MouseButton, isDown: false);
-                    break;
-
-                case InputEventType.MouseMove:
-                    Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = input.Position });
-                    break;
-
-                case InputEventType.MouseWheel:
-                    Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = input.Offset });
-                    break;
-
-                case InputEventType.KeyDown:
-                    keyDowns.Add(input.Key);
-                    SendKey(input.Key, isDown: true);
-                    break;
-
-                case InputEventType.KeyUp:
-                    keyDowns.Remove(input.Key);
-                    SendKey(input.Key, isDown: false);
-                    break;
-
-                case InputEventType.TextInput:
-                    Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = input.Character });
-                    break;
-
-                case InputEventType.Reset:
-                    ResetInput();
-                    break;
+                MouseButton.Left => ImGuiMouseButton.Left,
+                MouseButton.Right => ImGuiMouseButton.Right,
+                MouseButton.Middle => ImGuiMouseButton.Middle,
+                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
             }
-        }
+        });
     }
 
-    private void SendMouseButton(MouseButton button, bool isDown)
+    private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        // Both APIs assign the same indices to the five supported mouse buttons.
-        Input?.Invoke(this, new(isDown ? ImGuiInput.MouseDown : ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)button });
-    }
-
-    private void SendKey(Key key, bool isDown)
-    {
-        ImGuiKey translated = TranslateInputKeyToImGuiKey(key);
-        if (translated is not ImGuiKey.None)
+        Input?.Invoke(this, new(ImGuiInput.MouseUp)
         {
-            Input?.Invoke(this, new(isDown ? ImGuiInput.KeyDown : ImGuiInput.KeyUp) { Key = translated });
-        }
-
-        (ImGuiKey modifier, bool isModifierDown) = key switch
-        {
-            Key.ShiftLeft or Key.ShiftRight => (ImGuiKey.ModShift, keyDowns.Contains(Key.ShiftLeft) || keyDowns.Contains(Key.ShiftRight)),
-            Key.ControlLeft or Key.ControlRight => (ImGuiKey.ModCtrl, keyDowns.Contains(Key.ControlLeft) || keyDowns.Contains(Key.ControlRight)),
-            Key.AltLeft or Key.AltRight => (ImGuiKey.ModAlt, keyDowns.Contains(Key.AltLeft) || keyDowns.Contains(Key.AltRight)),
-            Key.SuperLeft or Key.SuperRight => (ImGuiKey.ModSuper, keyDowns.Contains(Key.SuperLeft) || keyDowns.Contains(Key.SuperRight)),
-            _ => default
-        };
-
-        if (modifier is not ImGuiKey.None)
-        {
-            Input?.Invoke(this, new(isModifierDown ? ImGuiInput.KeyDown : ImGuiInput.KeyUp) { Key = modifier });
-        }
-    }
-
-    private void ResetInput()
-    {
-        foreach (MouseButton button in mouseDowns)
-        {
-            SendMouseButton(button, isDown: false);
-        }
-        mouseDowns.Clear();
-
-        foreach (Key key in keyDowns)
-        {
-            ImGuiKey translated = TranslateInputKeyToImGuiKey(key);
-            if (translated is not ImGuiKey.None)
+            MouseButton = button switch
             {
-                Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = translated });
+                MouseButton.Left => ImGuiMouseButton.Left,
+                MouseButton.Right => ImGuiMouseButton.Right,
+                MouseButton.Middle => ImGuiMouseButton.Middle,
+                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
             }
-        }
-        keyDowns.Clear();
+        });
+    }
 
-        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = ImGuiKey.ModShift });
-        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = ImGuiKey.ModCtrl });
-        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = ImGuiKey.ModAlt });
-        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = ImGuiKey.ModSuper });
+    private void OnMouseMove(IMouse mouse, Vector2 position)
+    {
+        Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = position });
+    }
+
+    private void OnMouseScroll(IMouse mouse, ScrollWheel offset)
+    {
+        Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = new(offset.X, offset.Y) });
+    }
+
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
+    {
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(key) });
+    }
+
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
+    {
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(key) });
+    }
+
+    private void OnKeyChar(IKeyboard keyboard, char c)
+    {
+        Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = c });
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
@@ -261,6 +216,18 @@ internal unsafe class ImGuiHandler(IWindow window, IInputContext input) : IImGui
             Key.AltRight => ImGuiKey.RightAlt,
             Key.SuperRight => ImGuiKey.RightSuper,
             Key.Menu => ImGuiKey.Menu,
+            _ => ImGuiKey.None
+        };
+    }
+
+    private static ImGuiKey TranslateInputKeyToImGuiModifier(Key key)
+    {
+        return key switch
+        {
+            Key.ShiftLeft or Key.ShiftRight => ImGuiKey.ModShift,
+            Key.ControlLeft or Key.ControlRight => ImGuiKey.ModCtrl,
+            Key.AltLeft or Key.AltRight => ImGuiKey.ModAlt,
+            Key.SuperLeft or Key.SuperRight => ImGuiKey.ModSuper,
             _ => ImGuiKey.None
         };
     }

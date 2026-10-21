@@ -6,7 +6,6 @@ static const uint LightMaterial = 3;
 static const uint CheckerPattern = 1;
 static const uint GridPattern = 2;
 static const float RayOffset = 0.01;
-static const float MissDistance = 10000.0;
 static const float PI = 3.14159265;
 static const int MaxBounces = 8;
 static const uint SamplesPerPixel = 4;
@@ -92,21 +91,12 @@ struct Instance
 {
     private float4x4 Transform;
 
-    private float4x4 PreviousTransform;
-
     private uint4 FirstIndexAndPadding;
 
     property float4x4 ObjectToWorld
     {
         get {
             return Transform;
-        }
-    }
-
-    property float4x4 PreviousObjectToWorld
-    {
-        get {
-            return PreviousTransform;
         }
     }
 
@@ -121,8 +111,6 @@ struct Instance
 struct Surface
 {
     float3 Position;
-
-    float3 PreviousPosition;
 
     float3 Normal;
 
@@ -143,15 +131,11 @@ struct PathTracingConstants
 
     float4x4 InverseProjection;
 
-    float4x4 ViewProjection;
-
-    float4x4 PreviousViewProjection;
-
     float4 PositionFrame;
 
-    float4 RenderSizeJitter;
+    float2 RenderSize;
 
-    uint4 HitDistancePadding;
+    uint2 Padding;
 
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
 
@@ -164,20 +148,6 @@ struct PathTracingConstants
     DescriptorHandle<StructuredBuffer<Instance>> Instances;
 
     DescriptorHandle<RWTexture2D<float4>> Color;
-
-    DescriptorHandle<RWTexture2D<float>> Depth;
-
-    DescriptorHandle<RWTexture2D<float4>> Normal;
-
-    DescriptorHandle<RWTexture2D<float>> Roughness;
-
-    DescriptorHandle<RWTexture2D<float2>> MotionVectors;
-
-    DescriptorHandle<RWTexture2D<float4>> DiffuseAlbedo;
-
-    DescriptorHandle<RWTexture2D<float4>> SpecularAlbedo;
-
-    DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
 };
 
 ConstantBuffer<PathTracingConstants> pathTracing;
@@ -422,7 +392,6 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
 
     Surface surface;
     surface.Position = mul(float4(position, 1.0), instance.ObjectToWorld).xyz;
-    surface.PreviousPosition = mul(float4(position, 1.0), instance.PreviousObjectToWorld).xyz;
     surface.Normal = normalize(mul(float4(normal, 0.0), instance.ObjectToWorld).xyz);
     surface.GeometricNormal = normalize(mul(float4(faceNormal, 0.0), instance.ObjectToWorld).xyz);
     surface.Albedo = PatternAlbedo(material, position, normal);
@@ -439,81 +408,7 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
     return surface;
 }
 
-float3 EnvBRDFApprox2(float3 specularColor, float alpha, float NdotV)
-{
-    float4 x = float4(1.0, NdotV, NdotV * NdotV, NdotV * NdotV * NdotV);
-    float4 y = float4(1.0, alpha, alpha * alpha, alpha * alpha * alpha);
-
-    float2x2 m1 = float2x2(0.99044, -1.28514, 1.29678, -0.755907);
-    float3x3 m2 = float3x3(1.0, 2.92338, 59.4188, 20.3225, -27.0302, 222.592, 121.563, 626.13, 316.627);
-    float2x2 m3 = float2x2(0.0365463, 3.32707, 9.0632, -9.04756);
-    float3x3 m4 = float3x3(1.0, 3.59685, -1.36772, 9.04401, -16.3174, 9.22949, 5.56589, 19.7886, -20.2123);
-
-    float bias = dot(mul(m1, x.xy), y.xy) / dot(mul(m2, x.xyw), y.xyw);
-    float scale = dot(mul(m3, x.xy), y.xy) / dot(mul(m4, x.xzw), y.xyw);
-
-    bias *= saturate(specularColor.g * 50.0);
-
-    return specularColor * max(scale, 0.0) + max(bias, 0.0);
-}
-
-float TraceHitDistance(Surface surface, float3 direction)
-{
-    RayDesc ray;
-    ray.Origin = surface.Position +
-                 surface.GeometricNormal * (dot(surface.GeometricNormal, direction) > 0.0 ? RayOffset : -RayOffset);
-    ray.Direction = direction;
-    ray.TMin = 0.001;
-    ray.TMax = MissDistance;
-
-    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
-    query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
-
-    query.Proceed();
-
-    return query.CommittedStatus() == COMMITTED_NOTHING ? MissDistance : query.CommittedRayT();
-}
-
-void WriteGuides(uint2 pixel, Surface surface, float3 V, float3 F0)
-{
-    float4 currentClip = mul(float4(surface.Position, 1.0), pathTracing.ViewProjection);
-    float4 previousClip = mul(float4(surface.PreviousPosition, 1.0), pathTracing.PreviousViewProjection);
-    float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
-    float NdotV = saturate(dot(surface.Normal, V));
-
-    pathTracing.Depth[pixel] = saturate(currentClip.z / currentClip.w);
-    pathTracing.Normal[pixel] = float4(surface.Normal, 0.0);
-    pathTracing.Roughness[pixel] = surface.Roughness;
-    pathTracing.MotionVectors[pixel] = motion;
-    pathTracing.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
-    pathTracing.SpecularAlbedo[pixel] = float4(EnvBRDFApprox2(F0, surface.Roughness * surface.Roughness, NdotV), 1.0);
-
-    if (pathTracing.HitDistancePadding.x != 0)
-    {
-        pathTracing.SpecularHitDistance[pixel] = TraceHitDistance(surface, reflect(-V, surface.Normal));
-    }
-}
-
-void WriteSkyGuides(uint2 pixel, float3 direction)
-{
-    float4 currentClip = mul(float4(direction, 0.0), pathTracing.ViewProjection);
-    float4 previousClip = mul(float4(direction, 0.0), pathTracing.PreviousViewProjection);
-    float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
-
-    pathTracing.Depth[pixel] = 1.0;
-    pathTracing.Normal[pixel] = float4(0.0);
-    pathTracing.Roughness[pixel] = 0.0;
-    pathTracing.MotionVectors[pixel] = motion;
-    pathTracing.DiffuseAlbedo[pixel] = float4(0.0);
-    pathTracing.SpecularAlbedo[pixel] = float4(0.0);
-
-    if (pathTracing.HitDistancePadding.x != 0)
-    {
-        pathTracing.SpecularHitDistance[pixel] = MissDistance;
-    }
-}
-
-float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng, bool writeGuides)
+float3 TracePath(float3 origin, float3 direction, inout uint rng)
 {
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
@@ -534,11 +429,6 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng, b
 
         if (query.CommittedStatus() == COMMITTED_NOTHING)
         {
-            if (bounce == 0 && writeGuides)
-            {
-                WriteSkyGuides(pixel, direction);
-            }
-
             float3 skyColor =
                 lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
             radiance += throughput * skyColor;
@@ -554,11 +444,6 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng, b
 
         float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
         float roughness = max(surface.Roughness, 0.04);
-
-        if (bounce == 0 && writeGuides)
-        {
-            WriteGuides(pixel, surface, V, F0);
-        }
 
         if (surface.Emission > 0.0)
         {
@@ -652,7 +537,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng, b
 void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
-    uint2 size = uint2(pathTracing.RenderSizeJitter.xy);
+    uint2 size = uint2(pathTracing.RenderSize);
 
     if (any(pixel >= size))
     {
@@ -660,7 +545,7 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
 
     uint seed = PCGHash(pixel.x + pixel.y * size.x + asuint(pathTracing.PositionFrame.w) * size.x * size.y);
-    float2 uv = (float2(pixel) + 0.5 - pathTracing.RenderSizeJitter.zw) / float2(size);
+    float2 uv = (float2(pixel) + 0.5) / float2(size);
     float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
     float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InverseProjection);
     float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), pathTracing.InverseView).xyz);
@@ -668,7 +553,7 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     for (uint sampleIndex = 0; sampleIndex < SamplesPerPixel; sampleIndex++)
     {
-        color += min(TracePath(pixel, pathTracing.PositionFrame.xyz, direction, seed, sampleIndex == 0), float3(30.0));
+        color += min(TracePath(pathTracing.PositionFrame.xyz, direction, seed), float3(30.0));
     }
 
     pathTracing.Color[pixel] = float4(color / float(SamplesPerPixel), 1.0);

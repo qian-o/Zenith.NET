@@ -15,8 +15,6 @@ internal unsafe class SceneResources : DisposableObject
     private readonly Instance[] instances;
     private readonly RayTracingInstance[] rayTracingInstances;
 
-    private float elapsedSeconds;
-
     public SceneResources()
     {
         CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials, out Mesh[] meshes);
@@ -26,7 +24,7 @@ internal unsafe class SceneResources : DisposableObject
         materialBuffer = CreateBuffer(materials);
 
         Span<Matrix4x4> transforms = stackalloc Matrix4x4[meshes.Length];
-        WriteTransforms(elapsedSeconds, transforms);
+        WriteTransforms(0.0f, transforms);
 
         instances = new Instance[meshes.Length];
 
@@ -35,7 +33,6 @@ internal unsafe class SceneResources : DisposableObject
             instances[i] = new()
             {
                 ObjectToWorld = transforms[i],
-                PreviousObjectToWorld = transforms[i],
                 FirstIndex = meshes[i].FirstIndex
             };
         }
@@ -105,16 +102,13 @@ internal unsafe class SceneResources : DisposableObject
 
     public ResourceHandle Instances => instanceBuffer.StorageReadOnlyHandle;
 
-    public void Update(CommandBuffer commandBuffer, double deltaSeconds)
+    public void Update(CommandBuffer commandBuffer, double elapsedSeconds)
     {
-        elapsedSeconds += (float)deltaSeconds;
-
         Span<Matrix4x4> transforms = stackalloc Matrix4x4[instances.Length];
-        WriteTransforms(elapsedSeconds, transforms);
+        WriteTransforms((float)elapsedSeconds, transforms);
 
         for (int i = 0; i < instances.Length; i++)
         {
-            instances[i].PreviousObjectToWorld = instances[i].ObjectToWorld;
             instances[i].ObjectToWorld = transforms[i];
             rayTracingInstances[i].Transform = transforms[i];
         }
