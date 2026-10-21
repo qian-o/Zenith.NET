@@ -441,7 +441,36 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
     return surface;
 }
 
-float3 TracePath(float3 origin, float3 direction, inout uint rng)
+bool TraceSurface(float3 origin, float3 direction, out Surface surface, out float distance)
+{
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = direction;
+    ray.TMin = 0.001;
+    ray.TMax = 100000.0;
+
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
+    query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
+
+    query.Proceed();
+
+    if (query.CommittedStatus() == COMMITTED_NOTHING)
+    {
+        surface = (Surface)0;
+        distance = 0.0;
+
+        return false;
+    }
+
+    distance = query.CommittedRayT();
+    surface = GetSurface(query.CommittedInstanceIndex(), query.CommittedPrimitiveIndex(),
+                         query.CommittedTriangleBarycentrics(), direction);
+
+    return true;
+}
+
+float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float firstDistance, bool hasFirstHit,
+                 inout uint rng)
 {
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
@@ -449,18 +478,16 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
 
     for (int bounce = 0; bounce < MaxBounces; bounce++)
     {
-        RayDesc ray;
-        ray.Origin = origin;
-        ray.Direction = direction;
-        ray.TMin = 0.001;
-        ray.TMax = 100000.0;
+        Surface surface = firstSurface;
+        float t = firstDistance;
+        bool hasHit = hasFirstHit;
 
-        RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
-        query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
+        if (bounce > 0)
+        {
+            hasHit = TraceSurface(origin, direction, surface, t);
+        }
 
-        query.Proceed();
-
-        if (query.CommittedStatus() == COMMITTED_NOTHING)
+        if (!hasHit)
         {
             float3 skyColor =
                 lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
@@ -468,10 +495,6 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
 
             break;
         }
-
-        float t = query.CommittedRayT();
-        Surface surface = GetSurface(query.CommittedInstanceIndex(), query.CommittedPrimitiveIndex(),
-                                     query.CommittedTriangleBarycentrics(), direction);
 
         float3 V = -direction;
 
@@ -585,10 +608,16 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InverseProjection);
     float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), pathTracing.InverseView).xyz);
     float3 color = float3(0.0, 0.0, 0.0);
+    Surface firstSurface;
+    float firstDistance;
+    // All samples share the same unjittered primary ray.
+    bool hasFirstHit = TraceSurface(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance);
 
     for (uint sampleIndex = 0; sampleIndex < SamplesPerPixel; sampleIndex++)
     {
-        color += min(TracePath(pathTracing.PositionFrame.xyz, direction, seed), float3(30.0));
+        color +=
+            min(TracePath(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed),
+                float3(30.0));
     }
 
     pathTracing.Color[pixel] = float4(color / float(SamplesPerPixel), 1.0);
