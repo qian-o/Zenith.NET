@@ -3,9 +3,9 @@ using Silk.NET.Input;
 
 namespace CornellBox.Handlers;
 
-internal struct PlatformInput
+internal struct PlatformInput(PlatformInputType type)
 {
-    public PlatformInputType Type;
+    public PlatformInputType Type = type;
 
     public Key Key;
 
@@ -32,7 +32,5 @@ internal enum PlatformInputType
 
     KeyUp,
 
-    TextInput,
-
-    FocusLost
+    TextInput
 }

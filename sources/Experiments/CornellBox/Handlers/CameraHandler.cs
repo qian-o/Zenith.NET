@@ -41,7 +41,7 @@ internal class CameraHandler
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height, Vector2 dpiScale, ReadOnlySpan<PlatformInput> inputs)
+    public void Update(double deltaSeconds, uint width, uint height, ReadOnlySpan<PlatformInput> inputs)
     {
         Size = new(width, height);
 
@@ -49,35 +49,24 @@ internal class CameraHandler
         {
             switch (input.Type)
             {
+                case PlatformInputType.MouseDown when input.Button is MouseButton.Right:
+                    lastMousePosition = input.Position;
+                    break;
+
+                case PlatformInputType.MouseUp when input.Button is MouseButton.Right:
+                    lastMousePosition = null;
+                    break;
+
+                case PlatformInputType.MouseMove:
+                    Rotate(input.Position);
+                    break;
+
                 case PlatformInputType.KeyDown:
                     keyDowns.Add(input.Key);
                     break;
 
                 case PlatformInputType.KeyUp:
                     keyDowns.Remove(input.Key);
-                    break;
-
-                case PlatformInputType.MouseDown:
-                    if (input.Button is MouseButton.Right)
-                    {
-                        lastMousePosition = input.Position * dpiScale;
-                    }
-                    break;
-
-                case PlatformInputType.MouseUp:
-                    if (input.Button is MouseButton.Right)
-                    {
-                        lastMousePosition = null;
-                    }
-                    break;
-
-                case PlatformInputType.MouseMove:
-                    Rotate(input.Position * dpiScale);
-                    break;
-
-                case PlatformInputType.FocusLost:
-                    keyDowns.Clear();
-                    lastMousePosition = null;
                     break;
             }
         }

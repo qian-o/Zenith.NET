@@ -1,28 +1,25 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using Zenith.NET;
 
 namespace CornellBox;
 
 internal class FramePresenter : DisposableObject
 {
+    private const int SlotCount = 3;
+
     private readonly GraphicsContext context;
-    private readonly PixelFormat format;
     private readonly SwapChain swapChain;
     private readonly Lock @lock = new();
     private readonly AutoResetEvent renderWake = new(false);
-    private readonly AutoResetEvent presentWake = new(false);
-    private readonly ManualResetEventSlim presentPaused = new(false);
-    private readonly Queue<Slot> queued = new(3);
+    private readonly BlockingCollection<Texture> freeSlots = [];
 
-    private Slot[] slots = [];
+    private BlockingCollection<Texture> queuedSlots = [];
     private Thread? renderThread;
     private Thread? presentThread;
-    private bool isStopping;
-    private bool isRenderFinished;
-    private bool isPresentPaused;
-    private bool isRendering;
-    private (uint Width, uint Height)? pendingSize;
-    private ulong group;
+    private (uint Width, uint Height) requestedSize;
+    private volatile bool isStopping;
+    private bool isFirstOutput;
 
     public FramePresenter(GraphicsContext context, SwapChainDesc desc)
     {
@@ -30,18 +27,16 @@ internal class FramePresenter : DisposableObject
         ArgumentOutOfRangeException.ThrowIfZero(desc.Surface.Height);
 
         this.context = context;
-        format = desc.Format;
-        Width = desc.Surface.Width;
-        Height = desc.Surface.Height;
-        desc.IsPresentQueueEnabled = true;
+
         swapChain = context.CreateSwapChain(desc);
+        requestedSize = (Width, Height);
 
         CreateSlots();
     }
 
-    public uint Width { get; private set; }
+    public uint Width => swapChain.Desc.Surface.Width;
 
-    public uint Height { get; private set; }
+    public uint Height => swapChain.Desc.Surface.Height;
 
     public event Action<double>? Update;
 
@@ -51,122 +46,81 @@ internal class FramePresenter : DisposableObject
 
     public void Start()
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        Stop();
 
-        if (renderThread is not null)
-        {
-            return;
-        }
+        isStopping = false;
 
-        {
-            using Lock.Scope _ = @lock.EnterScope();
+        queuedSlots.Dispose();
+        queuedSlots = [];
 
-            isStopping = false;
-            isRenderFinished = false;
-        }
-
-        presentPaused.Reset();
-        presentThread = new(PresentLoop)
-        {
-            Name = "CornellBox Present",
-            IsBackground = true
-        };
         renderThread = new(RenderLoop)
         {
             Name = "CornellBox Render",
             IsBackground = true
         };
-        presentThread.Start();
         renderThread.Start();
+
+        presentThread = new(PresentLoop)
+        {
+            Name = "CornellBox Present",
+            IsBackground = true
+        };
+        presentThread.Start();
     }
 
     public void Stop()
     {
-        if (renderThread is null)
-        {
-            return;
-        }
-
-        if (Thread.CurrentThread == renderThread || Thread.CurrentThread == presentThread)
-        {
-            throw new InvalidOperationException("The presenter must be stopped by its controlling thread.");
-        }
-
-        {
-            using Lock.Scope _ = @lock.EnterScope();
-
-            isStopping = true;
-        }
-
+        isStopping = true;
         renderWake.Set();
-        presentWake.Set();
-        renderThread.Join();
+
+        renderThread?.Join();
         presentThread?.Join();
+
         renderThread = null;
         presentThread = null;
     }
 
     public void RequestResize(uint width, uint height)
     {
-        {
-            using Lock.Scope _ = @lock.EnterScope();
+        using Lock.Scope _ = @lock.EnterScope();
 
-            pendingSize = (width, height);
-        }
-
+        requestedSize = (width, height);
         renderWake.Set();
     }
 
     public void Submit(Texture texture, TextureLayout currentLayout, params ReadOnlySpan<TimelineValue> waits)
     {
-        if (Thread.CurrentThread != renderThread || !isRendering)
-        {
-            throw new InvalidOperationException("Output must be submitted from the Render callback.");
-        }
+        Texture slot = freeSlots.Take();
 
-        ref readonly TextureDesc desc = ref texture.Desc;
-        if (texture.Context != context || desc.Type is not TextureType.Texture2D || desc.Format != format || desc.Width != Width || desc.Height != Height || desc.Depth is not 1 || desc.ArrayLayers is not 1 || desc.SampleCount is not SampleCount.Count1 || !desc.Usages.HasFlag(TextureUsages.TransferSrc))
-        {
-            throw new ArgumentException("The output must be a matching single-sample 2D texture with transfer source usage.", nameof(texture));
-        }
-
-        Slot slot = AcquireSlot();
         CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+
         commandBuffer.Transition(texture, default, currentLayout, TextureLayout.CopySrc);
-        commandBuffer.Transition(slot.Texture, default, slot.Layout, TextureLayout.CopyDst);
-        commandBuffer.CopyTexture(texture, default, default, slot.Texture, default, default, new()
-        {
-            Width = Width,
-            Height = Height,
-            Depth = 1
-        });
+        CopyFrame(commandBuffer, texture, slot, TextureLayout.CopySrc);
         commandBuffer.Transition(texture, default, TextureLayout.CopySrc, currentLayout);
-        commandBuffer.Transition(slot.Texture, default, TextureLayout.CopyDst, TextureLayout.CopySrc);
         commandBuffer.Submit(waits).Wait();
-        slot.Layout = TextureLayout.CopySrc;
 
+        if (isFirstOutput)
         {
-            using Lock.Scope _ = @lock.EnterScope();
+            DiscardQueued();
 
-            while (queued.TryPeek(out Slot? previous) && previous.Group != group)
-            {
-                queued.Dequeue().IsInUse = false;
-            }
-
-            slot.Group = group;
-            queued.Enqueue(slot);
+            isFirstOutput = false;
         }
 
-        presentWake.Set();
+        queuedSlots.Add(slot);
     }
 
     protected override void Destroy()
     {
         Stop();
-        DestroySlots();
+
+        while (freeSlots.TryTake(out Texture? slot))
+        {
+            slot.Dispose();
+        }
+
         swapChain?.Dispose();
-        presentPaused.Dispose();
-        presentWake.Dispose();
+        queuedSlots.Dispose();
+        freeSlots.Dispose();
         renderWake.Dispose();
     }
 
@@ -174,232 +128,119 @@ internal class FramePresenter : DisposableObject
     {
         long previousStart = Stopwatch.GetTimestamp();
 
-        while (WaitForFrame())
+        while (true)
         {
-            (uint Width, uint Height)? resize;
+            // Waiting for a free slot first keeps Update from consuming input that cannot be submitted yet.
+            freeSlots.Add(freeSlots.Take());
 
+            if (isStopping)
             {
-                using Lock.Scope _ = @lock.EnterScope();
-
-                if (isStopping)
-                {
-                    break;
-                }
-
-                resize = pendingSize;
-                pendingSize = null;
+                break;
             }
 
-            if (resize.HasValue)
+            (uint Width, uint Height) size;
+
+            using (Lock.Scope _ = @lock.EnterScope())
             {
-                ResizeResources(resize.Value);
+                size = requestedSize;
+            }
+
+            if (size.Width is 0 || size.Height is 0)
+            {
+                DiscardQueued();
+
+                renderWake.WaitOne();
+
                 previousStart = Stopwatch.GetTimestamp();
-
-                continue;
             }
-
-            group++;
-            long start = Stopwatch.GetTimestamp();
-            double deltaSeconds = (double)(start - previousStart) / Stopwatch.Frequency;
-            previousStart = start;
-            Update?.Invoke(deltaSeconds);
-            isRendering = true;
-            Render?.Invoke(deltaSeconds);
-            isRendering = false;
-        }
-
-        context.GraphicsQueue.Timeline.Signal().Wait();
-
-        {
-            using Lock.Scope _ = @lock.EnterScope();
-
-            ClearQueued();
-            isRenderFinished = true;
-        }
-
-        presentWake.Set();
-    }
-
-    private bool WaitForFrame()
-    {
-        while (true)
-        {
+            else if (size != (Width, Height))
             {
-                using Lock.Scope _ = @lock.EnterScope();
+                ResizeResources(size.Width, size.Height);
 
-                if (isStopping)
-                {
-                    return false;
-                }
-
-                if (pendingSize.HasValue || (!isPresentPaused && Array.Exists(slots, static slot => !slot.IsInUse)))
-                {
-                    return true;
-                }
+                previousStart = Stopwatch.GetTimestamp();
             }
-
-            renderWake.WaitOne();
-        }
-    }
-
-    private Slot AcquireSlot()
-    {
-        while (true)
-        {
+            else
             {
-                using Lock.Scope _ = @lock.EnterScope();
+                long start = Stopwatch.GetTimestamp();
+                double deltaSeconds = Stopwatch.GetElapsedTime(previousStart, start).TotalSeconds;
 
-                foreach (Slot slot in slots)
-                {
-                    if (!slot.IsInUse)
-                    {
-                        slot.IsInUse = true;
+                previousStart = start;
 
-                        return slot;
-                    }
-                }
+                Update?.Invoke(deltaSeconds);
+
+                isFirstOutput = true;
+
+                Render?.Invoke(deltaSeconds);
             }
-
-            renderWake.WaitOne();
         }
+
+        DiscardQueued();
+
+        queuedSlots.CompleteAdding();
     }
 
     private void PresentLoop()
     {
-        while (true)
+        foreach (Texture slot in queuedSlots.GetConsumingEnumerable())
         {
-            Slot? slot = null;
+            CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
-            {
-                using Lock.Scope _ = @lock.EnterScope();
-
-                if (isRenderFinished)
-                {
-                    return;
-                }
-
-                if (isPresentPaused)
-                {
-                    presentPaused.Set();
-                }
-                else
-                {
-                    queued.TryDequeue(out slot);
-                }
-            }
-
-            if (slot is null)
-            {
-                presentWake.WaitOne();
-
-                continue;
-            }
-
-            Texture drawable = swapChain.Drawable;
-            CommandBuffer commandBuffer = context.PresentQueue.CommandBuffer();
-            commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
-            commandBuffer.CopyTexture(slot.Texture, default, default, drawable, default, default, new()
-            {
-                Width = Width,
-                Height = Height,
-                Depth = 1
-            });
-            commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
+            CopyFrame(commandBuffer, slot, swapChain.Drawable, TextureLayout.Present);
             commandBuffer.Submit();
+
             swapChain.Present();
 
-            {
-                using Lock.Scope _ = @lock.EnterScope();
-
-                slot.IsInUse = false;
-            }
-
-            renderWake.Set();
+            freeSlots.Add(slot);
         }
     }
 
-    private void ResizeResources((uint Width, uint Height) size)
+    private void ResizeResources(uint width, uint height)
     {
-        presentPaused.Reset();
+        DiscardQueued();
 
+        // Taking back every slot waits for the current presentation and leaves the present thread idle.
+        for (int i = 0; i < SlotCount; i++)
         {
-            using Lock.Scope _ = @lock.EnterScope();
-
-            isPresentPaused = true;
+            freeSlots.Take().Dispose();
         }
 
-        presentWake.Set();
-        presentPaused.Wait();
-        context.GraphicsQueue.Timeline.Signal().Wait();
+        swapChain.Resize(width, height);
 
-        {
-            using Lock.Scope _ = @lock.EnterScope();
-
-            ClearQueued();
-        }
-
-        if (size.Width is 0 || size.Height is 0)
-        {
-            return;
-        }
-
-        DestroySlots();
-        swapChain.Resize(size.Width, size.Height);
-        Width = size.Width;
-        Height = size.Height;
         CreateSlots();
-        Resize?.Invoke(Width, Height);
 
-        {
-            using Lock.Scope _ = @lock.EnterScope();
-
-            isPresentPaused = false;
-        }
-
-        presentWake.Set();
+        Resize?.Invoke(width, height);
     }
 
-    private void ClearQueued()
+    private void DiscardQueued()
     {
-        while (queued.TryDequeue(out Slot? slot))
+        while (queuedSlots.TryTake(out Texture? slot))
         {
-            slot.IsInUse = false;
+            freeSlots.Add(slot);
         }
+    }
+
+    private void CopyFrame(CommandBuffer commandBuffer, Texture src, Texture dst, TextureLayout dstLayout)
+    {
+        commandBuffer.Transition(dst, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+        commandBuffer.CopyTexture(src, default, default, dst, default, default, new()
+        {
+            Width = Width,
+            Height = Height,
+            Depth = 1
+        });
+        commandBuffer.Transition(dst, default, TextureLayout.CopyDst, dstLayout);
     }
 
     private void CreateSlots()
     {
-        slots = new Slot[3];
-
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < SlotCount; i++)
         {
-            Texture texture = context.CreateTexture(TextureDesc.Texture2D(format, Width, Height, 1, SampleCount.Count1) with
+            Texture slot = context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
             {
                 Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
             });
 
-            slots[i] = new(texture);
+            freeSlots.Add(slot);
         }
-    }
-
-    private void DestroySlots()
-    {
-        foreach (Slot slot in slots)
-        {
-            slot?.Texture.Dispose();
-        }
-
-        slots = [];
-    }
-
-    private class Slot(Texture texture)
-    {
-        public readonly Texture Texture = texture;
-
-        public TextureLayout Layout;
-
-        public bool IsInUse;
-
-        public ulong Group;
     }
 }

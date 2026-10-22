@@ -66,7 +66,6 @@ internal unsafe class OutputPass : DisposableObject
         commandBuffer.SetConstantBuffer(buffer, 0);
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
-        commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 
     public void Resize(uint width, uint height)
@@ -87,7 +86,7 @@ internal unsafe class OutputPass : DisposableObject
     {
         Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+            Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc
         });
     }
 

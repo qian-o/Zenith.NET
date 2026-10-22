@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using CornellBox.Handlers;
+﻿using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Hexa.NET.ImGui;
 using Silk.NET.Maths;
@@ -16,13 +15,10 @@ internal static class App
 {
     private static readonly IWindow window;
     private static readonly PlatformHandler platform;
-    private static readonly FramePresenter presenter;
     private static readonly ImGuiHandler imGui;
+    private static readonly FramePresenter presenter;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-
-    private static Texture composition = null!;
-    private static TextureLayout compositionLayout;
 
     static App()
     {
@@ -68,6 +64,7 @@ internal static class App
 
         uint width = (uint)window.FramebufferSize.X;
         uint height = (uint)window.FramebufferSize.Y;
+
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
@@ -97,8 +94,6 @@ internal static class App
         };
 
         renderer = new();
-
-        CreateComposition();
     }
 
     public static GraphicsContext Context { get; }
@@ -123,7 +118,6 @@ internal static class App
         presenter.Render -= OnRender;
         presenter.Update -= OnUpdate;
 
-        DestroyComposition();
         renderer.Dispose();
         presenter.Dispose();
         platform.Dispose();
@@ -134,21 +128,18 @@ internal static class App
 
     private static void OnUpdate(double deltaSeconds)
     {
-        Vector2 dpiScale = platform.DpiScale;
-        uint width = (uint)(Width / dpiScale.X);
-        uint height = (uint)(Height / dpiScale.Y);
-
+        uint width = (uint)(Width / platform.DpiScale.X);
+        uint height = (uint)(Height / platform.DpiScale.Y);
         ReadOnlySpan<PlatformInput> inputs = platform.CollectInput();
-        camera.Update(deltaSeconds, Width, Height, dpiScale, inputs);
-        imGui.Update(inputs, dpiScale);
+
+        camera.Update(deltaSeconds, width, height, inputs);
+        imGui.Update(inputs);
         renderer.Update(deltaSeconds);
 
         Context.BeginImGuiFrame(deltaSeconds, width, height);
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
-
-        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(width, height));
     }
 
     private static void OnRender(double deltaSeconds)
@@ -157,13 +148,10 @@ internal static class App
 
         renderer.Render(commandBuffer, camera);
 
-        commandBuffer.Transition(composition, default, compositionLayout, TextureLayout.ColorAttachment);
-        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(composition, default));
-        commandBuffer.Transition(composition, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Load(renderer.Color));
         commandBuffer.Submit();
-        compositionLayout = TextureLayout.CopySrc;
 
-        presenter.Submit(composition, compositionLayout);
+        presenter.Submit(renderer.Color, TextureLayout.ColorAttachment);
     }
 
     private static void OnFramebufferResize(Vector2D<int> size)
@@ -174,23 +162,6 @@ internal static class App
     private static void OnResize(uint width, uint height)
     {
         renderer.Resize(width, height);
-        DestroyComposition();
-        CreateComposition();
-    }
-
-    private static void CreateComposition()
-    {
-        composition = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc
-        });
-        compositionLayout = TextureLayout.Undefined;
-    }
-
-    private static void DestroyComposition()
-    {
-        composition.Dispose();
-        composition = null!;
     }
 
     private static void DrawOverlay()
