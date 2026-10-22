@@ -70,10 +70,10 @@ internal class PlatformHandler : DisposableObject
         input?.Dispose();
     }
 
-    private void AddInput(Input message)
+    private void AddInput(Input input)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        pendingInputs.Add(message);
+        pendingInputs.Add(input);
     }
 }
