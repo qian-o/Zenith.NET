@@ -109,11 +109,12 @@ internal static class App
         presenter.Render += OnRender;
         presenter.Resize += OnResize;
         window.FramebufferResize += OnFramebufferResize;
+        window.Closing += OnClosing;
 
         presenter.Start();
         window.Run();
-        presenter.Stop();
 
+        window.Closing -= OnClosing;
         window.FramebufferResize -= OnFramebufferResize;
         presenter.Resize -= OnResize;
         presenter.Render -= OnRender;
@@ -159,6 +160,12 @@ internal static class App
     private static void OnFramebufferResize(Vector2D<int> size)
     {
         presenter.RequestResize((uint)size.X, (uint)size.Y);
+    }
+
+    private static void OnClosing()
+    {
+        // Run destroys the native window before returning, so presentation must stop while the window still exists.
+        presenter.Stop();
     }
 
     private static void OnResize(uint width, uint height)

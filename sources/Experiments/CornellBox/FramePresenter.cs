@@ -184,7 +184,7 @@ internal class FramePresenter : DisposableObject
             CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
             CopyFrame(commandBuffer, slot, swapChain.Drawable, TextureLayout.Present);
-            commandBuffer.Submit();
+            commandBuffer.Submit().Wait();
 
             swapChain.Present();
 
