@@ -12,6 +12,9 @@ internal unsafe class PathTracingPass : DisposableObject
     private readonly Buffer buffer;
     private readonly ComputePipeline computePipeline;
 
+    private Texture[] textures = [];
+    private Matrix4x4 lastViewProjection;
+
     public PathTracingPass(uint width, uint height)
     {
         Width = width;
@@ -37,12 +40,40 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public Texture Color { get; private set; } = null!;
 
+    public Texture Depth { get; private set; } = null!;
+
+    public Texture MotionVectors { get; private set; } = null!;
+
+    public Texture DiffuseAlbedo { get; private set; } = null!;
+
+    public Texture SpecularAlbedo { get; private set; } = null!;
+
+    public Texture Normals { get; private set; } = null!;
+
+    public Texture Roughness { get; private set; } = null!;
+
+    public Texture SpecularHitDistance { get; private set; } = null!;
+
+    public Vector2 JitterOffset { get; set; }
+
+    public bool ResetHistory { get; set; } = true;
+
+    public Matrix4x4 View { get; private set; }
+
+    public Matrix4x4 Projection { get; private set; }
+
+    public Matrix4x4 ViewProjection { get; private set; }
+
+    public Matrix4x4 PreviousViewProjection { get; private set; }
+
     public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, uint frameIndex)
     {
-        Matrix4x4 view = camera.View;
-        Matrix4x4 projection = camera.Projection;
-        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
-        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+        View = camera.View;
+        Projection = camera.Projection;
+        ViewProjection = View * Projection;
+        PreviousViewProjection = ResetHistory ? ViewProjection : lastViewProjection;
+        Matrix4x4.Invert(View, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(Projection, out Matrix4x4 inverseProjection);
 
         PathTracingConstants constants = new()
         {
@@ -55,7 +86,17 @@ internal unsafe class PathTracingPass : DisposableObject
             Indices = scene.Indices,
             Materials = scene.Materials,
             Instances = scene.Instances,
-            Color = Color.StorageHandle
+            Color = Color.StorageHandle,
+            ViewProjection = ViewProjection,
+            PreviousViewProjection = PreviousViewProjection,
+            JitterOffset = JitterOffset,
+            Depth = Depth.StorageHandle,
+            MotionVectors = MotionVectors.StorageHandle,
+            DiffuseAlbedo = DiffuseAlbedo.StorageHandle,
+            SpecularAlbedo = SpecularAlbedo.StorageHandle,
+            Normals = Normals.StorageHandle,
+            Roughness = Roughness.StorageHandle,
+            SpecularHitDistance = SpecularHitDistance.StorageHandle
         };
 
         buffer.Upload(0, new()
@@ -64,14 +105,23 @@ internal unsafe class PathTracingPass : DisposableObject
             SizeInBytes = (uint)sizeof(PathTracingConstants)
         });
 
-        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
+        foreach (Texture texture in textures)
+        {
+            commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.Storage);
+        }
 
         ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
 
         commandBuffer.SetPipeline(computePipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
         commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
-        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
+
+        foreach (Texture texture in textures)
+        {
+            commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
+        }
+
+        lastViewProjection = ViewProjection;
     }
 
     public void Resize(uint width, uint height)
@@ -87,6 +137,7 @@ internal unsafe class PathTracingPass : DisposableObject
         Height = height;
 
         CreateTexture();
+        ResetHistory = true;
     }
 
     protected override void Destroy()
@@ -99,7 +150,21 @@ internal unsafe class PathTracingPass : DisposableObject
 
     private void CreateTexture()
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, Width, Height, 1, SampleCount.Count1) with
+        Color = CreateTexture(PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(PixelFormat.R32Float);
+        MotionVectors = CreateTexture(PixelFormat.R32G32Float);
+        DiffuseAlbedo = CreateTexture(PixelFormat.R16G16B16A16Float);
+        SpecularAlbedo = CreateTexture(PixelFormat.R16G16B16A16Float);
+        Normals = CreateTexture(PixelFormat.R16G16B16A16Float);
+        Roughness = CreateTexture(PixelFormat.R16Float);
+        SpecularHitDistance = CreateTexture(PixelFormat.R32Float);
+
+        textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance];
+    }
+
+    private Texture CreateTexture(PixelFormat format)
+    {
+        return App.Context.CreateTexture(TextureDesc.Texture2D(format, Width, Height, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
@@ -107,12 +172,35 @@ internal unsafe class PathTracingPass : DisposableObject
 
     private void DestroyTexture()
     {
+        SpecularHitDistance?.Dispose();
+        SpecularHitDistance = null!;
+
+        Roughness?.Dispose();
+        Roughness = null!;
+
+        Normals?.Dispose();
+        Normals = null!;
+
+        SpecularAlbedo?.Dispose();
+        SpecularAlbedo = null!;
+
+        DiffuseAlbedo?.Dispose();
+        DiffuseAlbedo = null!;
+
+        MotionVectors?.Dispose();
+        MotionVectors = null!;
+
+        Depth?.Dispose();
+        Depth = null!;
+
         Color?.Dispose();
         Color = null!;
+
+        textures = [];
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 208)]
+[StructLayout(LayoutKind.Explicit, Size = 416)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -144,4 +232,34 @@ file struct PathTracingConstants
 
     [FieldOffset(200)]
     public ResourceHandle Color;
+
+    [FieldOffset(208)]
+    public Matrix4x4 ViewProjection;
+
+    [FieldOffset(272)]
+    public Matrix4x4 PreviousViewProjection;
+
+    [FieldOffset(336)]
+    public Vector2 JitterOffset;
+
+    [FieldOffset(352)]
+    public ResourceHandle Depth;
+
+    [FieldOffset(360)]
+    public ResourceHandle MotionVectors;
+
+    [FieldOffset(368)]
+    public ResourceHandle DiffuseAlbedo;
+
+    [FieldOffset(376)]
+    public ResourceHandle SpecularAlbedo;
+
+    [FieldOffset(384)]
+    public ResourceHandle Normals;
+
+    [FieldOffset(392)]
+    public ResourceHandle Roughness;
+
+    [FieldOffset(400)]
+    public ResourceHandle SpecularHitDistance;
 }

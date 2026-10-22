@@ -11,6 +11,8 @@ internal class Renderer : DisposableObject
     private readonly PathTracingPass pathTracingPass;
     private readonly OutputPass outputPass;
 
+    private DenoisingUpscalingPass denoisingUpscalingPass;
+    private FrameGenerationPass frameGenerationPass;
     private double elapsedSeconds;
     private uint frameIndex;
 
@@ -18,6 +20,8 @@ internal class Renderer : DisposableObject
     {
         scene = new();
         pathTracingPass = new(App.Width, App.Height);
+        denoisingUpscalingPass = new(App.Width, App.Height);
+        frameGenerationPass = new(App.Width, App.Height, App.Width, App.Height);
         outputPass = new(App.Width, App.Height);
     }
 
@@ -27,7 +31,14 @@ internal class Renderer : DisposableObject
 
     public FrameGenerationMode FrameGeneration { get; set; }
 
-    public Texture Color => outputPass.Color;
+    public Texture Overlay => outputPass.Overlay;
+
+    public ReadOnlySpan<Texture> GetColors()
+    {
+        outputPass.SelectOutputs(frameGenerationPass.ReadOutputIndices());
+
+        return outputPass.Colors;
+    }
 
     public void Update(double deltaSeconds)
     {
@@ -39,28 +50,70 @@ internal class Renderer : DisposableObject
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
+        if (denoisingUpscalingPass.Mode != DenoisingUpscaling || frameGenerationPass.Mode != FrameGeneration)
+        {
+            Resize(App.Width, App.Height);
+        }
+
+        pathTracingPass.JitterOffset = denoisingUpscalingPass.GetJitterOffset(frameIndex);
+
         scene.Update(commandBuffer, elapsedSeconds);
 
         pathTracingPass.Record(commandBuffer, scene, camera, frameIndex);
-        outputPass.Record(commandBuffer, pathTracingPass.Color, frameIndex);
+        denoisingUpscalingPass.Record(commandBuffer, pathTracingPass);
+        outputPass.Record(commandBuffer, denoisingUpscalingPass.Color, frameIndex);
+        frameGenerationPass.Record(commandBuffer, outputPass.SceneColor, pathTracingPass, camera);
 
+        pathTracingPass.ResetHistory = false;
         frameIndex++;
+    }
+
+    public void Composite(CommandBuffer commandBuffer)
+    {
+        outputPass.Record(commandBuffer, frameGenerationPass.Colors);
     }
 
     public void Resize(uint width, uint height)
     {
-        if (Color.Desc.Width == width && Color.Desc.Height == height)
+        bool isDenoisingChanged = denoisingUpscalingPass.Mode != DenoisingUpscaling;
+        bool isGenerationChanged = frameGenerationPass.Mode != FrameGeneration;
+        if (outputPass.SceneColor.Desc.Width == width && outputPass.SceneColor.Desc.Height == height && !isDenoisingChanged && !isGenerationChanged)
         {
             return;
         }
 
-        pathTracingPass.Resize(width, height);
-        outputPass.Resize(width, height);
+        if (isDenoisingChanged)
+        {
+            denoisingUpscalingPass.Dispose();
+            denoisingUpscalingPass = new(width, height, DenoisingUpscaling);
+
+            pathTracingPass.ResetHistory = true;
+        }
+        else
+        {
+            denoisingUpscalingPass.Resize(width, height);
+        }
+
+        if (isGenerationChanged)
+        {
+            frameGenerationPass.Dispose();
+            frameGenerationPass = new(denoisingUpscalingPass.InputWidth, denoisingUpscalingPass.InputHeight, width, height, FrameGeneration);
+        }
+        else
+        {
+            frameGenerationPass.Resize(denoisingUpscalingPass.InputWidth, denoisingUpscalingPass.InputHeight, width, height);
+        }
+
+        pathTracingPass.Resize(denoisingUpscalingPass.InputWidth, denoisingUpscalingPass.InputHeight);
+
+        outputPass.Resize(width, height, frameGenerationPass.Colors.Length);
     }
 
     protected override void Destroy()
     {
         outputPass?.Dispose();
+        frameGenerationPass?.Dispose();
+        denoisingUpscalingPass?.Dispose();
         pathTracingPass?.Dispose();
         scene?.Dispose();
     }

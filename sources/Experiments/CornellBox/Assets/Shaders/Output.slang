@@ -3,6 +3,8 @@
     uint4 FrameIndexPadding;
 
     DescriptorHandle<Texture2D<float4>> Input;
+
+    DescriptorHandle<Texture2D<float4>> Overlay;
 };
 
 ConstantBuffer<OutputConstants> output;
@@ -42,4 +44,14 @@ float4 ToneMappingFS(float4 position: SV_POSITION) : SV_TARGET
     color += (first - second) / 255.0;
 
     return float4(saturate(color), 1.0);
+}
+
+[shader("fragment")]
+float4 CompositeFS(float4 position: SV_POSITION) : SV_TARGET
+{
+    uint2 pixel = uint2(position.xy);
+    float3 color = output.Input.Load(int3(pixel, 0)).rgb;
+    float4 overlay = output.Overlay.Load(int3(pixel, 0));
+
+    return float4(overlay.rgb + color * (1.0 - overlay.a), 1.0);
 }

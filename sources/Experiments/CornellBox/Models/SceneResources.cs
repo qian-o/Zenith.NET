@@ -40,7 +40,8 @@ internal unsafe class SceneResources : DisposableObject
             instances[i] = new()
             {
                 ObjectToWorld = transforms[i],
-                FirstIndex = meshes[i].FirstIndex
+                FirstIndex = meshes[i].FirstIndex,
+                PreviousObjectToWorld = transforms[i]
             };
         }
 
@@ -116,6 +117,7 @@ internal unsafe class SceneResources : DisposableObject
 
         for (int i = 0; i < instances.Length; i++)
         {
+            instances[i].PreviousObjectToWorld = instances[i].ObjectToWorld;
             instances[i].ObjectToWorld = transforms[i];
             rayTracingInstances[i].Transform = transforms[i];
         }

@@ -6,6 +6,9 @@ static const uint LightMaterial = 3;
 static const uint CheckerPattern = 1;
 static const uint GridPattern = 2;
 static const float RayOffset = 0.01;
+static const float RayMaxDistance = 100000.0;
+static const float SpecularMissDistance = 3.402823466e38;
+static const float MinimumRoughness = 0.04;
 static const float PI = 3.14159265;
 static const int MaxBounces = 8;
 
@@ -92,6 +95,8 @@ struct Instance
 
     private uint4 FirstIndexAndPadding;
 
+    float4x4 PreviousObjectToWorld;
+
     property float4x4 ObjectToWorld
     {
         get {
@@ -110,6 +115,10 @@ struct Instance
 struct Surface
 {
     float3 Position;
+
+    float3 ObjectPosition;
+
+    uint InstanceIndex;
 
     float3 Normal;
 
@@ -147,6 +156,28 @@ struct PathTracingConstants
     DescriptorHandle<StructuredBuffer<Instance>> Instances;
 
     DescriptorHandle<RWTexture2D<float4>> Color;
+
+    float4x4 ViewProjection;
+
+    float4x4 PreviousViewProjection;
+
+    float2 JitterOffset;
+
+    uint2 JitterPadding;
+
+    DescriptorHandle<RWTexture2D<float>> Depth;
+
+    DescriptorHandle<RWTexture2D<float2>> MotionVectors;
+
+    DescriptorHandle<RWTexture2D<float4>> DiffuseAlbedo;
+
+    DescriptorHandle<RWTexture2D<float4>> SpecularAlbedo;
+
+    DescriptorHandle<RWTexture2D<float4>> Normals;
+
+    DescriptorHandle<RWTexture2D<float>> Roughness;
+
+    DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
 };
 
 ConstantBuffer<PathTracingConstants> pathTracing;
@@ -370,7 +401,7 @@ float3 SampleSunDirect(Surface surface, float3 V, float roughness, inout uint rn
     float3 shadowOrigin =
         surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, L) > 0.0 ? RayOffset : -RayOffset);
 
-    if (TraceShadowRay(shadowOrigin, L, 100000.0))
+    if (TraceShadowRay(shadowOrigin, L, RayMaxDistance))
     {
         return float3(0.0);
     }
@@ -424,6 +455,8 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
 
     Surface surface;
     surface.Position = mul(float4(position, 1.0), instance.ObjectToWorld).xyz;
+    surface.ObjectPosition = position;
+    surface.InstanceIndex = instanceIndex;
     surface.Normal = normalize(mul(float4(normal, 0.0), instance.ObjectToWorld).xyz);
     surface.GeometricNormal = normalize(mul(float4(faceNormal, 0.0), instance.ObjectToWorld).xyz);
     surface.Albedo = PatternAlbedo(material, position, normal);
@@ -446,7 +479,7 @@ bool TraceSurface(float3 origin, float3 direction, out Surface surface, out floa
     ray.Origin = origin;
     ray.Direction = direction;
     ray.TMin = 0.001;
-    ray.TMax = 100000.0;
+    ray.TMax = RayMaxDistance;
 
     RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
     query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
@@ -469,8 +502,10 @@ bool TraceSurface(float3 origin, float3 direction, out Surface surface, out floa
 }
 
 float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float firstDistance, bool hasFirstHit,
-                 inout uint rng)
+                 inout uint rng, out float specularHitDistance)
 {
+    specularHitDistance = hasFirstHit ? 0.0 : SpecularMissDistance;
+    bool primarySpecularSample = false;
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
     float previousPdf = 0.0;
@@ -484,6 +519,11 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
         if (bounce > 0)
         {
             hasHit = TraceSurface(origin, direction, surface, t);
+
+            if (bounce == 1 && primarySpecularSample)
+            {
+                specularHitDistance = hasHit ? length(surface.Position - firstSurface.Position) : SpecularMissDistance;
+            }
         }
 
         if (!hasHit)
@@ -498,7 +538,7 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
         float3 V = -direction;
 
         float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
-        float roughness = max(surface.Roughness, 0.04);
+        float roughness = max(surface.Roughness, MinimumRoughness);
 
         if (surface.Emission > 0.0)
         {
@@ -546,6 +586,11 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
                 break;
             }
 
+            if (bounce == 0)
+            {
+                primarySpecularSample = true;
+            }
+
             float NdotH = max(dot(surface.Normal, H), 0.0);
             float HdotV = max(dot(H, V), 0.0);
 
@@ -589,6 +634,68 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
     return radiance;
 }
 
+float3 SpecularReflectance(float3 specularColor, float roughness, float NdotV)
+{
+    float alpha = roughness * roughness;
+    float NoV = abs(NdotV);
+    float4 X = float4(1.0, NoV, NoV * NoV, NoV * NoV * NoV);
+    float4 Y = float4(1.0, alpha, alpha * alpha, alpha * alpha * alpha);
+    float2x2 M1 = float2x2(0.99044, -1.28514, 1.29678, -0.755907);
+    float3x3 M2 = float3x3(1.0, 2.92338, 59.4188, 20.3225, -27.0302, 222.592, 121.563, 626.13, 316.627);
+    float2x2 M3 = float2x2(0.0365463, 3.32707, 9.0632, -9.04756);
+    float3x3 M4 = float3x3(1.0, 3.59685, -1.36772, 9.04401, -16.3174, 9.22949, 5.56589, 19.7886, -20.2123);
+    float bias = dot(mul(M1, X.xy), Y.xy) / dot(mul(M2, X.xyw), Y.xyw);
+    float scale = dot(mul(M3, X.xy), Y.xy) / dot(mul(M4, X.xzw), Y.xyw);
+    bias *= saturate(specularColor.g * 50.0);
+
+    return specularColor * max(0.0, scale) + max(0.0, bias);
+}
+
+float2 MotionVector(float4 currentClip, float4 previousClip)
+{
+    float2 currentNdc = currentClip.xy / currentClip.w;
+    float2 previousNdc = previousClip.xy / previousClip.w;
+
+    return (previousNdc - currentNdc) * float2(0.5, -0.5) * pathTracing.RenderSize;
+}
+
+void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, float specularHitDistance)
+{
+    if (!hasHit)
+    {
+        float4 currentClip = mul(float4(direction, 0.0), pathTracing.ViewProjection);
+        float4 previousClip = mul(float4(direction, 0.0), pathTracing.PreviousViewProjection);
+        pathTracing.Depth[pixel] = 1.0;
+        pathTracing.MotionVectors[pixel] = MotionVector(currentClip, previousClip);
+
+        pathTracing.DiffuseAlbedo[pixel] = float4(0.5, 0.5, 0.5, 1.0);
+        pathTracing.SpecularAlbedo[pixel] = float4(0.0);
+        pathTracing.Normals[pixel] = float4(0.0);
+        pathTracing.Roughness[pixel] = 0.0;
+        pathTracing.SpecularHitDistance[pixel] = SpecularMissDistance;
+
+        return;
+    }
+
+    Instance instance = pathTracing.Instances[surface.InstanceIndex];
+    float4 previousPosition = mul(float4(surface.ObjectPosition, 1.0), instance.PreviousObjectToWorld);
+    float4 currentClip = mul(float4(surface.Position, 1.0), pathTracing.ViewProjection);
+    float4 previousClip = mul(previousPosition, pathTracing.PreviousViewProjection);
+
+    pathTracing.Depth[pixel] = currentClip.z / currentClip.w;
+    pathTracing.MotionVectors[pixel] = MotionVector(currentClip, previousClip);
+
+    float roughness = max(surface.Roughness, MinimumRoughness);
+    float3 F0 = lerp(float3(0.04), surface.Albedo, surface.Metallic);
+    float3 specularAlbedo = SpecularReflectance(F0, roughness, dot(surface.Normal, -direction));
+
+    pathTracing.DiffuseAlbedo[pixel] = float4(surface.Albedo, 1.0);
+    pathTracing.SpecularAlbedo[pixel] = float4(specularAlbedo, 1.0);
+    pathTracing.Normals[pixel] = float4(surface.Normal, 0.0);
+    pathTracing.Roughness[pixel] = roughness;
+    pathTracing.SpecularHitDistance[pixel] = specularHitDistance;
+}
+
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
@@ -602,17 +709,20 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
 
     uint seed = PCGHash(pixel.x + pixel.y * size.x + asuint(pathTracing.PositionFrame.w) * size.x * size.y);
-    float2 uv = (float2(pixel) + 0.5) / float2(size);
+    float2 uv = (float2(pixel) + 0.5 + pathTracing.JitterOffset) / float2(size);
     float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
     float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InverseProjection);
     float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), pathTracing.InverseView).xyz);
     Surface firstSurface;
     float firstDistance;
     bool hasFirstHit = TraceSurface(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance);
+    float specularHitDistance;
 
     float3 color =
-        min(TracePath(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed),
-            float3(30.0));
+        min(TracePath(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed,
+                      specularHitDistance), float3(30.0));
+
+    WriteGuides(pixel, direction, firstSurface, hasFirstHit, specularHitDistance);
 
     pathTracing.Color[pixel] = float4(color, 1.0);
 }

@@ -1,4 +1,5 @@
-﻿using CornellBox.Handlers;
+﻿using System.Numerics;
+using CornellBox.Handlers;
 using CornellBox.Helpers;
 using CornellBox.Models;
 using Hexa.NET.ImGui;
@@ -46,12 +47,14 @@ internal static class App
 
         if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
         {
+            Technology = RenderingTechnology.DLSS;
             Context.InitializeDLSS(Path.Combine(AppContext.BaseDirectory, "DLSS"));
 
             frameGenerationItems = string.Concat(Enumerable.Range(1, (int)Context.DLSSCapabilities.MaxGeneratedFrameCount + 1).Select(static count => $"{count}x\0"));
         }
         else
         {
+            Technology = RenderingTechnology.MetalFX;
             // 后续新增 MetalFX 扩展后以便使用超分降噪、帧生成技术。
             // Context.InitializeMetalFX();
 
@@ -116,6 +119,8 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
+    public static RenderingTechnology Technology { get; }
+
     public static uint Width => presenter.Width;
 
     public static uint Height => presenter.Height;
@@ -169,11 +174,16 @@ internal static class App
 
         renderer.Render(commandBuffer, camera);
 
-        commandBuffer.Transition(renderer.Color, default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment);
-        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Load(renderer.Color));
-        commandBuffer.Submit();
+        commandBuffer.Transition(renderer.Overlay, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(renderer.Overlay, Vector4.Zero));
+        commandBuffer.Transition(renderer.Overlay, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+        renderer.Composite(commandBuffer);
+        commandBuffer.Submit().Wait();
 
-        presenter.Submit(renderer.Color, TextureLayout.ColorAttachment);
+        foreach (Texture color in renderer.GetColors())
+        {
+            presenter.Submit(color, TextureLayout.ColorAttachment);
+        }
     }
 
     private static void OnResize(uint width, uint height)
