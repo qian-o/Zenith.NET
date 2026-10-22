@@ -109,14 +109,14 @@ internal static class App
         presenter.Render += OnRender;
         presenter.Resize += OnResize;
 
-        window.Resize += OnWindowResize;
-        window.Closing += OnWindowClose;
+        window.FramebufferResize += OnFramebufferResize;
+        window.Closing += OnClosing;
 
         presenter.Start();
         window.Run();
 
-        window.Closing -= OnWindowClose;
-        window.Resize -= OnWindowResize;
+        window.Closing -= OnClosing;
+        window.FramebufferResize -= OnFramebufferResize;
 
         presenter.Resize -= OnResize;
         presenter.Render -= OnRender;
@@ -164,12 +164,12 @@ internal static class App
         renderer.Resize(width, height);
     }
 
-    private static void OnWindowResize(Vector2D<int> size)
+    private static void OnFramebufferResize(Vector2D<int> size)
     {
         presenter.RequestResize((uint)size.X, (uint)size.Y);
     }
 
-    private static void OnWindowClose()
+    private static void OnClosing()
     {
         presenter.Stop();
     }
