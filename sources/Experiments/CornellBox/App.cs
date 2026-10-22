@@ -108,14 +108,16 @@ internal static class App
         presenter.Update += OnUpdate;
         presenter.Render += OnRender;
         presenter.Resize += OnResize;
-        window.FramebufferResize += OnFramebufferResize;
-        window.Closing += OnClosing;
+
+        window.Resize += OnWindowResize;
+        window.Closing += OnWindowClose;
 
         presenter.Start();
         window.Run();
 
-        window.Closing -= OnClosing;
-        window.FramebufferResize -= OnFramebufferResize;
+        window.Closing -= OnWindowClose;
+        window.Resize -= OnWindowResize;
+
         presenter.Resize -= OnResize;
         presenter.Render -= OnRender;
         presenter.Update -= OnUpdate;
@@ -157,20 +159,19 @@ internal static class App
         presenter.Submit(renderer.Color, TextureLayout.ColorAttachment);
     }
 
-    private static void OnFramebufferResize(Vector2D<int> size)
+    private static void OnResize(uint width, uint height)
+    {
+        renderer.Resize(width, height);
+    }
+
+    private static void OnWindowResize(Vector2D<int> size)
     {
         presenter.RequestResize((uint)size.X, (uint)size.Y);
     }
 
-    private static void OnClosing()
+    private static void OnWindowClose()
     {
-        // Run destroys the native window before returning, so presentation must stop while the window still exists.
         presenter.Stop();
-    }
-
-    private static void OnResize(uint width, uint height)
-    {
-        renderer.Resize(width, height);
     }
 
     private static void DrawOverlay()
