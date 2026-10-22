@@ -128,7 +128,6 @@ internal class FramePresenter : DisposableObject
 
         while (true)
         {
-            // Waiting for a free slot first keeps Update from consuming input that cannot be submitted yet.
             freeSlots.Add(freeSlots.Take());
 
             if (isStopping)
@@ -239,7 +238,6 @@ internal class FramePresenter : DisposableObject
 
     private void DestroySlots()
     {
-        // Taking back every slot waits for the current presentation and leaves the present thread idle.
         for (int i = 0; i < SlotCount; i++)
         {
             freeSlots.Take().Dispose();
