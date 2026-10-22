@@ -23,6 +23,10 @@ internal class Renderer : DisposableObject
 
     public bool IsPaused { get; set; }
 
+    public DenoisingUpscalingMode DenoisingUpscaling { get; set; }
+
+    public FrameGenerationMode FrameGeneration { get; set; }
+
     public Texture Color => outputPass.Color;
 
     public void Update(double deltaSeconds)

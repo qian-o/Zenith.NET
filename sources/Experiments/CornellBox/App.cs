@@ -22,6 +22,8 @@ internal static class App
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
 
+    private static readonly string frameGenerationItems;
+
     static App()
     {
         if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
@@ -45,11 +47,15 @@ internal static class App
         if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
         {
             Context.InitializeDLSS(Path.Combine(AppContext.BaseDirectory, "DLSS"));
+
+            frameGenerationItems = string.Concat(Enumerable.Range(1, (int)Context.DLSSCapabilities.MaxGeneratedFrameCount + 1).Select(static count => $"{count}x\0"));
         }
         else
         {
             // 后续新增 MetalFX 扩展后以便使用超分降噪、帧生成技术。
             // Context.InitializeMetalFX();
+
+            frameGenerationItems = string.Concat(Enumerable.Range(1, 2).Select(static count => $"{count}x\0"));
         }
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
@@ -200,6 +206,18 @@ internal static class App
         if (ImGui.Checkbox("Pause", ref isPaused))
         {
             renderer.IsPaused = isPaused;
+        }
+
+        int denoisingUpscaling = (int)renderer.DenoisingUpscaling;
+        if (ImGui.Combo("Denoising Upscaling", ref denoisingUpscaling, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        {
+            renderer.DenoisingUpscaling = (DenoisingUpscalingMode)denoisingUpscaling;
+        }
+
+        int frameGeneration = (int)renderer.FrameGeneration;
+        if (ImGui.Combo("Frame Generation", ref frameGeneration, frameGenerationItems))
+        {
+            renderer.FrameGeneration = (FrameGenerationMode)frameGeneration;
         }
     }
 }
