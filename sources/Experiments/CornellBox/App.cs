@@ -6,6 +6,7 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
+using Zenith.NET.Extensions.DLSS;
 using Zenith.NET.Extensions.ImGui;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
@@ -39,6 +40,16 @@ internal static class App
         else
         {
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+        }
+
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+        {
+            Context.InitializeDLSS(Path.Combine(AppContext.BaseDirectory, "DLSS"));
+        }
+        else
+        {
+            // 后续新增 MetalFX 扩展后以便使用超分降噪、帧生成技术。
+            // Context.InitializeMetalFX();
         }
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
