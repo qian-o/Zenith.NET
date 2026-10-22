@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using CornellBox.Models;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 using Zenith.NET;
@@ -13,8 +14,8 @@ internal class PlatformHandler : DisposableObject
     private readonly IKeyboard keyboard;
     private readonly Lock @lock = new();
 
-    private List<PlatformInput> pendingInputs = [];
-    private List<PlatformInput> frameInputs = [];
+    private List<Input> pendingInputs = [];
+    private List<Input> frameInputs = [];
     private volatile StandardCursor cursor;
 
     public PlatformHandler(IWindow window)
@@ -23,17 +24,17 @@ internal class PlatformHandler : DisposableObject
         mouse = input.Mice[0];
         keyboard = input.Keyboards[0];
 
-        mouse.MouseDown += (_, button) => AddInput(new(PlatformInputType.MouseDown)
+        mouse.MouseDown += (_, button) => AddInput(new(InputType.MouseDown)
         {
             Button = button,
             Position = mouse.Position
         });
-        mouse.MouseUp += (_, button) => AddInput(new(PlatformInputType.MouseUp) { Button = button });
-        mouse.MouseMove += (_, position) => AddInput(new(PlatformInputType.MouseMove) { Position = position });
-        mouse.Scroll += (_, wheel) => AddInput(new(PlatformInputType.MouseWheel) { Offset = new(wheel.X, wheel.Y) });
-        keyboard.KeyDown += (_, key, _) => AddInput(new(PlatformInputType.KeyDown) { Key = key });
-        keyboard.KeyUp += (_, key, _) => AddInput(new(PlatformInputType.KeyUp) { Key = key });
-        keyboard.KeyChar += (_, character) => AddInput(new(PlatformInputType.TextInput) { Character = character });
+        mouse.MouseUp += (_, button) => AddInput(new(InputType.MouseUp) { Button = button });
+        mouse.MouseMove += (_, position) => AddInput(new(InputType.MouseMove) { Position = position });
+        mouse.Scroll += (_, wheel) => AddInput(new(InputType.MouseWheel) { Offset = new(wheel.X, wheel.Y) });
+        keyboard.KeyDown += (_, key, _) => AddInput(new(InputType.KeyDown) { Key = key });
+        keyboard.KeyUp += (_, key, _) => AddInput(new(InputType.KeyUp) { Key = key });
+        keyboard.KeyChar += (_, character) => AddInput(new(InputType.TextInput) { Character = character });
 
         window.Update += _ => mouse.Cursor.StandardCursor = cursor;
 
@@ -54,7 +55,7 @@ internal class PlatformHandler : DisposableObject
         set => cursor = value;
     }
 
-    public ReadOnlySpan<PlatformInput> CollectInput()
+    public ReadOnlySpan<Input> CollectInput()
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -69,7 +70,7 @@ internal class PlatformHandler : DisposableObject
         input?.Dispose();
     }
 
-    private void AddInput(PlatformInput message)
+    private void AddInput(Input message)
     {
         using Lock.Scope _ = @lock.EnterScope();
 

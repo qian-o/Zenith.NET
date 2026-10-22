@@ -1,5 +1,6 @@
 ﻿using CornellBox.Handlers;
 using CornellBox.Helpers;
+using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -130,7 +131,7 @@ internal static class App
     {
         uint width = (uint)(Width / platform.DpiScale.X);
         uint height = (uint)(Height / platform.DpiScale.Y);
-        ReadOnlySpan<PlatformInput> inputs = platform.CollectInput();
+        ReadOnlySpan<Input> inputs = platform.CollectInput();
 
         camera.Update(deltaSeconds, width, height, inputs);
         imGui.Update(inputs);
@@ -148,6 +149,7 @@ internal static class App
 
         renderer.Render(commandBuffer, camera);
 
+        commandBuffer.Transition(renderer.Color, default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment);
         Context.EndImGuiFrame(commandBuffer, ColorAttachment.Load(renderer.Color));
         commandBuffer.Submit();
 

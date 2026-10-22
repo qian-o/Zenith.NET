@@ -1,4 +1,5 @@
-﻿using Hexa.NET.ImGui;
+﻿using CornellBox.Models;
+using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Zenith.NET.Extensions.ImGui;
 
@@ -47,39 +48,39 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
     {
     }
 
-    public void Update(ReadOnlySpan<PlatformInput> inputs)
+    public void Update(ReadOnlySpan<Input> inputs)
     {
-        foreach (PlatformInput input in inputs)
+        foreach (Input input in inputs)
         {
             switch (input.Type)
             {
-                case PlatformInputType.MouseDown when input.Button <= MouseButton.Button5:
+                case InputType.MouseDown when input.Button <= MouseButton.Button5:
                     Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)input.Button });
                     break;
 
-                case PlatformInputType.MouseUp when input.Button <= MouseButton.Button5:
+                case InputType.MouseUp when input.Button <= MouseButton.Button5:
                     Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)input.Button });
                     break;
 
-                case PlatformInputType.MouseMove:
+                case InputType.MouseMove:
                     Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = input.Position });
                     break;
 
-                case PlatformInputType.MouseWheel:
+                case InputType.MouseWheel:
                     Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = input.Offset });
                     break;
 
-                case PlatformInputType.KeyDown:
+                case InputType.KeyDown:
                     Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(input.Key) });
                     Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
                     break;
 
-                case PlatformInputType.KeyUp:
+                case InputType.KeyUp:
                     Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(input.Key) });
                     Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
                     break;
 
-                case PlatformInputType.TextInput:
+                case InputType.TextInput:
                     Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = input.Character });
                     break;
             }

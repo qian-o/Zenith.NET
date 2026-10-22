@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CornellBox.Models;
 using Silk.NET.Input;
 
 namespace CornellBox.Handlers;
@@ -41,31 +42,31 @@ internal class CameraHandler
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height, ReadOnlySpan<PlatformInput> inputs)
+    public void Update(double deltaSeconds, uint width, uint height, ReadOnlySpan<Input> inputs)
     {
         Size = new(width, height);
 
-        foreach (PlatformInput input in inputs)
+        foreach (Input input in inputs)
         {
             switch (input.Type)
             {
-                case PlatformInputType.MouseDown when input.Button is MouseButton.Right:
+                case InputType.MouseDown when input.Button is MouseButton.Right:
                     lastMousePosition = input.Position;
                     break;
 
-                case PlatformInputType.MouseUp when input.Button is MouseButton.Right:
+                case InputType.MouseUp when input.Button is MouseButton.Right:
                     lastMousePosition = null;
                     break;
 
-                case PlatformInputType.MouseMove:
+                case InputType.MouseMove:
                     Rotate(input.Position);
                     break;
 
-                case PlatformInputType.KeyDown:
+                case InputType.KeyDown:
                     keyDowns.Add(input.Key);
                     break;
 
-                case PlatformInputType.KeyUp:
+                case InputType.KeyUp:
                     keyDowns.Remove(input.Key);
                     break;
             }

@@ -23,9 +23,6 @@ internal class FramePresenter : DisposableObject
 
     public FramePresenter(GraphicsContext context, SwapChainDesc desc)
     {
-        ArgumentOutOfRangeException.ThrowIfZero(desc.Surface.Width);
-        ArgumentOutOfRangeException.ThrowIfZero(desc.Surface.Height);
-
         this.context = context;
 
         swapChain = context.CreateSwapChain(desc);
@@ -113,12 +110,13 @@ internal class FramePresenter : DisposableObject
     {
         Stop();
 
-        while (freeSlots.TryTake(out Texture? slot))
+        if (swapChain is not null)
         {
-            slot.Dispose();
+            DestroySlots();
+
+            swapChain.Dispose();
         }
 
-        swapChain?.Dispose();
         queuedSlots.Dispose();
         freeSlots.Dispose();
         renderWake.Dispose();
@@ -197,12 +195,7 @@ internal class FramePresenter : DisposableObject
     private void ResizeResources(uint width, uint height)
     {
         DiscardQueued();
-
-        // Taking back every slot waits for the current presentation and leaves the present thread idle.
-        for (int i = 0; i < SlotCount; i++)
-        {
-            freeSlots.Take().Dispose();
-        }
+        DestroySlots();
 
         swapChain.Resize(width, height);
 
@@ -241,6 +234,15 @@ internal class FramePresenter : DisposableObject
             });
 
             freeSlots.Add(slot);
+        }
+    }
+
+    private void DestroySlots()
+    {
+        // Taking back every slot waits for the current presentation and leaves the present thread idle.
+        for (int i = 0; i < SlotCount; i++)
+        {
+            freeSlots.Take().Dispose();
         }
     }
 }

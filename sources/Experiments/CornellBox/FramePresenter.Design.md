@@ -154,7 +154,7 @@ Stop
 - [CameraHandler.cs](Handlers/CameraHandler.cs) 和 [ImGuiHandler.cs](Handlers/ImGuiHandler.cs) 通过平台处理器获取输入，运行期间相机和全部 ImGui 帧处理固定在渲染线程。
 - Resize 事件中只调用 [Renderer.Resize](Renderer.cs)。
 - 渲染期间统一使用呈现器 Width、Height，并按构造时确定的 DPI 缩放换算出逻辑尺寸，供相机和 ImGui 使用；鼠标坐标本身就是逻辑坐标，不再读取窗口尺寸。ImGui 的 framebuffer 缩放只在初始化时设置一次。
-- UI 直接以 Load 方式叠加绘制到 Renderer 的输出纹理上，再提交该纹理，不另建合成纹理。输出纹理为 B8G8R8A8UNorm，用途为 ColorAttachment、TransferSrc，绘制后保持 ColorAttachment 布局，提交时如实传入该布局。
+- UI 直接以 Load 方式叠加绘制到 Renderer 的输出纹理上，再提交该纹理，不另建合成纹理。输出纹理为 B8G8R8A8UNorm，用途为 ColorAttachment、TransferSrc，绘制后保持 ColorAttachment 布局，提交时如实传入该布局。输出 Pass 与 ImGui Pass 先后写同一纹理，中间以同布局 ColorAttachment Transition 同步，与 FluidTank 中跨 Pass 继续使用附件的做法一致。
 - 场景及 UI 命令先提交，再调用呈现器 Submit。其同步等待覆盖同 GraphicsQueue 的先前工作，正常路径不需要额外保存上一轮完成值；没有调用 Submit 或另有其他队列工作时，应用自行保证资源复用安全。
 - 交换链关闭垂直同步，启用独立呈现队列。Context 和窗口由应用持有，所有工作停止后再释放。
 
@@ -167,6 +167,6 @@ Stop
 - 相机和 ImGui 收到同批输入，光标在窗口 Update 中生效。
 - DX12、Vulkan、Metal 验证层无相关同步错误。
 
-实现文件：[FramePresenter.cs](FramePresenter.cs)、[PlatformHandler.cs](Handlers/PlatformHandler.cs)。平台输入在 [PlatformInput.cs](Handlers/PlatformInput.cs) 中定义。
+实现文件：[FramePresenter.cs](FramePresenter.cs)、[PlatformHandler.cs](Handlers/PlatformHandler.cs)。平台输入在 [PlatformInput.cs](Handlers/PlatformInput.cs) 和 [PlatformInputType.cs](Handlers/PlatformInputType.cs) 中定义。
 
 - [Apple 独立呈现线程](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)
