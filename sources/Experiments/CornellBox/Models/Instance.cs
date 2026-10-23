@@ -10,8 +10,8 @@ internal struct Instance
     public Matrix4x4 ObjectToWorld;
 
     [FieldOffset(64)]
-    public uint FirstIndex;
-
-    [FieldOffset(80)]
     public Matrix4x4 PreviousObjectToWorld;
+
+    [FieldOffset(128)]
+    public uint FirstIndex;
 }

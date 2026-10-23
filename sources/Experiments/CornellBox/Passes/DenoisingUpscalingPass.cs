@@ -8,86 +8,55 @@ namespace CornellBox.Passes;
 internal class DenoisingUpscalingPass : DisposableObject
 {
     private DLSSRayReconstruction? dlss;
-    private Texture? output;
-    private uint width;
-    private uint height;
-    private bool hasPendingReset;
 
-    public DenoisingUpscalingPass(uint width, uint height, DenoisingUpscalingMode mode = DenoisingUpscalingMode.Off)
+    public DenoisingUpscalingPass(RenderDesc desc)
     {
-        this.width = width;
-        this.height = height;
-        Mode = mode;
-
-        CreateResources();
+        Resize(desc);
     }
 
-    public DenoisingUpscalingMode Mode { get; }
+    public RenderDesc Desc { get; private set; }
 
-    public uint InputWidth { get; private set; }
+    public Texture? Color { get; private set; }
 
-    public uint InputHeight { get; private set; }
-
-    public Vector2 GetJitterOffset(uint frameIndex)
+    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
     {
-        if (output is null)
+        if (dlss is null)
         {
-            return Vector2.Zero;
+            return;
         }
 
-        uint sample = frameIndex + 1u;
-
-        return new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f);
-    }
-
-    public Texture Record(CommandBuffer commandBuffer, PathTracingPass inputs, in RenderArgs args)
-    {
-        switch (App.Technology)
+        commandBuffer.Transition(Color!, default, TextureLayout.Undefined, TextureLayout.Storage);
+        dlss.Dispatch(commandBuffer, new()
         {
-            case RenderingTechnology.DLSS when Mode is not DenoisingUpscalingMode.Off:
-                commandBuffer.Transition(output!, default, TextureLayout.Undefined, TextureLayout.Storage);
-                dlss!.Dispatch(commandBuffer, new()
-                {
-                    Color = inputs.Color,
-                    Depth = inputs.Depth,
-                    MotionVectors = inputs.MotionVectors,
-                    DiffuseAlbedo = inputs.DiffuseAlbedo,
-                    SpecularAlbedo = inputs.SpecularAlbedo,
-                    Normals = inputs.Normals,
-                    Roughness = inputs.Roughness,
-                    SpecularHitDistance = inputs.SpecularHitDistance,
-                    Output = output!,
-                    JitterOffset = -args.JitterOffset,
-                    MotionVectorScale = Vector2.One,
-                    WorldToView = args.View,
-                    ViewToClip = args.Projection,
-                    PreExposure = 1.0f,
-                    Reset = args.Reset || hasPendingReset
-                });
-                commandBuffer.Transition(output!, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-                hasPendingReset = false;
-
-                return output!;
-
-            case RenderingTechnology.MetalFX:
-                break;
-        }
-
-        return inputs.Color;
+            Color = args.Input.Color,
+            Depth = args.Input.Depth,
+            MotionVectors = args.Input.MotionVectors,
+            DiffuseAlbedo = args.Input.DiffuseAlbedo,
+            SpecularAlbedo = args.Input.SpecularAlbedo,
+            Normals = args.Input.Normals,
+            Roughness = args.Input.Roughness,
+            SpecularHitDistance = args.Input.SpecularHitDistance,
+            Output = Color!,
+            JitterOffset = -args.JitterOffset,
+            MotionVectorScale = Vector2.One,
+            WorldToView = args.View,
+            ViewToClip = args.Projection,
+            PreExposure = 1.0f,
+            Reset = args.Reset
+        });
+        commandBuffer.Transition(Color!, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    public void Resize(uint newWidth, uint newHeight)
+    public void Resize(RenderDesc desc)
     {
-        if (width == newWidth && height == newHeight)
+        if (Desc.OutputWidth == desc.OutputWidth && Desc.OutputHeight == desc.OutputHeight && Desc.DenoisingUpscaling == desc.DenoisingUpscaling)
         {
             return;
         }
 
         DestroyResources();
 
-        width = newWidth;
-        height = newHeight;
+        Desc = desc;
 
         CreateResources();
     }
@@ -99,47 +68,37 @@ internal class DenoisingUpscalingPass : DisposableObject
 
     private void CreateResources()
     {
-        InputWidth = width;
-        InputHeight = height;
-
-        switch (App.Technology)
+        if (Desc.DenoisingUpscaling is DenoisingUpscalingMode.Off)
         {
-            case RenderingTechnology.DLSS when Mode is not DenoisingUpscalingMode.Off:
-                DLSSMode mode = Mode switch
-                {
-                    DenoisingUpscalingMode.Native => DLSSMode.DLAA,
-                    DenoisingUpscalingMode.Quality => DLSSMode.Quality,
-                    DenoisingUpscalingMode.Balanced => DLSSMode.Balanced,
-                    DenoisingUpscalingMode.Performance => DLSSMode.Performance,
-                    _ => DLSSMode.UltraPerformance
-                };
-
-                CreateDLSS(mode);
-                break;
-
-            case RenderingTechnology.MetalFX:
-                break;
+            return;
         }
 
-        hasPendingReset = true;
-    }
+        DLSSMode mode = Desc.DenoisingUpscaling switch
+        {
+            DenoisingUpscalingMode.Native => DLSSMode.DLAA,
+            DenoisingUpscalingMode.Quality => DLSSMode.Quality,
+            DenoisingUpscalingMode.Balanced => DLSSMode.Balanced,
+            DenoisingUpscalingMode.Performance => DLSSMode.Performance,
+            DenoisingUpscalingMode.UltraPerformance => DLSSMode.UltraPerformance,
+            _ => default
+        };
+        DLSSOptimalSettings settings = App.Context.GetDLSSRayReconstructionOptimalSettings(Desc.OutputWidth, Desc.OutputHeight, mode);
 
-    private void CreateDLSS(DLSSMode mode)
-    {
-        DLSSOptimalSettings settings = App.Context.GetDLSSRayReconstructionOptimalSettings(width, height, mode);
-
-        InputWidth = settings.InputWidth;
-        InputHeight = settings.InputHeight;
+        Desc = Desc with
+        {
+            InputWidth = settings.InputWidth,
+            InputHeight = settings.InputHeight
+        };
 
         dlss = App.Context.CreateDLSSRayReconstruction(new()
         {
-            InputWidth = InputWidth,
-            InputHeight = InputHeight,
-            OutputWidth = width,
-            OutputHeight = height,
+            InputWidth = Desc.InputWidth,
+            InputHeight = Desc.InputHeight,
+            OutputWidth = Desc.OutputWidth,
+            OutputHeight = Desc.OutputHeight,
             Mode = mode
         });
-        output = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, Desc.OutputWidth, Desc.OutputHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
@@ -147,24 +106,9 @@ internal class DenoisingUpscalingPass : DisposableObject
 
     private void DestroyResources()
     {
-        output?.Dispose();
-        output = null;
+        Color?.Dispose();
+        Color = null;
         dlss?.Dispose();
         dlss = null;
-    }
-
-    private static float Halton(uint index, uint radix)
-    {
-        float value = 0.0f;
-        float weight = 1.0f;
-
-        while (index > 0u)
-        {
-            weight /= radix;
-            value += weight * (index % radix);
-            index /= radix;
-        }
-
-        return value;
     }
 }

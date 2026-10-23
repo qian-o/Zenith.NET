@@ -9,15 +9,10 @@ namespace CornellBox.Passes;
 internal unsafe class PathTracingPass : DisposableObject
 {
     private readonly Buffer buffer;
-    private readonly ComputePipeline computePipeline;
+    private readonly ComputePipeline pipeline;
 
-    private Texture[] textures = [];
-
-    public PathTracingPass(uint width, uint height)
+    public PathTracingPass(RenderDesc desc)
     {
-        Width = width;
-        Height = height;
-
         buffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(PathTracingConstants),
@@ -27,32 +22,14 @@ internal unsafe class PathTracingPass : DisposableObject
 
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "PathTracingCS"));
 
-        computePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
+        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
 
-        CreateTexture();
+        Resize(desc);
     }
 
-    public uint Width { get; private set; }
+    public PathTracingOutput Output { get; private set; } = null!;
 
-    public uint Height { get; private set; }
-
-    public Texture Color { get; private set; } = null!;
-
-    public Texture Depth { get; private set; } = null!;
-
-    public Texture MotionVectors { get; private set; } = null!;
-
-    public Texture DiffuseAlbedo { get; private set; } = null!;
-
-    public Texture SpecularAlbedo { get; private set; } = null!;
-
-    public Texture Normals { get; private set; } = null!;
-
-    public Texture Roughness { get; private set; } = null!;
-
-    public Texture SpecularHitDistance { get; private set; } = null!;
-
-    public void Record(CommandBuffer commandBuffer, SceneResources scene, in RenderArgs args)
+    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
     {
         Matrix4x4.Invert(args.View, out Matrix4x4 inverseView);
         Matrix4x4.Invert(args.Projection, out Matrix4x4 inverseProjection);
@@ -61,24 +38,25 @@ internal unsafe class PathTracingPass : DisposableObject
         {
             InverseView = inverseView,
             InverseProjection = inverseProjection,
-            PositionFrame = new(args.Camera.Position, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
-            RenderSize = new(Width, Height),
-            Scene = scene.AccelerationStructure,
-            Vertices = scene.Vertices,
-            Indices = scene.Indices,
-            Materials = scene.Materials,
-            Instances = scene.Instances,
-            Color = Color.StorageHandle,
             ViewProjection = args.ViewProjection,
             PreviousViewProjection = args.PreviousViewProjection,
+            Position = new(args.Camera.Position, 1.0f),
+            RenderSize = new(Output.Width, Output.Height),
             JitterOffset = args.JitterOffset,
-            Depth = Depth.StorageHandle,
-            MotionVectors = MotionVectors.StorageHandle,
-            DiffuseAlbedo = DiffuseAlbedo.StorageHandle,
-            SpecularAlbedo = SpecularAlbedo.StorageHandle,
-            Normals = Normals.StorageHandle,
-            Roughness = Roughness.StorageHandle,
-            SpecularHitDistance = SpecularHitDistance.StorageHandle
+            FrameIndex = args.FrameIndex,
+            Scene = args.Scene.AccelerationStructure,
+            Vertices = args.Scene.Vertices,
+            Indices = args.Scene.Indices,
+            Materials = args.Scene.Materials,
+            Instances = args.Scene.Instances,
+            Color = Output.Color.StorageHandle,
+            Depth = Output.Depth.StorageHandle,
+            MotionVectors = Output.MotionVectors.StorageHandle,
+            DiffuseAlbedo = Output.DiffuseAlbedo.StorageHandle,
+            SpecularAlbedo = Output.SpecularAlbedo.StorageHandle,
+            Normals = Output.Normals.StorageHandle,
+            Roughness = Output.Roughness.StorageHandle,
+            SpecularHitDistance = Output.SpecularHitDistance.StorageHandle
         };
 
         buffer.Upload(0, new()
@@ -87,99 +65,44 @@ internal unsafe class PathTracingPass : DisposableObject
             SizeInBytes = (uint)sizeof(PathTracingConstants)
         });
 
-        foreach (Texture texture in textures)
+        foreach (Texture texture in Output.Textures)
         {
             commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
-        ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
 
-        commandBuffer.SetPipeline(computePipeline);
+        commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
+        commandBuffer.Dispatch((Output.Width + group.X - 1) / group.X, (Output.Height + group.Y - 1) / group.Y, 1);
 
-        foreach (Texture texture in textures)
+        foreach (Texture texture in Output.Textures)
         {
             commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize(RenderDesc desc)
     {
-        if (Width == width && Height == height)
+        if (Output is not null && Output.Width == desc.InputWidth && Output.Height == desc.InputHeight)
         {
             return;
         }
 
-        DestroyTexture();
-
-        Width = width;
-        Height = height;
-
-        CreateTexture();
+        Output?.Dispose();
+        Output = null!;
+        Output = new(desc.InputWidth, desc.InputHeight);
     }
 
     protected override void Destroy()
     {
-        DestroyTexture();
-
-        computePipeline?.Dispose();
+        Output?.Dispose();
+        pipeline?.Dispose();
         buffer?.Dispose();
-    }
-
-    private void CreateTexture()
-    {
-        Color = CreateTexture(PixelFormat.R16G16B16A16Float);
-        Depth = CreateTexture(PixelFormat.R32Float);
-        MotionVectors = CreateTexture(PixelFormat.R32G32Float);
-        DiffuseAlbedo = CreateTexture(PixelFormat.R16G16B16A16Float);
-        SpecularAlbedo = CreateTexture(PixelFormat.R16G16B16A16Float);
-        Normals = CreateTexture(PixelFormat.R16G16B16A16Float);
-        Roughness = CreateTexture(PixelFormat.R16Float);
-        SpecularHitDistance = CreateTexture(PixelFormat.R32Float);
-
-        textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance];
-    }
-
-    private Texture CreateTexture(PixelFormat format)
-    {
-        return App.Context.CreateTexture(TextureDesc.Texture2D(format, Width, Height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-    }
-
-    private void DestroyTexture()
-    {
-        SpecularHitDistance?.Dispose();
-        SpecularHitDistance = null!;
-
-        Roughness?.Dispose();
-        Roughness = null!;
-
-        Normals?.Dispose();
-        Normals = null!;
-
-        SpecularAlbedo?.Dispose();
-        SpecularAlbedo = null!;
-
-        DiffuseAlbedo?.Dispose();
-        DiffuseAlbedo = null!;
-
-        MotionVectors?.Dispose();
-        MotionVectors = null!;
-
-        Depth?.Dispose();
-        Depth = null!;
-
-        Color?.Dispose();
-        Color = null!;
-
-        textures = [];
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 416)]
+[StructLayout(LayoutKind.Explicit, Size = 400)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -189,56 +112,59 @@ file struct PathTracingConstants
     public Matrix4x4 InverseProjection;
 
     [FieldOffset(128)]
-    public Vector4 PositionFrame;
-
-    [FieldOffset(144)]
-    public Vector2 RenderSize;
-
-    [FieldOffset(160)]
-    public ResourceHandle Scene;
-
-    [FieldOffset(168)]
-    public ResourceHandle Vertices;
-
-    [FieldOffset(176)]
-    public ResourceHandle Indices;
-
-    [FieldOffset(184)]
-    public ResourceHandle Materials;
-
-    [FieldOffset(192)]
-    public ResourceHandle Instances;
-
-    [FieldOffset(200)]
-    public ResourceHandle Color;
-
-    [FieldOffset(208)]
     public Matrix4x4 ViewProjection;
 
-    [FieldOffset(272)]
+    [FieldOffset(192)]
     public Matrix4x4 PreviousViewProjection;
 
-    [FieldOffset(336)]
+    [FieldOffset(256)]
+    public Vector4 Position;
+
+    [FieldOffset(272)]
+    public Vector2 RenderSize;
+
+    [FieldOffset(280)]
     public Vector2 JitterOffset;
 
-    [FieldOffset(352)]
+    [FieldOffset(288)]
+    public uint FrameIndex;
+
+    [FieldOffset(296)]
+    public ResourceHandle Scene;
+
+    [FieldOffset(304)]
+    public ResourceHandle Vertices;
+
+    [FieldOffset(312)]
+    public ResourceHandle Indices;
+
+    [FieldOffset(320)]
+    public ResourceHandle Materials;
+
+    [FieldOffset(328)]
+    public ResourceHandle Instances;
+
+    [FieldOffset(336)]
+    public ResourceHandle Color;
+
+    [FieldOffset(344)]
     public ResourceHandle Depth;
 
-    [FieldOffset(360)]
+    [FieldOffset(352)]
     public ResourceHandle MotionVectors;
 
-    [FieldOffset(368)]
+    [FieldOffset(360)]
     public ResourceHandle DiffuseAlbedo;
 
-    [FieldOffset(376)]
+    [FieldOffset(368)]
     public ResourceHandle SpecularAlbedo;
 
-    [FieldOffset(384)]
+    [FieldOffset(376)]
     public ResourceHandle Normals;
 
-    [FieldOffset(392)]
+    [FieldOffset(384)]
     public ResourceHandle Roughness;
 
-    [FieldOffset(400)]
+    [FieldOffset(392)]
     public ResourceHandle SpecularHitDistance;
 }

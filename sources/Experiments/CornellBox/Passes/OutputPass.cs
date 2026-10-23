@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+﻿using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -9,7 +9,7 @@ internal unsafe class OutputPass : DisposableObject
     private readonly Buffer buffer;
     private readonly GraphicsPipeline pipeline;
 
-    public OutputPass(uint width, uint height)
+    public OutputPass(RenderDesc desc)
     {
         buffer = App.Context.CreateBuffer(new()
         {
@@ -41,17 +41,17 @@ internal unsafe class OutputPass : DisposableObject
             }
         });
 
-        CreateTexture(width, height);
+        Resize(desc);
     }
 
     public Texture Color { get; private set; } = null!;
 
-    public void Record(CommandBuffer commandBuffer, Texture color, uint frameIndex)
+    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
     {
         OutputConstants constants = new()
         {
-            FrameIndex = frameIndex,
-            Input = color.SampledHandle
+            Input = args.Color.SampledHandle,
+            FrameIndex = args.FrameIndex
         };
 
         buffer.Upload(0, new()
@@ -69,15 +69,15 @@ internal unsafe class OutputPass : DisposableObject
         commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize(RenderDesc desc)
     {
-        if (Color.Desc.Width == width && Color.Desc.Height == height)
+        if (Color is not null && Color.Desc.Width == desc.OutputWidth && Color.Desc.Height == desc.OutputHeight)
         {
             return;
         }
 
         DestroyTexture();
-        CreateTexture(width, height);
+        CreateTexture(desc.OutputWidth, desc.OutputHeight);
     }
 
     protected override void Destroy()
@@ -90,10 +90,7 @@ internal unsafe class OutputPass : DisposableObject
 
     private void CreateTexture(uint width, uint height)
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
-        });
+        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.R8G8B8A8UNorm, width, height, 1, SampleCount.Count1));
     }
 
     private void DestroyTexture()
@@ -101,14 +98,4 @@ internal unsafe class OutputPass : DisposableObject
         Color?.Dispose();
         Color = null!;
     }
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-file struct OutputConstants
-{
-    [FieldOffset(0)]
-    public uint FrameIndex;
-
-    [FieldOffset(16)]
-    public ResourceHandle Input;
 }

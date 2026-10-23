@@ -6,141 +6,79 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal class FrameGenerationPass : DisposableObject
+internal unsafe class FrameGenerationPass : DisposableObject
 {
-    private const uint DisableInterpolationSizeInBytes = sizeof(uint);
-
     private DLSSFrameGeneration? dlss;
     private Buffer? disableInterpolation;
-    private Buffer? readback;
     private Texture[] colors = [];
-    private int[] outputIndices = [];
-    private uint inputWidth;
-    private uint inputHeight;
-    private uint outputWidth;
-    private uint outputHeight;
-    private bool hasPendingReset;
 
-    public FrameGenerationPass(uint inputWidth, uint inputHeight, uint outputWidth, uint outputHeight, FrameGenerationMode mode = FrameGenerationMode.X1)
+    public FrameGenerationPass(RenderDesc desc)
     {
-        this.inputWidth = inputWidth;
-        this.inputHeight = inputHeight;
-        this.outputWidth = outputWidth;
-        this.outputHeight = outputHeight;
-        Mode = mode;
-
-        CreateResources();
+        Resize(desc);
     }
-
-    public FrameGenerationMode Mode { get; }
 
     public ReadOnlySpan<Texture> Colors => colors;
 
-    public ReadOnlySpan<int> ReadOutputIndices(TimelineValue completion)
+    public Buffer? Readback { get; private set; }
+
+    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
     {
-        if (readback is null)
+        if (dlss is null)
         {
-            return outputIndices;
+            return;
         }
 
-        completion.Wait();
+        Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToView);
+        Matrix4x4.Invert(args.ViewProjection, out Matrix4x4 clipToWorld);
+        Matrix4x4 clipToPrevClip = clipToWorld * args.PreviousViewProjection;
+        Matrix4x4.Invert(clipToPrevClip, out Matrix4x4 prevClipToClip);
 
-        unsafe
+        Vector2 scale = new(1.0f / args.Input.Width, 1.0f / args.Input.Height);
+        DLSSFrameGenerationArgs parameters = new()
         {
-            byte* flags = (byte*)readback.Map();
-            int outputCount = 0;
+            Color = args.Color,
+            Depth = args.Input.Depth,
+            MotionVectors = args.Input.MotionVectors,
+            OutputDisableInterpolation = disableInterpolation,
+            GeneratedFrameCount = (uint)colors.Length,
+            JitterOffset = args.JitterOffset * scale * new Vector2(2.0f, -2.0f),
+            MotionVectorScale = scale,
+            ViewToClip = args.Projection,
+            ClipToView = clipToView,
+            ClipToPrevClip = clipToPrevClip,
+            PrevClipToClip = prevClipToClip,
+            CameraPosition = args.Camera.Position,
+            CameraUp = args.Camera.Up,
+            CameraRight = args.Camera.Right,
+            CameraForward = args.Camera.Forward,
+            CameraNear = args.Camera.NearPlane,
+            CameraFar = args.Camera.FarPlane,
+            CameraFovAngleVer = float.DegreesToRadians(args.Camera.Fov),
+            CameraAspectRatio = args.Camera.AspectRatio,
+            Reset = args.Reset
+        };
 
-            try
-            {
-                for (int i = 0; i < colors.Length - 1; i++)
-                {
-                    if (flags[(uint)i * DisableInterpolationSizeInBytes] is 0)
-                    {
-                        outputIndices[outputCount++] = i;
-                    }
-                }
-            }
-            finally
-            {
-                readback.Unmap();
-            }
-
-            outputIndices[outputCount++] = colors.Length - 1;
-
-            return outputIndices.AsSpan(0, outputCount);
-        }
-    }
-
-    public void Record(CommandBuffer commandBuffer, Texture color, PathTracingPass inputs, in RenderArgs args)
-    {
-        colors[^1] = color;
-
-        switch (App.Technology)
+        for (int i = 0; i < colors.Length; i++)
         {
-            case RenderingTechnology.DLSS when Mode is not FrameGenerationMode.X1:
-                Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToView);
-                Matrix4x4.Invert(args.ViewProjection, out Matrix4x4 clipToWorld);
-                Matrix4x4 clipToPrevClip = clipToWorld * args.PreviousViewProjection;
-                Matrix4x4.Invert(clipToPrevClip, out Matrix4x4 prevClipToClip);
+            parameters.Output = colors[i];
+            parameters.GeneratedFrameIndex = (uint)i;
 
-                for (int i = 0; i < colors.Length - 1; i++)
-                {
-                    Texture output = colors[i];
-                    commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
-
-                    dlss!.Dispatch(commandBuffer, new()
-                    {
-                        Color = color,
-                        Depth = inputs.Depth,
-                        MotionVectors = inputs.MotionVectors,
-                        Output = output,
-                        OutputDisableInterpolation = disableInterpolation,
-                        GeneratedFrameCount = (uint)(colors.Length - 1),
-                        GeneratedFrameIndex = (uint)i,
-                        JitterOffset = new(2.0f * args.JitterOffset.X / inputWidth, -2.0f * args.JitterOffset.Y / inputHeight),
-                        MotionVectorScale = new(1.0f / inputWidth, 1.0f / inputHeight),
-                        ViewToClip = args.Projection,
-                        ClipToView = clipToView,
-                        ClipToPrevClip = clipToPrevClip,
-                        PrevClipToClip = prevClipToClip,
-                        CameraPosition = args.Camera.Position,
-                        CameraUp = args.Camera.Up,
-                        CameraRight = args.Camera.Right,
-                        CameraForward = args.Camera.Forward,
-                        CameraNear = args.Camera.NearPlane,
-                        CameraFar = args.Camera.FarPlane,
-                        CameraFovAngleVer = float.DegreesToRadians(args.Camera.Fov),
-                        CameraAspectRatio = args.Camera.AspectRatio,
-                        Reset = args.Reset || hasPendingReset
-                    });
-
-                    commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
-                    commandBuffer.CopyBuffer(disableInterpolation!, 0, readback!, (uint)i * DisableInterpolationSizeInBytes, DisableInterpolationSizeInBytes);
-                }
-
-                hasPendingReset = false;
-                break;
-
-            case RenderingTechnology.MetalFX:
-                break;
+            commandBuffer.Transition(colors[i], default, TextureLayout.Undefined, TextureLayout.Storage);
+            dlss.Dispatch(commandBuffer, parameters);
+            commandBuffer.Transition(colors[i], default, TextureLayout.Storage, TextureLayout.Sampled);
+            commandBuffer.CopyBuffer(disableInterpolation!, 0, Readback!, (uint)i * sizeof(uint), sizeof(uint));
         }
     }
 
-    public void Resize(uint newInputWidth, uint newInputHeight, uint newOutputWidth, uint newOutputHeight)
+    public void Resize(RenderDesc desc)
     {
-        if (inputWidth == newInputWidth && inputHeight == newInputHeight && outputWidth == newOutputWidth && outputHeight == newOutputHeight)
+        if (colors.Length == (int)desc.FrameGeneration && (dlss is null || (dlss.Desc.InputWidth == desc.InputWidth && dlss.Desc.InputHeight == desc.InputHeight && dlss.Desc.OutputWidth == desc.OutputWidth && dlss.Desc.OutputHeight == desc.OutputHeight)))
         {
             return;
         }
 
         DestroyResources();
-
-        inputWidth = newInputWidth;
-        inputHeight = newInputHeight;
-        outputWidth = newOutputWidth;
-        outputHeight = newOutputHeight;
-
-        CreateResources();
+        CreateResources(desc);
     }
 
     protected override void Destroy()
@@ -148,69 +86,57 @@ internal class FrameGenerationPass : DisposableObject
         DestroyResources();
     }
 
-    private void CreateResources()
+    private void CreateResources(RenderDesc desc)
     {
-        colors = new Texture[1];
-        outputIndices = [0];
-
-        switch (App.Technology)
+        if (desc.FrameGeneration is FrameGenerationMode.X1)
         {
-            case RenderingTechnology.DLSS when Mode is not FrameGenerationMode.X1:
-                int generatedFrameCount = (int)Mode;
-                colors = new Texture[generatedFrameCount + 1];
-                outputIndices = new int[colors.Length];
-
-                dlss = App.Context.CreateDLSSFrameGeneration(new()
-                {
-                    Format = PixelFormat.R8G8B8A8UNorm,
-                    InputWidth = inputWidth,
-                    InputHeight = inputHeight,
-                    OutputWidth = outputWidth,
-                    OutputHeight = outputHeight
-                });
-
-                for (int i = 0; i < generatedFrameCount; i++)
-                {
-                    colors[i] = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, outputWidth, outputHeight, 1, SampleCount.Count1) with
-                    {
-                        Usages = TextureUsages.Sampled | TextureUsages.Storage
-                    });
-                }
-
-                disableInterpolation = App.Context.CreateBuffer(new()
-                {
-                    SizeInBytes = DisableInterpolationSizeInBytes,
-                    Usages = BufferUsages.StorageReadWrite | BufferUsages.TransferSrc,
-                    Residency = MemoryResidency.GpuOnly
-                });
-                readback = App.Context.CreateBuffer(new()
-                {
-                    SizeInBytes = DisableInterpolationSizeInBytes * (uint)generatedFrameCount,
-                    Usages = BufferUsages.TransferDst,
-                    Residency = MemoryResidency.CpuReadOnly
-                });
-                break;
-
-            case RenderingTechnology.MetalFX:
-                break;
+            return;
         }
 
-        hasPendingReset = true;
+        dlss = App.Context.CreateDLSSFrameGeneration(new()
+        {
+            Format = PixelFormat.R8G8B8A8UNorm,
+            InputWidth = desc.InputWidth,
+            InputHeight = desc.InputHeight,
+            OutputWidth = desc.OutputWidth,
+            OutputHeight = desc.OutputHeight
+        });
+
+        colors = new Texture[(int)desc.FrameGeneration];
+        for (int i = 0; i < colors.Length; i++)
+        {
+            colors[i] = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, desc.OutputWidth, desc.OutputHeight, 1, SampleCount.Count1) with
+            {
+                Usages = TextureUsages.Sampled | TextureUsages.Storage
+            });
+        }
+
+        disableInterpolation = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = sizeof(uint),
+            Usages = BufferUsages.StorageReadWrite | BufferUsages.TransferSrc,
+            Residency = MemoryResidency.GpuOnly
+        });
+        Readback = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = sizeof(uint) * (uint)colors.Length,
+            Usages = BufferUsages.TransferDst,
+            Residency = MemoryResidency.CpuReadOnly
+        });
     }
 
     private void DestroyResources()
     {
-        readback?.Dispose();
-        readback = null;
+        Readback?.Dispose();
+        Readback = null;
         disableInterpolation?.Dispose();
         disableInterpolation = null;
 
-        for (int i = colors.Length - 2; i >= 0; i--)
+        for (int i = colors.Length - 1; i >= 0; i--)
         {
             colors[i]?.Dispose();
         }
         colors = [];
-        outputIndices = [];
 
         dlss?.Dispose();
         dlss = null;

@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+﻿using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -8,10 +8,10 @@ internal unsafe class CompositePass : DisposableObject
 {
     private readonly GraphicsPipeline pipeline;
 
-    private Buffer[] buffers = [];
+    private Buffer buffer = null!;
     private Texture[] colors = [];
 
-    public CompositePass(uint width, uint height, int outputCount)
+    public CompositePass(RenderDesc desc)
     {
         string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang");
         using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "FullscreenVS"));
@@ -36,53 +36,58 @@ internal unsafe class CompositePass : DisposableObject
             }
         });
 
-        CreateOverlay(width, height);
-        CreateOutputs(outputCount);
+        Resize(desc);
     }
 
     public Texture Overlay { get; private set; } = null!;
 
     public ReadOnlySpan<Texture> Colors => colors;
 
-    public void Record(CommandBuffer commandBuffer, ReadOnlySpan<Texture> inputs)
+    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
     {
-        for (int i = 0; i < inputs.Length; i++)
+        for (int i = 0; i < colors.Length; i++)
         {
-            CompositeConstants constants = new()
+            Texture input = i < args.Generated.Length ? args.Generated[i] : args.Color;
+            uint offset = (uint)(sizeof(OutputConstants) * i);
+            OutputConstants constants = new()
             {
-                Input = inputs[i].SampledHandle,
+                Input = input.SampledHandle,
                 Overlay = Overlay.SampledHandle
             };
 
-            buffers[i].Upload(0, new()
+            buffer.Upload(offset, new()
             {
                 Pointer = (nint)(&constants),
-                SizeInBytes = (uint)sizeof(CompositeConstants)
+                SizeInBytes = (uint)sizeof(OutputConstants)
             });
 
             commandBuffer.Transition(colors[i], default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
             commandBuffer.BeginRenderPass([ColorAttachment.DontCare(colors[i])], null);
             commandBuffer.SetPipeline(pipeline);
-            commandBuffer.SetConstantBuffer(buffers[i], 0);
+            commandBuffer.SetConstantBuffer(buffer, offset);
             commandBuffer.Draw(3, 1, 0, 0);
             commandBuffer.EndRenderPass();
         }
     }
 
-    public void Resize(uint width, uint height, int outputCount)
+    public void Resize(RenderDesc desc)
     {
-        if (Overlay.Desc.Width != width || Overlay.Desc.Height != height)
+        int count = (int)desc.FrameGeneration + 1;
+        bool isSizeChanged = Overlay is null || Overlay.Desc.Width != desc.OutputWidth || Overlay.Desc.Height != desc.OutputHeight;
+        if (!isSizeChanged && colors.Length == count)
         {
-            DestroyOutputs();
+            return;
+        }
+
+        DestroyOutputs();
+
+        if (isSizeChanged)
+        {
             DestroyOverlay();
-            CreateOverlay(width, height);
-            CreateOutputs(outputCount);
+            CreateOverlay(desc.OutputWidth, desc.OutputHeight);
         }
-        else if (colors.Length != outputCount)
-        {
-            DestroyOutputs();
-            CreateOutputs(outputCount);
-        }
+
+        CreateOutputs(count);
     }
 
     protected override void Destroy()
@@ -95,10 +100,7 @@ internal unsafe class CompositePass : DisposableObject
 
     private void CreateOverlay(uint width, uint height)
     {
-        Overlay = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
-        });
+        Overlay = App.Context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
     }
 
     private void DestroyOverlay()
@@ -107,36 +109,29 @@ internal unsafe class CompositePass : DisposableObject
         Overlay = null!;
     }
 
-    private void CreateOutputs(int outputCount)
+    private void CreateOutputs(int count)
     {
-        colors = new Texture[outputCount];
-        for (int i = 0; i < outputCount; i++)
+        colors = new Texture[count];
+        for (int i = 0; i < colors.Length; i++)
         {
-            colors[i] = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Overlay.Desc.Width, Overlay.Desc.Height, 1, SampleCount.Count1) with
+            colors[i] = App.Context.CreateTexture(Overlay.Desc with
             {
                 Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc
             });
         }
 
-        buffers = new Buffer[outputCount];
-        for (int i = 0; i < outputCount; i++)
+        buffer = App.Context.CreateBuffer(new()
         {
-            buffers[i] = App.Context.CreateBuffer(new()
-            {
-                SizeInBytes = (uint)sizeof(CompositeConstants),
-                Usages = BufferUsages.Constant,
-                Residency = MemoryResidency.CpuWriteOnly
-            });
-        }
+            SizeInBytes = (uint)(sizeof(OutputConstants) * colors.Length),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
     }
 
     private void DestroyOutputs()
     {
-        for (int i = buffers.Length - 1; i >= 0; i--)
-        {
-            buffers[i]?.Dispose();
-        }
-        buffers = [];
+        buffer?.Dispose();
+        buffer = null!;
 
         for (int i = colors.Length - 1; i >= 0; i--)
         {
@@ -144,14 +139,4 @@ internal unsafe class CompositePass : DisposableObject
         }
         colors = [];
     }
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-file struct CompositeConstants
-{
-    [FieldOffset(16)]
-    public ResourceHandle Input;
-
-    [FieldOffset(24)]
-    public ResourceHandle Overlay;
 }

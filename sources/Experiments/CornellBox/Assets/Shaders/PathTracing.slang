@@ -14,116 +14,17 @@ static const int MaxBounces = 8;
 
 struct Vertex
 {
-    private float4 PositionAndPadding;
+    float3 Position;
 
-    private float4 NormalAndMaterialId;
+    float Padding;
 
-    property float3 Position
-    {
-        get {
-            return PositionAndPadding.xyz;
-        }
-    }
+    float3 Normal;
 
-    property float3 Normal
-    {
-        get {
-            return NormalAndMaterialId.xyz;
-        }
-    }
-
-    property uint MaterialId
-    {
-        get {
-            return asuint(NormalAndMaterialId.w);
-        }
-    }
+    uint MaterialId;
 };
 
 struct Material
 {
-    private float4 AlbedoAndEmission;
-
-    private float4 MetallicRoughnessAndPattern;
-
-    property float3 Albedo
-    {
-        get {
-            return AlbedoAndEmission.xyz;
-        }
-    }
-
-    property float Emission
-    {
-        get {
-            return AlbedoAndEmission.w;
-        }
-    }
-
-    property float Metallic
-    {
-        get {
-            return MetallicRoughnessAndPattern.x;
-        }
-    }
-
-    property float Roughness
-    {
-        get {
-            return MetallicRoughnessAndPattern.y;
-        }
-    }
-
-    property uint Pattern
-    {
-        get {
-            return asuint(MetallicRoughnessAndPattern.z);
-        }
-    }
-
-    property float PatternScale
-    {
-        get {
-            return MetallicRoughnessAndPattern.w;
-        }
-    }
-};
-
-struct Instance
-{
-    private float4x4 Transform;
-
-    private uint4 FirstIndexAndPadding;
-
-    float4x4 PreviousObjectToWorld;
-
-    property float4x4 ObjectToWorld
-    {
-        get {
-            return Transform;
-        }
-    }
-
-    property uint FirstIndex
-    {
-        get {
-            return FirstIndexAndPadding.x;
-        }
-    }
-};
-
-struct Surface
-{
-    float3 Position;
-
-    float3 ObjectPosition;
-
-    uint InstanceIndex;
-
-    float3 Normal;
-
-    float3 GeometricNormal;
-
     float3 Albedo;
 
     float Emission;
@@ -131,6 +32,44 @@ struct Surface
     float Metallic;
 
     float Roughness;
+
+    uint Pattern;
+
+    float PatternScale;
+};
+
+struct Instance
+{
+    float4x4 ObjectToWorld;
+
+    float4x4 PreviousObjectToWorld;
+
+    uint FirstIndex;
+
+    uint Padding[3];
+};
+
+struct Surface
+{
+    float3 Position;
+
+    uint InstanceIndex;
+
+    float3 ObjectPosition;
+
+    float Emission;
+
+    float3 Normal;
+
+    float Roughness;
+
+    float3 GeometricNormal;
+
+    float Metallic;
+
+    float3 Albedo;
+
+    float Padding;
 };
 
 struct PathTracingConstants
@@ -139,11 +78,19 @@ struct PathTracingConstants
 
     float4x4 InverseProjection;
 
-    float4 PositionFrame;
+    float4x4 ViewProjection;
+
+    float4x4 PreviousViewProjection;
+
+    float4 Position;
 
     float2 RenderSize;
 
-    uint2 Padding;
+    float2 JitterOffset;
+
+    uint FrameIndex;
+
+    uint Padding;
 
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
 
@@ -156,14 +103,6 @@ struct PathTracingConstants
     DescriptorHandle<StructuredBuffer<Instance>> Instances;
 
     DescriptorHandle<RWTexture2D<float4>> Color;
-
-    float4x4 ViewProjection;
-
-    float4x4 PreviousViewProjection;
-
-    float2 JitterOffset;
-
-    uint2 JitterPadding;
 
     DescriptorHandle<RWTexture2D<float>> Depth;
 
@@ -178,6 +117,7 @@ struct PathTracingConstants
     DescriptorHandle<RWTexture2D<float>> Roughness;
 
     DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
+
 };
 
 ConstantBuffer<PathTracingConstants> pathTracing;
@@ -463,6 +403,7 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
     surface.Emission = material.Emission;
     surface.Metallic = material.Metallic;
     surface.Roughness = material.Roughness;
+    surface.Padding = 0.0;
 
     if (dot(surface.GeometricNormal, direction) > 0.0)
     {
@@ -710,17 +651,17 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         return;
     }
 
-    uint seed = PCGHash(pixel.x + pixel.y * size.x + asuint(pathTracing.PositionFrame.w) * size.x * size.y);
+    uint seed = PCGHash(pixel.x + pixel.y * size.x + pathTracing.FrameIndex * size.x * size.y);
     float2 uv = (float2(pixel) + 0.5 + pathTracing.JitterOffset) / float2(size);
     float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
     float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InverseProjection);
     float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), pathTracing.InverseView).xyz);
     Surface firstSurface;
     float firstDistance;
-    bool hasFirstHit = TraceSurface(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance);
+    bool hasFirstHit = TraceSurface(pathTracing.Position.xyz, direction, firstSurface, firstDistance);
     float specularHitDistance;
 
-    float3 color = min(TracePath(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance, hasFirstHit,
+    float3 color = min(TracePath(pathTracing.Position.xyz, direction, firstSurface, firstDistance, hasFirstHit,
                                  seed, specularHitDistance),
                        float3(30.0));
 

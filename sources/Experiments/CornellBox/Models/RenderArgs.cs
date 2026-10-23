@@ -1,11 +1,20 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
+using Zenith.NET;
 
 namespace CornellBox.Models;
 
-internal readonly struct RenderArgs
+internal readonly ref struct RenderArgs
 {
+    public SceneResources Scene { get; init; }
+
     public CameraHandler Camera { get; init; }
+
+    public PathTracingOutput Input { get; init; }
+
+    public Texture Color { get; init; }
+
+    public ReadOnlySpan<Texture> Generated { get; init; }
 
     public Matrix4x4 View { get; init; }
 
@@ -19,5 +28,5 @@ internal readonly struct RenderArgs
 
     public uint FrameIndex { get; init; }
 
-    public bool Reset { get; init; }
+    public bool Reset => FrameIndex is 0;
 }

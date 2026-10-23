@@ -1,10 +1,10 @@
 ﻿struct OutputConstants
 {
-    uint4 FrameIndexPadding;
-
     DescriptorHandle<Texture2D<float4>> Input;
 
     DescriptorHandle<Texture2D<float4>> Overlay;
+
+    uint4 FrameIndexPadding;
 };
 
 ConstantBuffer<OutputConstants> output;
