@@ -20,9 +20,9 @@ internal readonly ref struct RenderArgs
 
     public Matrix4x4 Projection { get; init; }
 
-    public Matrix4x4 ViewProjection { get; init; }
+    public Matrix4x4 PreviousView { get; init; }
 
-    public Matrix4x4 PreviousViewProjection { get; init; }
+    public Matrix4x4 PreviousProjection { get; init; }
 
     public Vector2 JitterOffset { get; init; }
 

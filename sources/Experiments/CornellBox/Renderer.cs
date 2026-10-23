@@ -16,7 +16,8 @@ internal class Renderer : DisposableObject
     private readonly FrameGenerationPass frameGenerationPass;
     private readonly CompositePass compositePass;
 
-    private Matrix4x4 previousViewProjection;
+    private Matrix4x4 previousView;
+    private Matrix4x4 previousProjection;
     private int[] outputIndices = [0];
     private double elapsedSeconds;
     private uint frameIndex;
@@ -63,7 +64,6 @@ internal class Renderer : DisposableObject
 
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
-        Matrix4x4 viewProjection = view * projection;
         uint sample = frameIndex + 1u;
         RenderArgs args = new()
         {
@@ -72,8 +72,8 @@ internal class Renderer : DisposableObject
             Input = pathTracingPass.Output,
             View = view,
             Projection = projection,
-            ViewProjection = viewProjection,
-            PreviousViewProjection = frameIndex is 0 ? viewProjection : previousViewProjection,
+            PreviousView = frameIndex is 0 ? view : previousView,
+            PreviousProjection = frameIndex is 0 ? projection : previousProjection,
             JitterOffset = denoisingUpscalingPass.Color is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f),
             FrameIndex = frameIndex
         };
@@ -89,7 +89,8 @@ internal class Renderer : DisposableObject
         args = args with { Color = outputPass.Color };
         frameGenerationPass.Record(commandBuffer, args);
 
-        previousViewProjection = viewProjection;
+        previousView = view;
+        previousProjection = projection;
         frameIndex++;
     }
 

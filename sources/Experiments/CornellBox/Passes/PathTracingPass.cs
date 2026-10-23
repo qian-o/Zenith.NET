@@ -38,8 +38,8 @@ internal unsafe class PathTracingPass : DisposableObject
         {
             InverseView = inverseView,
             InverseProjection = inverseProjection,
-            ViewProjection = args.ViewProjection,
-            PreviousViewProjection = args.PreviousViewProjection,
+            ViewProjection = args.View * args.Projection,
+            PreviousViewProjection = args.PreviousView * args.PreviousProjection,
             Position = new(args.Camera.Position, 1.0f),
             RenderSize = new(Output.Width, Output.Height),
             JitterOffset = args.JitterOffset,
