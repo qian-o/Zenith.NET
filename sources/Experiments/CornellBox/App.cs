@@ -178,11 +178,11 @@ internal static class App
         Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(renderer.Overlay, Vector4.Zero));
         commandBuffer.Transition(renderer.Overlay, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
         renderer.Composite(commandBuffer);
-        commandBuffer.Submit().Wait();
+        TimelineValue completion = commandBuffer.Submit();
 
-        foreach (Texture color in renderer.GetColors())
+        foreach (int index in renderer.ReadOutputIndices(completion))
         {
-            presenter.Submit(color, TextureLayout.ColorAttachment);
+            presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment);
         }
     }
 

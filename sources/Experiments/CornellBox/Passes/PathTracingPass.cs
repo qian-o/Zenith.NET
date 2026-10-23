@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -13,7 +12,6 @@ internal unsafe class PathTracingPass : DisposableObject
     private readonly ComputePipeline computePipeline;
 
     private Texture[] textures = [];
-    private Matrix4x4 lastViewProjection;
 
     public PathTracingPass(uint width, uint height)
     {
@@ -54,32 +52,16 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public Texture SpecularHitDistance { get; private set; } = null!;
 
-    public Vector2 JitterOffset { get; set; }
-
-    public bool ResetHistory { get; set; } = true;
-
-    public Matrix4x4 View { get; private set; }
-
-    public Matrix4x4 Projection { get; private set; }
-
-    public Matrix4x4 ViewProjection { get; private set; }
-
-    public Matrix4x4 PreviousViewProjection { get; private set; }
-
-    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, uint frameIndex)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, in RenderArgs args)
     {
-        View = camera.View;
-        Projection = camera.Projection;
-        ViewProjection = View * Projection;
-        PreviousViewProjection = ResetHistory ? ViewProjection : lastViewProjection;
-        Matrix4x4.Invert(View, out Matrix4x4 inverseView);
-        Matrix4x4.Invert(Projection, out Matrix4x4 inverseProjection);
+        Matrix4x4.Invert(args.View, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(args.Projection, out Matrix4x4 inverseProjection);
 
         PathTracingConstants constants = new()
         {
             InverseView = inverseView,
             InverseProjection = inverseProjection,
-            PositionFrame = new(camera.Position, BitConverter.UInt32BitsToSingle(frameIndex)),
+            PositionFrame = new(args.Camera.Position, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
             RenderSize = new(Width, Height),
             Scene = scene.AccelerationStructure,
             Vertices = scene.Vertices,
@@ -87,9 +69,9 @@ internal unsafe class PathTracingPass : DisposableObject
             Materials = scene.Materials,
             Instances = scene.Instances,
             Color = Color.StorageHandle,
-            ViewProjection = ViewProjection,
-            PreviousViewProjection = PreviousViewProjection,
-            JitterOffset = JitterOffset,
+            ViewProjection = args.ViewProjection,
+            PreviousViewProjection = args.PreviousViewProjection,
+            JitterOffset = args.JitterOffset,
             Depth = Depth.StorageHandle,
             MotionVectors = MotionVectors.StorageHandle,
             DiffuseAlbedo = DiffuseAlbedo.StorageHandle,
@@ -120,8 +102,6 @@ internal unsafe class PathTracingPass : DisposableObject
         {
             commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
-
-        lastViewProjection = ViewProjection;
     }
 
     public void Resize(uint width, uint height)
@@ -137,7 +117,6 @@ internal unsafe class PathTracingPass : DisposableObject
         Height = height;
 
         CreateTexture();
-        ResetHistory = true;
     }
 
     protected override void Destroy()

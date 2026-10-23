@@ -634,6 +634,7 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
     return radiance;
 }
 
+// NVIDIA DLSS-RR EnvBRDFApprox2: https://github.com/NVIDIA-RTX/Streamline/blob/main/docs/ProgrammingGuideDLSS_RR.md#421-specular-albedo-generation.
 float3 SpecularReflectance(float3 specularColor, float roughness, float NdotV)
 {
     float alpha = roughness * roughness;
@@ -689,7 +690,7 @@ void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, fl
     float3 F0 = lerp(float3(0.04), surface.Albedo, surface.Metallic);
     float3 specularAlbedo = SpecularReflectance(F0, roughness, dot(surface.Normal, -direction));
 
-    pathTracing.DiffuseAlbedo[pixel] = float4(surface.Albedo, 1.0);
+    pathTracing.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
     pathTracing.SpecularAlbedo[pixel] = float4(specularAlbedo, 1.0);
     pathTracing.Normals[pixel] = float4(surface.Normal, 0.0);
     pathTracing.Roughness[pixel] = roughness;

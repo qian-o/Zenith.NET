@@ -28,44 +28,23 @@ internal class DenoisingUpscalingPass : DisposableObject
 
     public uint InputHeight { get; private set; }
 
-    public Texture Color { get; private set; } = null!;
-
     public Vector2 GetJitterOffset(uint frameIndex)
     {
-        Vector2 jitterOffset = Vector2.Zero;
-
-        switch (App.Technology)
+        if (output is null)
         {
-            case RenderingTechnology.DLSS:
-                {
-                    if (Mode is not DenoisingUpscalingMode.Off)
-                    {
-                        uint sample = frameIndex + 1u;
-
-                        jitterOffset = new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f);
-                    }
-                }
-                break;
-
-            case RenderingTechnology.MetalFX:
-                break;
+            return Vector2.Zero;
         }
 
-        return jitterOffset;
+        uint sample = frameIndex + 1u;
+
+        return new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f);
     }
 
-    public void Record(CommandBuffer commandBuffer, PathTracingPass inputs)
+    public Texture Record(CommandBuffer commandBuffer, PathTracingPass inputs, in RenderArgs args)
     {
-        Color = inputs.Color;
-
         switch (App.Technology)
         {
-            case RenderingTechnology.DLSS:
-                if (Mode is DenoisingUpscalingMode.Off)
-                {
-                    break;
-                }
-
+            case RenderingTechnology.DLSS when Mode is not DenoisingUpscalingMode.Off:
                 commandBuffer.Transition(output!, default, TextureLayout.Undefined, TextureLayout.Storage);
                 dlss!.Dispatch(commandBuffer, new()
                 {
@@ -78,22 +57,24 @@ internal class DenoisingUpscalingPass : DisposableObject
                     Roughness = inputs.Roughness,
                     SpecularHitDistance = inputs.SpecularHitDistance,
                     Output = output!,
-                    JitterOffset = -inputs.JitterOffset,
+                    JitterOffset = -args.JitterOffset,
                     MotionVectorScale = Vector2.One,
-                    WorldToView = inputs.View,
-                    ViewToClip = inputs.Projection,
+                    WorldToView = args.View,
+                    ViewToClip = args.Projection,
                     PreExposure = 1.0f,
-                    Reset = inputs.ResetHistory || hasPendingReset
+                    Reset = args.Reset || hasPendingReset
                 });
                 commandBuffer.Transition(output!, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-                Color = output!;
                 hasPendingReset = false;
-                break;
+
+                return output!;
 
             case RenderingTechnology.MetalFX:
                 break;
         }
+
+        return inputs.Color;
     }
 
     public void Resize(uint newWidth, uint newHeight)
@@ -123,32 +104,17 @@ internal class DenoisingUpscalingPass : DisposableObject
 
         switch (App.Technology)
         {
-            case RenderingTechnology.DLSS:
-                switch (Mode)
+            case RenderingTechnology.DLSS when Mode is not DenoisingUpscalingMode.Off:
+                DLSSMode mode = Mode switch
                 {
-                    case DenoisingUpscalingMode.Off:
-                        break;
+                    DenoisingUpscalingMode.Native => DLSSMode.DLAA,
+                    DenoisingUpscalingMode.Quality => DLSSMode.Quality,
+                    DenoisingUpscalingMode.Balanced => DLSSMode.Balanced,
+                    DenoisingUpscalingMode.Performance => DLSSMode.Performance,
+                    _ => DLSSMode.UltraPerformance
+                };
 
-                    case DenoisingUpscalingMode.Native:
-                        CreateDLSS(DLSSMode.DLAA);
-                        break;
-
-                    case DenoisingUpscalingMode.Quality:
-                        CreateDLSS(DLSSMode.Quality);
-                        break;
-
-                    case DenoisingUpscalingMode.Balanced:
-                        CreateDLSS(DLSSMode.Balanced);
-                        break;
-
-                    case DenoisingUpscalingMode.Performance:
-                        CreateDLSS(DLSSMode.Performance);
-                        break;
-
-                    case DenoisingUpscalingMode.UltraPerformance:
-                        CreateDLSS(DLSSMode.UltraPerformance);
-                        break;
-                }
+                CreateDLSS(mode);
                 break;
 
             case RenderingTechnology.MetalFX:
