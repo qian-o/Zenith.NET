@@ -186,7 +186,7 @@ internal static class App
 
         foreach (int index in renderer.ReadOutputIndices(commandBuffer.Submit()))
         {
-            presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment);
+            presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment, (index + 1.0) / renderer.Colors.Length);
         }
     }
 

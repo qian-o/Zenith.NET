@@ -91,17 +91,21 @@ internal class FramePresenter : DisposableObject
         renderWake.Set();
     }
 
-    public void Submit(Texture texture, TextureLayout currentLayout)
+    public void Submit(Texture texture, TextureLayout currentLayout, double position)
     {
-        if (batch.Count == batch.Textures.Count)
+        if (batch.Count == batch.Frames.Count)
         {
-            batch.Textures.Add(context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
+            batch.Frames.Add((context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
             {
                 Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
-            }));
+            }), position));
+        }
+        else
+        {
+            batch.Frames[batch.Count] = (batch.Frames[batch.Count].Texture, position);
         }
 
-        Texture slot = batch.Textures[batch.Count++];
+        Texture slot = batch.Frames[batch.Count++].Texture;
 
         copies.Transition(texture, default, currentLayout, TextureLayout.CopySrc);
         CopyFrame(copies, texture, slot, TextureLayout.CopySrc);
@@ -193,13 +197,14 @@ internal class FramePresenter : DisposableObject
 
         foreach (FrameBatch frame in queuedBatches.GetConsumingEnumerable())
         {
-            long intervalTicks = frame.Count > 1 ? frame.RenderTicks / frame.Count : 0;
-
+            double previousPosition = 0.0;
             for (int i = 0; i < frame.Count && !isStopping; i++)
             {
+                (Texture texture, double position) = frame.Frames[i];
+                long intervalTicks = (long)(frame.RenderTicks * (position - previousPosition));
                 CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
-                CopyFrame(commandBuffer, frame.Textures[i], swapChain.Drawable, TextureLayout.Present);
+                CopyFrame(commandBuffer, texture, swapChain.Drawable, TextureLayout.Present);
                 commandBuffer.Submit().Wait();
 
                 WaitForPresent(previousPresent + intervalTicks);
@@ -210,6 +215,7 @@ internal class FramePresenter : DisposableObject
                 }
 
                 previousPresent = Stopwatch.GetTimestamp();
+                previousPosition = position;
 
                 swapChain.Present();
 
@@ -289,7 +295,7 @@ internal class FramePresenter : DisposableObject
 
     private class FrameBatch : DisposableObject
     {
-        public readonly List<Texture> Textures = [];
+        public readonly List<(Texture Texture, double Position)> Frames = [];
 
         public int Count;
 
@@ -297,11 +303,11 @@ internal class FramePresenter : DisposableObject
 
         protected override void Destroy()
         {
-            for (int i = Textures.Count - 1; i >= 0; i--)
+            for (int i = Frames.Count - 1; i >= 0; i--)
             {
-                Textures[i].Dispose();
+                Frames[i].Texture.Dispose();
             }
-            Textures.Clear();
+            Frames.Clear();
         }
     }
 }
