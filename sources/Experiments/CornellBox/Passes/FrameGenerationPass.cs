@@ -41,7 +41,7 @@ internal unsafe class FrameGenerationPass : DisposableObject
             MotionVectors = args.Input.MotionVectors,
             OutputDisableInterpolation = disableInterpolation,
             GeneratedFrameCount = (uint)colors.Length,
-            JitterOffset = args.JitterOffset * scale * new Vector2(2.0f, -2.0f),
+            JitterOffset = -args.JitterOffset * scale * new Vector2(2.0f, -2.0f),
             MotionVectorScale = scale,
             ViewToClip = args.Projection,
             ClipToView = clipToView,

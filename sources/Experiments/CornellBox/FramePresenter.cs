@@ -183,9 +183,6 @@ internal class FramePresenter : DisposableObject
     private void PresentLoop()
     {
         long previousPresent = 0;
-        long statisticsStart = Stopwatch.GetTimestamp();
-        int realCount = 0;
-        int generatedCount = 0;
 
         foreach (FrameBatch frame in queuedBatches.GetConsumingEnumerable())
         {
@@ -208,25 +205,6 @@ internal class FramePresenter : DisposableObject
                 previousPresent = Stopwatch.GetTimestamp();
 
                 swapChain.Present();
-
-                if (i == frame.Count - 1)
-                {
-                    realCount++;
-                }
-                else
-                {
-                    generatedCount++;
-                }
-
-                double elapsedSeconds = Stopwatch.GetElapsedTime(statisticsStart).TotalSeconds;
-                if (elapsedSeconds >= 1.0)
-                {
-                    Console.WriteLine($"[FramePresenter] Present: {(realCount + generatedCount) / elapsedSeconds:F1} FPS, Real: {realCount / elapsedSeconds:F1} FPS, Generated: {generatedCount / elapsedSeconds:F1} FPS");
-
-                    statisticsStart = Stopwatch.GetTimestamp();
-                    realCount = 0;
-                    generatedCount = 0;
-                }
             }
 
             freeBatches.Add(frame);
