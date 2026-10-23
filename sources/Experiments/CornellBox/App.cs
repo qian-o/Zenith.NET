@@ -209,7 +209,7 @@ internal static class App
     {
         ImGui.Text(Context.Capabilities.DeviceName);
         ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-        ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+        ImGui.Text($"FPS: {presenter.FramesPerSecond:F1}");
     }
 
     private static void DrawSettings()

@@ -20,6 +20,7 @@ internal class FramePresenter : DisposableObject
     private Thread? renderThread;
     private Thread? presentThread;
     private (uint Width, uint Height) requestedSize;
+    private double framesPerSecond;
     private volatile bool isStopping;
 
     public FramePresenter(GraphicsContext context, SwapChainDesc desc)
@@ -35,6 +36,8 @@ internal class FramePresenter : DisposableObject
     public uint Width => swapChain.Desc.Surface.Width;
 
     public uint Height => swapChain.Desc.Surface.Height;
+
+    public double FramesPerSecond => Volatile.Read(ref framesPerSecond);
 
     public event Action<double>? Update;
 
@@ -76,6 +79,8 @@ internal class FramePresenter : DisposableObject
 
         renderThread = null;
         presentThread = null;
+
+        Volatile.Write(ref framesPerSecond, 0.0);
     }
 
     public void RequestResize(uint width, uint height)
@@ -183,6 +188,8 @@ internal class FramePresenter : DisposableObject
     private void PresentLoop()
     {
         long previousPresent = 0;
+        long start = Stopwatch.GetTimestamp();
+        int count = 0;
 
         foreach (FrameBatch frame in queuedBatches.GetConsumingEnumerable())
         {
@@ -205,6 +212,18 @@ internal class FramePresenter : DisposableObject
                 previousPresent = Stopwatch.GetTimestamp();
 
                 swapChain.Present();
+
+                count++;
+
+                long end = Stopwatch.GetTimestamp();
+                double elapsedSeconds = Stopwatch.GetElapsedTime(start, end).TotalSeconds;
+                if (elapsedSeconds >= 1.0)
+                {
+                    Volatile.Write(ref framesPerSecond, count / elapsedSeconds);
+
+                    start = end;
+                    count = 0;
+                }
             }
 
             freeBatches.Add(frame);

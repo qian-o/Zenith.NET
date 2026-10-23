@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using CornellBox.Models;
+using Silk.NET.Maths;
 using Zenith.NET;
 using Zenith.NET.Extensions.DLSS;
 using Buffer = Zenith.NET.Buffer;
@@ -28,10 +29,10 @@ internal unsafe class FrameGenerationPass : DisposableObject
             return;
         }
 
-        Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToView);
-        Matrix4x4.Invert(args.ViewProjection, out Matrix4x4 clipToWorld);
-        Matrix4x4 clipToPrevClip = clipToWorld * args.PreviousViewProjection;
-        Matrix4x4.Invert(clipToPrevClip, out Matrix4x4 prevClipToClip);
+        Matrix4X4.Invert(args.Projection.ToGeneric().As<double>(), out Matrix4X4<double> clipToView);
+        Matrix4X4.Invert(args.ViewProjection.ToGeneric().As<double>(), out Matrix4X4<double> clipToWorld);
+        Matrix4X4<double> clipToPrevClip = clipToWorld * args.PreviousViewProjection.ToGeneric().As<double>();
+        Matrix4X4.Invert(clipToPrevClip, out Matrix4X4<double> prevClipToClip);
 
         Vector2 scale = new(1.0f / args.Input.Width, 1.0f / args.Input.Height);
         DLSSFrameGenerationArgs parameters = new()
@@ -44,9 +45,9 @@ internal unsafe class FrameGenerationPass : DisposableObject
             JitterOffset = -args.JitterOffset * scale * new Vector2(2.0f, -2.0f),
             MotionVectorScale = scale,
             ViewToClip = args.Projection,
-            ClipToView = clipToView,
-            ClipToPrevClip = clipToPrevClip,
-            PrevClipToClip = prevClipToClip,
+            ClipToView = clipToView.As<float>().ToSystem(),
+            ClipToPrevClip = clipToPrevClip.As<float>().ToSystem(),
+            PrevClipToClip = prevClipToClip.As<float>().ToSystem(),
             CameraPosition = args.Camera.Position,
             CameraUp = args.Camera.Up,
             CameraRight = args.Camera.Right,
