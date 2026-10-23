@@ -23,7 +23,7 @@ internal static class App
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
 
-    private static readonly string frameGenerationItems;
+    private static readonly string frameGenerationItems = "1x\0";
 
     static App()
     {
@@ -45,20 +45,24 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+        switch (Technology)
         {
-            Technology = RenderingTechnology.DLSS;
-            Context.InitializeDLSS(Path.Combine(AppContext.BaseDirectory, "DLSS"));
+            case RenderingTechnology.DLSS:
+                {
+                    Context.InitializeDLSS(Path.Combine(AppContext.BaseDirectory, "DLSS"));
 
-            frameGenerationItems = string.Concat(Enumerable.Range(1, (int)Context.DLSSCapabilities.MaxGeneratedFrameCount + 1).Select(static count => $"{count}x\0"));
-        }
-        else
-        {
-            Technology = RenderingTechnology.MetalFX;
-            // 后续新增 MetalFX 扩展后以便使用超分降噪、帧生成技术。
-            // Context.InitializeMetalFX();
+                    frameGenerationItems = string.Concat(Enumerable.Range(1, (int)Context.DLSSCapabilities.MaxGeneratedFrameCount + 1).Select(static count => $"{count}x\0"));
+                }
+                break;
 
-            frameGenerationItems = string.Concat(Enumerable.Range(1, 2).Select(static count => $"{count}x\0"));
+            case RenderingTechnology.MetalFX:
+                {
+                    // 后续新增 MetalFX 扩展后以便使用超分降噪、帧生成技术。
+                    // Context.InitializeMetalFX();
+
+                    frameGenerationItems = string.Concat(Enumerable.Range(1, 2).Select(static count => $"{count}x\0"));
+                }
+                break;
         }
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
@@ -119,7 +123,7 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
-    public static RenderingTechnology Technology { get; }
+    public static RenderingTechnology Technology { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsLinux() ? RenderingTechnology.DLSS : RenderingTechnology.MetalFX;
 
     public static uint Width => presenter.Width;
 
@@ -177,10 +181,10 @@ internal static class App
         commandBuffer.Transition(renderer.Overlay, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(renderer.Overlay, Vector4.Zero));
         commandBuffer.Transition(renderer.Overlay, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
-        renderer.Composite(commandBuffer);
-        TimelineValue completion = commandBuffer.Submit();
 
-        foreach (int index in renderer.ReadOutputIndices(completion))
+        renderer.Composite(commandBuffer);
+
+        foreach (int index in renderer.ReadOutputIndices(commandBuffer.Submit()))
         {
             presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment);
         }
@@ -210,8 +214,6 @@ internal static class App
 
     private static void DrawSettings()
     {
-        ImGui.SeparatorText("Scene");
-
         bool isPaused = renderer.IsPaused;
         if (ImGui.Checkbox("Pause", ref isPaused))
         {

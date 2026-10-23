@@ -634,7 +634,8 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
     return radiance;
 }
 
-// NVIDIA DLSS-RR EnvBRDFApprox2: https://github.com/NVIDIA-RTX/Streamline/blob/main/docs/ProgrammingGuideDLSS_RR.md#421-specular-albedo-generation.
+// NVIDIA DLSS-RR EnvBRDFApprox2:
+// https://github.com/NVIDIA-RTX/Streamline/blob/main/docs/ProgrammingGuideDLSS_RR.md#421-specular-albedo-generation.
 float3 SpecularReflectance(float3 specularColor, float roughness, float NdotV)
 {
     float alpha = roughness * roughness;
@@ -719,9 +720,9 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     bool hasFirstHit = TraceSurface(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance);
     float specularHitDistance;
 
-    float3 color =
-        min(TracePath(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed,
-                      specularHitDistance), float3(30.0));
+    float3 color = min(TracePath(pathTracing.PositionFrame.xyz, direction, firstSurface, firstDistance, hasFirstHit,
+                                 seed, specularHitDistance),
+                       float3(30.0));
 
     WriteGuides(pixel, direction, firstSurface, hasFirstHit, specularHitDistance);
 
