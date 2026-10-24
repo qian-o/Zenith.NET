@@ -34,7 +34,7 @@ title: '@concepts.platforms.title'
                 <resource key="concepts.platforms.surface.table.headings.handles"></resource>
             </th>
             <th>
-                <resource key="concepts.platforms.surface.table.headings.backend"></resource>
+                <resource key="concepts.platforms.surface.table.headings.graphicsApiAndPlatform"></resource>
             </th>
         </tr>
     </thead>
@@ -49,7 +49,7 @@ title: '@concepts.platforms.title'
                 <code>HWND</code>
             </td>
             <td>
-                <resource key="concepts.platforms.surface.table.win32.backend"></resource>
+                <resource key="concepts.platforms.surface.table.win32.graphicsApiAndPlatform"></resource>
             </td>
         </tr>
         <tr>
@@ -62,7 +62,7 @@ title: '@concepts.platforms.title'
                 <resource key="concepts.platforms.surface.table.wayland.handles"></resource>
             </td>
             <td>
-                <resource key="concepts.platforms.surface.table.wayland.backend"></resource>
+                <resource key="concepts.platforms.surface.table.wayland.graphicsApiAndPlatform"></resource>
             </td>
         </tr>
         <tr>
@@ -75,7 +75,7 @@ title: '@concepts.platforms.title'
                 <resource key="concepts.platforms.surface.table.xlib.handles"></resource>
             </td>
             <td>
-                <resource key="concepts.platforms.surface.table.xlib.backend"></resource>
+                <resource key="concepts.platforms.surface.table.xlib.graphicsApiAndPlatform"></resource>
             </td>
         </tr>
         <tr>
@@ -88,7 +88,7 @@ title: '@concepts.platforms.title'
                 <code>ANativeWindow</code>
             </td>
             <td>
-                <resource key="concepts.platforms.surface.table.android.backend"></resource>
+                <resource key="concepts.platforms.surface.table.android.graphicsApiAndPlatform"></resource>
             </td>
         </tr>
         <tr>
@@ -101,7 +101,7 @@ title: '@concepts.platforms.title'
                 <code>CAMetalLayer</code>
             </td>
             <td>
-                <resource key="concepts.platforms.surface.table.apple.backend"></resource>
+                <resource key="concepts.platforms.surface.table.apple.graphicsApiAndPlatform"></resource>
             </td>
         </tr>
     </tbody>
@@ -142,17 +142,11 @@ title: '@concepts.platforms.title'
         <slot name="swapChainDescIsVerticalSyncEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsVerticalSyncEnabled"><code>SwapChainDesc.IsVerticalSyncEnabled</code></a></slot>
         <slot name="false"><code>false</code></slot>
         <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
+        <slot name="true"><code>true</code></slot>
     </resource>
 </p>
 <p>
     <resource key="concepts.platforms.verticalSync.details">
-        <slot name="swapChainDescIsVerticalSyncEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsVerticalSyncEnabled"><code>SwapChainDesc.IsVerticalSyncEnabled</code></a></slot>
-        <slot name="true"><code>true</code></slot>
-        <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="concepts.platforms.verticalSync.guidance">
         <slot name="swapChainResize"><a class="xref" href="xref:Zenith.NET.SwapChain.Resize(System.UInt32,System.UInt32)"><code>SwapChain.Resize</code></a></slot>
     </resource>
 </p>
@@ -190,7 +184,7 @@ swapChain.Present();
 ```
 
 <p>
-    <resource key="concepts.platforms.presentQueue.context">
+    <resource key="concepts.platforms.presentQueue.guidance">
         <slot name="rendered"><code>rendered</code></slot>
         <slot name="frame"><code>frame</code></slot>
         <slot name="copySrc"><a class="xref" href="xref:Zenith.NET.TextureLayout.CopySrc"><code>CopySrc</code></a></slot>
@@ -198,7 +192,7 @@ swapChain.Present();
     </resource>
 </p>
 <p>
-    <resource key="concepts.platforms.presentQueue.guidance">
+    <resource key="concepts.platforms.presentQueue.context">
         <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
         <slot name="swapChainQueue"><a class="xref" href="xref:Zenith.NET.SwapChain.Queue"><code>SwapChain.Queue</code></a></slot>
         <slot name="swapChainResize"><a class="xref" href="xref:Zenith.NET.SwapChain.Resize(System.UInt32,System.UInt32)"><code>SwapChain.Resize</code></a></slot>
@@ -252,108 +246,11 @@ view.RenderRequested += (_, args) =>
     </resource>
 </p>
 <p>
-    <resource key="concepts.platforms.lifecycle.context">
+    <resource key="concepts.platforms.frame.reference">
+        <slot name="descFormat"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Format">Format</a></code></slot>
         <slot name="descWidth"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Width">Width</a></code></slot>
         <slot name="descHeight"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Height">Height</a></code></slot>
-        <slot name="descFormat"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Format">Format</a></code></slot>
         <slot name="descSampleCount"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.SampleCount">SampleCount</a></code></slot>
-    </resource>
-</p>
-<h2 id="choose-the-presentation-path-as-well-as-the-framework">
-    <resource key="concepts.platforms.integration.title"></resource>
-</h2>
-<p>
-    <resource key="concepts.platforms.integration.description"></resource>
-</p>
-<table>
-    <thead>
-        <tr>
-            <th>
-                <resource key="concepts.platforms.integration.table.headings.integration"></resource>
-            </th>
-            <th>
-                <resource key="concepts.platforms.integration.table.headings.presentation"></resource>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-                <resource key="concepts.platforms.integration.table.avalonia.integration"></resource>
-            </td>
-            <td>
-                <resource key="concepts.platforms.integration.table.avalonia.presentation">
-                    <slot name="writeableBitmap"><code>WriteableBitmap</code></slot>
-                    <slot name="zenithViewCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.Avalonia/ZenithView.cs">ZenithView.cs</a></slot>
-                    <slot name="surfaceCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.Avalonia/Surface.cs">Surface.cs</a></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="concepts.platforms.integration.table.winForms.integration"></resource>
-            </td>
-            <td>
-                <resource key="concepts.platforms.integration.table.winForms.presentation">
-                    <slot name="hWND"><code>HWND</code></slot>
-                    <slot name="zenithViewCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.WinForms/ZenithView.cs">ZenithView.cs</a></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="concepts.platforms.integration.table.wpf.integration"></resource>
-            </td>
-            <td>
-                <resource key="concepts.platforms.integration.table.wpf.presentation">
-                    <slot name="d3DImage"><code>D3DImage</code></slot>
-                    <slot name="surfaceCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.WPF/Surface.cs">Surface.cs</a></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="concepts.platforms.integration.table.winUI.integration"></resource>
-            </td>
-            <td>
-                <resource key="concepts.platforms.integration.table.winUI.presentation">
-                    <slot name="swapChainPanel"><code>SwapChainPanel</code></slot>
-                    <slot name="zenithViewWinUICs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.WinUI/ZenithView.WinUI.cs">ZenithView.WinUI.cs</a></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="concepts.platforms.integration.table.uno.integration"></resource>
-            </td>
-            <td>
-                <resource key="concepts.platforms.integration.table.uno.presentation">
-                    <slot name="writeableBitmap"><code>WriteableBitmap</code></slot>
-                    <slot name="zenithViewUnoCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.WinUI/ZenithView.Uno.cs">ZenithView.Uno.cs</a></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="concepts.platforms.integration.table.maui.integration"></resource>
-            </td>
-            <td>
-                <resource key="concepts.platforms.integration.table.maui.presentation">
-                    <slot name="link"><a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Views/Zenith.NET.Views.Maui/Platforms"><resource key="concepts.platforms.integration.table.maui.presentation.link"></resource></a></slot>
-                </resource>
-            </td>
-        </tr>
-    </tbody>
-</table>
-<p>
-    <resource key="concepts.platforms.integration.details">
-        <slot name="renderRequested"><a class="xref" href="xref:Zenith.NET.Views.IZenithView.RenderRequested"><code>RenderRequested</code></a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="concepts.platforms.integration.context">
-        <slot name="useZenithView"><code>UseZenithView</code></slot>
-        <slot name="extensionsCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.Maui/Extensions.cs">Extensions.cs</a></slot>
     </resource>
 </p>
 <h2 id="keep-application-resources-outside-the-controls-ownership">
@@ -368,7 +265,5 @@ view.RenderRequested += (_, args) =>
     <resource key="concepts.platforms.ownership.details"></resource>
 </p>
 <p>
-    <resource key="concepts.platforms.ownership.guidance">
-        <slot name="frameSchedulerCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views/FrameScheduler.cs">FrameScheduler.cs</a></slot>
-    </resource>
+    <resource key="concepts.platforms.ownership.guidance"></resource>
 </p>

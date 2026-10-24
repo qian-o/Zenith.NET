@@ -49,10 +49,7 @@ title: '@samples.title'
     </a>
 </p>
 <p>
-    <resource key="samples.cube.details">
-        <slot name="spinningCubeRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs">SpinningCubeRenderer.cs</a></slot>
-        <slot name="spinningCubeSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang">SpinningCube.slang</a></slot>
-    </resource>
+    <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs">SpinningCubeRenderer.cs</a> · <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang">SpinningCube.slang</a>
 </p>
 <h3 id="compute-shader">
     <resource key="samples.computeShader.title"></resource>
@@ -66,10 +63,7 @@ title: '@samples.title'
     </a>
 </p>
 <p>
-    <resource key="samples.computeShader.details">
-        <slot name="computeShaderRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs">ComputeShaderRenderer.cs</a></slot>
-        <slot name="computeShaderSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang">ComputeShader.slang</a></slot>
-    </resource>
+    <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs">ComputeShaderRenderer.cs</a> · <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang">ComputeShader.slang</a>
 </p>
 <h3 id="indirect-drawing">
     <resource key="samples.indirectDrawing.title"></resource>
@@ -83,10 +77,7 @@ title: '@samples.title'
     </a>
 </p>
 <p>
-    <resource key="samples.indirectDrawing.details">
-        <slot name="indirectDrawingRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/IndirectDrawingRenderer.cs">IndirectDrawingRenderer.cs</a></slot>
-        <slot name="indirectDrawingSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/IndirectDrawing.slang">IndirectDrawing.slang</a></slot>
-    </resource>
+    <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/IndirectDrawingRenderer.cs">IndirectDrawingRenderer.cs</a> · <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/IndirectDrawing.slang">IndirectDrawing.slang</a>
 </p>
 <h3 id="ray-tracing">
     <resource key="samples.rayTracing.title"></resource>
@@ -100,10 +91,7 @@ title: '@samples.title'
     </a>
 </p>
 <p>
-    <resource key="samples.rayTracing.details">
-        <slot name="rayTracingRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/RayTracingRenderer.cs">RayTracingRenderer.cs</a></slot>
-        <slot name="rayTracingSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/RayTracing.slang">RayTracing.slang</a></slot>
-    </resource>
+    <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/RayTracingRenderer.cs">RayTracingRenderer.cs</a> · <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/RayTracing.slang">RayTracing.slang</a>
 </p>
 <h3 id="mesh-shading">
     <resource key="samples.meshShading.title"></resource>
@@ -117,10 +105,7 @@ title: '@samples.title'
     </a>
 </p>
 <p>
-    <resource key="samples.meshShading.details">
-        <slot name="meshShadingRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/MeshShadingRenderer.cs">MeshShadingRenderer.cs</a></slot>
-        <slot name="meshShadingSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/MeshShading.slang">MeshShading.slang</a></slot>
-    </resource>
+    <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/MeshShadingRenderer.cs">MeshShadingRenderer.cs</a> · <a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/MeshShading.slang">MeshShading.slang</a>
 </p>
 <p>
     <a id="experiments"></a>
@@ -141,49 +126,41 @@ title: '@samples.title'
                 <resource key="samples.workloads.table.headings.example"></resource>
             </th>
             <th>
-                <resource key="samples.workloads.table.headings.whatItDemonstratesAndRequires"></resource>
+                <resource key="samples.workloads.table.headings.description"></resource>
             </th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td>
-                <resource key="samples.workloads.table.cornellBox.example">
-                    <slot name="link"><a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/CornellBox"><resource key="samples.workloads.table.cornellBox.example.link"></resource></a></slot>
-                </resource>
+                <a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/CornellBox">CornellBox</a>
             </td>
             <td>
-                <resource key="samples.workloads.table.cornellBox.whatItDemonstratesAndRequires"></resource>
+                <resource key="samples.workloads.table.cornellBox.description"></resource>
             </td>
         </tr>
         <tr>
             <td>
-                <resource key="samples.workloads.table.fluidTank.example">
-                    <slot name="link"><a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/FluidTank"><resource key="samples.workloads.table.fluidTank.example.link"></resource></a></slot>
-                </resource>
+                <a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/FluidTank">FluidTank</a>
             </td>
             <td>
-                <resource key="samples.workloads.table.fluidTank.whatItDemonstratesAndRequires"></resource>
+                <resource key="samples.workloads.table.fluidTank.description"></resource>
             </td>
         </tr>
         <tr>
             <td>
-                <resource key="samples.workloads.table.inkCanvas.example">
-                    <slot name="link"><a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/InkCanvas"><resource key="samples.workloads.table.inkCanvas.example.link"></resource></a></slot>
-                </resource>
+                <a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/InkCanvas">InkCanvas</a>
             </td>
             <td>
-                <resource key="samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires"></resource>
+                <resource key="samples.workloads.table.inkCanvas.description"></resource>
             </td>
         </tr>
         <tr>
             <td>
-                <resource key="samples.workloads.table.platformDetection.example">
-                    <slot name="link"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Experiments/PlatformDetection/Program.cs"><resource key="samples.workloads.table.platformDetection.example.link"></resource></a></slot>
-                </resource>
+                <a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Experiments/PlatformDetection/Program.cs">PlatformDetection</a>
             </td>
             <td>
-                <resource key="samples.workloads.table.platformDetection.whatItDemonstratesAndRequires"></resource>
+                <resource key="samples.workloads.table.platformDetection.description"></resource>
             </td>
         </tr>
     </tbody>

@@ -43,7 +43,7 @@ title: '@concepts.execution.title'
                 <resource key="concepts.execution.queues.table.headings.queue"></resource>
             </th>
             <th>
-                <resource key="concepts.execution.queues.table.headings.workToRecord"></resource>
+                <resource key="concepts.execution.queues.table.headings.supportedWork"></resource>
             </th>
         </tr>
     </thead>
@@ -55,7 +55,7 @@ title: '@concepts.execution.title'
                 </a>
             </td>
             <td>
-                <resource key="concepts.execution.queues.table.graphicsQueue.workToRecord"></resource>
+                <resource key="concepts.execution.queues.table.graphicsQueue.supportedWork"></resource>
             </td>
         </tr>
         <tr>
@@ -65,7 +65,7 @@ title: '@concepts.execution.title'
                 </a>
             </td>
             <td>
-                <resource key="concepts.execution.queues.table.computeQueue.workToRecord"></resource>
+                <resource key="concepts.execution.queues.table.computeQueue.supportedWork"></resource>
             </td>
         </tr>
         <tr>
@@ -75,7 +75,7 @@ title: '@concepts.execution.title'
                 </a>
             </td>
             <td>
-                <resource key="concepts.execution.queues.table.transferQueue.workToRecord"></resource>
+                <resource key="concepts.execution.queues.table.transferQueue.supportedWork"></resource>
             </td>
         </tr>
         <tr>
@@ -85,7 +85,7 @@ title: '@concepts.execution.title'
                 </a>
             </td>
             <td>
-                <resource key="concepts.execution.queues.table.presentQueue.workToRecord">
+                <resource key="concepts.execution.queues.table.presentQueue.supportedWork">
                     <slot name="swapChainDescIsPresentQueueEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsPresentQueueEnabled"><code>SwapChainDesc.IsPresentQueueEnabled</code></a></slot>
                     <slot name="true"><code>true</code></slot>
                 </resource>
@@ -161,7 +161,7 @@ commandBuffer.Submit().Wait();
                 <resource key="concepts.execution.ownership.table.headings.object"></resource>
             </th>
             <th>
-                <resource key="concepts.execution.ownership.table.headings.ownership"></resource>
+                <resource key="concepts.execution.ownership.table.headings.disposalResponsibility"></resource>
             </th>
         </tr>
     </thead>
@@ -171,7 +171,7 @@ commandBuffer.Submit().Wait();
                 <resource key="concepts.execution.ownership.table.queues.object"></resource>
             </td>
             <td>
-                <resource key="concepts.execution.ownership.table.queues.ownership"></resource>
+                <resource key="concepts.execution.ownership.table.queues.disposalResponsibility"></resource>
             </td>
         </tr>
         <tr>
@@ -179,7 +179,7 @@ commandBuffer.Submit().Wait();
                 <resource key="concepts.execution.ownership.table.commandBuffers.object"></resource>
             </td>
             <td>
-                <resource key="concepts.execution.ownership.table.commandBuffers.ownership"></resource>
+                <resource key="concepts.execution.ownership.table.commandBuffers.disposalResponsibility"></resource>
             </td>
         </tr>
         <tr>
@@ -189,7 +189,7 @@ commandBuffer.Submit().Wait();
                 </a>
             </td>
             <td>
-                <resource key="concepts.execution.ownership.table.swapChainDrawable.ownership"></resource>
+                <resource key="concepts.execution.ownership.table.swapChainDrawable.disposalResponsibility"></resource>
             </td>
         </tr>
         <tr>
@@ -197,7 +197,7 @@ commandBuffer.Submit().Wait();
                 <resource key="concepts.execution.ownership.table.applicationResources.object"></resource>
             </td>
             <td>
-                <resource key="concepts.execution.ownership.table.applicationResources.ownership"></resource>
+                <resource key="concepts.execution.ownership.table.applicationResources.disposalResponsibility"></resource>
             </td>
         </tr>
     </tbody>

@@ -17,7 +17,7 @@ title: '@concepts.resources.title'
         <slot name="textureUsages"><a class="xref" href="xref:Zenith.NET.TextureUsages"><code>TextureUsages</code></a></slot>
         <slot name="bufferDescUsages"><a class="xref" href="xref:Zenith.NET.BufferDesc.Usages"><code>BufferDesc.Usages</code></a></slot>
         <slot name="textureDescUsages"><a class="xref" href="xref:Zenith.NET.TextureDesc.Usages"><code>TextureDesc.Usages</code></a></slot>
-        <slot name="value"><code>|</code></slot>
+        <slot name="bitwiseOr"><code>|</code></slot>
     </resource>
 </p>
 <h3 id="buffer-usages">
@@ -244,7 +244,7 @@ title: '@concepts.resources.title'
                 <resource key="concepts.resources.memory.table.headings.typicalRole"></resource>
             </th>
             <th>
-                <resource key="concepts.resources.memory.table.headings.cPUAccess"></resource>
+                <resource key="concepts.resources.memory.table.headings.cpuAccess"></resource>
             </th>
         </tr>
     </thead>
@@ -259,7 +259,7 @@ title: '@concepts.resources.title'
                 <resource key="concepts.resources.memory.table.gpuOnly.typicalRole"></resource>
             </td>
             <td>
-                <resource key="concepts.resources.memory.table.gpuOnly.cPUAccess"></resource>
+                <resource key="concepts.resources.memory.table.gpuOnly.cpuAccess"></resource>
             </td>
         </tr>
         <tr>
@@ -272,7 +272,7 @@ title: '@concepts.resources.title'
                 <resource key="concepts.resources.memory.table.cpuReadOnly.typicalRole"></resource>
             </td>
             <td>
-                <resource key="concepts.resources.memory.table.cpuReadOnly.cPUAccess"></resource>
+                <resource key="concepts.resources.memory.table.cpuReadOnly.cpuAccess"></resource>
             </td>
         </tr>
         <tr>
@@ -285,7 +285,7 @@ title: '@concepts.resources.title'
                 <resource key="concepts.resources.memory.table.cpuWriteOnly.typicalRole"></resource>
             </td>
             <td>
-                <resource key="concepts.resources.memory.table.cpuWriteOnly.cPUAccess"></resource>
+                <resource key="concepts.resources.memory.table.cpuWriteOnly.cpuAccess"></resource>
             </td>
         </tr>
     </tbody>
@@ -350,10 +350,7 @@ title: '@concepts.resources.title'
         </tr>
         <tr>
             <td>
-                <resource key="concepts.resources.transfers.table.textureTransfers.method">
-                    <slot name="textureUpload"><a class="xref" href="xref:Zenith.NET.Texture.Upload(Zenith.NET.TextureSubresource,Zenith.NET.TextureLayout,Zenith.NET.TextureLayout,Zenith.NET.Offset3D,Zenith.NET.Extent3D,Zenith.NET.TextureData)"><code>Texture.Upload</code></a></slot>
-                    <slot name="textureDownload"><a class="xref" href="xref:Zenith.NET.Texture.Download(Zenith.NET.TextureSubresource,Zenith.NET.TextureLayout,Zenith.NET.TextureLayout,Zenith.NET.Offset3D,Zenith.NET.Extent3D,Zenith.NET.TextureData)"><code>Texture.Download</code></a></slot>
-                </resource>
+                <a class="xref" href="xref:Zenith.NET.Texture.Upload(Zenith.NET.TextureSubresource,Zenith.NET.TextureLayout,Zenith.NET.TextureLayout,Zenith.NET.Offset3D,Zenith.NET.Extent3D,Zenith.NET.TextureData)"><code>Texture.Upload</code></a> / <a class="xref" href="xref:Zenith.NET.Texture.Download(Zenith.NET.TextureSubresource,Zenith.NET.TextureLayout,Zenith.NET.TextureLayout,Zenith.NET.Offset3D,Zenith.NET.Extent3D,Zenith.NET.TextureData)"><code>Texture.Download</code></a>
             </td>
             <td>
                 <resource key="concepts.resources.transfers.table.textureTransfers.transfer"></resource>
@@ -368,20 +365,11 @@ title: '@concepts.resources.title'
     <resource key="concepts.resources.transfers.guidance">
         <slot name="commandBufferUpload"><a class="xref" href="xref:Zenith.NET.CommandBuffer.Upload*"><code>CommandBuffer.Upload</code></a></slot>
         <slot name="commandBufferDownload"><a class="xref" href="xref:Zenith.NET.CommandBuffer.Download*"><code>CommandBuffer.Download</code></a></slot>
+        <slot name="wait"><a class="xref" href="xref:Zenith.NET.TimelineValue.Wait"><code>Wait()</code></a></slot>
     </resource>
 </p>
-<ul>
-    <li>
-        <resource key="concepts.resources.transfers.item"></resource>
-    </li>
-    <li>
-        <resource key="concepts.resources.transfers.context">
-            <slot name="wait"><a class="xref" href="xref:Zenith.NET.TimelineValue.Wait"><code>Wait()</code></a></slot>
-        </resource>
-    </li>
-</ul>
 <p>
-    <resource key="concepts.resources.transfers.layouts">
+    <resource key="concepts.resources.transfers.context">
         <slot name="copyDst"><a class="xref" href="xref:Zenith.NET.TextureLayout.CopyDst"><code>CopyDst</code></a></slot>
         <slot name="copySrc"><a class="xref" href="xref:Zenith.NET.TextureLayout.CopySrc"><code>CopySrc</code></a></slot>
     </resource>
