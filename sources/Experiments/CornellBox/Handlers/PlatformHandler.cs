@@ -9,7 +9,6 @@ namespace CornellBox.Handlers;
 
 internal class PlatformHandler : DisposableObject
 {
-    private readonly IWindow window;
     private readonly IInputContext input;
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
@@ -21,12 +20,9 @@ internal class PlatformHandler : DisposableObject
 
     public PlatformHandler(IWindow window)
     {
-        this.window = window;
-
         input = window.CreateInput();
         mouse = input.Mice[0];
         keyboard = input.Keyboards[0];
-        DpiScale = (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
         mouse.MouseDown += (_, button) => AddInput(new(InputType.MouseDown)
         {
@@ -40,7 +36,9 @@ internal class PlatformHandler : DisposableObject
         keyboard.KeyUp += (_, key, _) => AddInput(new(InputType.KeyUp) { Key = key });
         keyboard.KeyChar += (_, character) => AddInput(new(InputType.TextInput) { Character = character });
 
-        window.Update += OnUpdate;
+        window.Update += _ => mouse.Cursor.StandardCursor = cursor;
+
+        DpiScale = (Vector2)window.FramebufferSize / (Vector2)window.Size;
     }
 
     public Vector2 DpiScale { get; }
@@ -69,11 +67,6 @@ internal class PlatformHandler : DisposableObject
 
     protected override void Destroy()
     {
-        if (window is not null)
-        {
-            window.Update -= OnUpdate;
-        }
-
         input?.Dispose();
     }
 
@@ -82,10 +75,5 @@ internal class PlatformHandler : DisposableObject
         using Lock.Scope _ = @lock.EnterScope();
 
         pendingInputs.Add(input);
-    }
-
-    private void OnUpdate(double deltaSeconds)
-    {
-        mouse.Cursor.StandardCursor = cursor;
     }
 }
