@@ -114,11 +114,10 @@ internal class CameraHandler
             return;
         }
 
-        float pixelToRadianX = MathF.PI / Size.X;
-        float pixelToRadianY = MathF.PI / Size.Y;
         Vector2 delta = position - lastMousePosition.Value;
-        float yaw = -(delta.X * pixelToRadianX);
-        float pitch = -(delta.Y * pixelToRadianY);
+
+        float yaw = -(delta.X * MathF.PI / Size.X);
+        float pitch = -(delta.Y * MathF.PI / Size.Y);
         float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
 
         pitch = newPitch - MathF.Asin(Forward.Y);
