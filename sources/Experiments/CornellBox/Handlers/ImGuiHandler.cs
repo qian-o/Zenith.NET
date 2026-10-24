@@ -5,7 +5,7 @@ using Zenith.NET.Extensions.ImGui;
 
 namespace CornellBox.Handlers;
 
-internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
+internal class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
 {
     public event EventHandler<ImGuiInputArgs>? Input;
 
@@ -13,8 +13,11 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
     {
         io.DisplayFramebufferScale = platform.DpiScale;
 
-        io.Fonts.Clear();
-        io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
+        unsafe
+        {
+            io.Fonts.Clear();
+            io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
+        }
     }
 
     public void SetCursor(ImGuiMouseCursor cursor)
@@ -71,13 +74,19 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
                     break;
 
                 case InputType.KeyDown:
-                    Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(input.Key) });
-                    Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
-                    break;
-
                 case InputType.KeyUp:
-                    Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(input.Key) });
-                    Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
+                    ImGuiInput type = input.Type is InputType.KeyDown ? ImGuiInput.KeyDown : ImGuiInput.KeyUp;
+                    ImGuiKey key = ToKey(input.Key);
+                    if (key is not ImGuiKey.None)
+                    {
+                        Input?.Invoke(this, new(type) { Key = key });
+                    }
+
+                    ImGuiKey modifier = ToModifier(input.Key);
+                    if (modifier is not ImGuiKey.None)
+                    {
+                        Input?.Invoke(this, new(type) { Key = modifier });
+                    }
                     break;
 
                 case InputType.TextInput:
@@ -87,7 +96,7 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
         }
     }
 
-    private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
+    private static ImGuiKey ToKey(Key key)
     {
         if (key >= Key.Number0 && key <= Key.Number9)
         {
@@ -102,6 +111,11 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
         if (key >= Key.F1 && key <= Key.F24)
         {
             return ImGuiKey.F1 + (key - Key.F1);
+        }
+
+        if (key >= Key.Keypad0 && key <= Key.Keypad9)
+        {
+            return ImGuiKey.Keypad0 + (key - Key.Keypad0);
         }
 
         return key switch
@@ -137,16 +151,6 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
             Key.NumLock => ImGuiKey.NumLock,
             Key.PrintScreen => ImGuiKey.PrintScreen,
             Key.Pause => ImGuiKey.Pause,
-            Key.Keypad0 => ImGuiKey.Keypad0,
-            Key.Keypad1 => ImGuiKey.Keypad1,
-            Key.Keypad2 => ImGuiKey.Keypad2,
-            Key.Keypad3 => ImGuiKey.Keypad3,
-            Key.Keypad4 => ImGuiKey.Keypad4,
-            Key.Keypad5 => ImGuiKey.Keypad5,
-            Key.Keypad6 => ImGuiKey.Keypad6,
-            Key.Keypad7 => ImGuiKey.Keypad7,
-            Key.Keypad8 => ImGuiKey.Keypad8,
-            Key.Keypad9 => ImGuiKey.Keypad9,
             Key.KeypadDecimal => ImGuiKey.KeypadDecimal,
             Key.KeypadDivide => ImGuiKey.KeypadDivide,
             Key.KeypadMultiply => ImGuiKey.KeypadMultiply,
@@ -167,7 +171,7 @@ internal unsafe class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
         };
     }
 
-    private static ImGuiKey TranslateInputKeyToImGuiModifier(Key key)
+    private static ImGuiKey ToModifier(Key key)
     {
         return key switch
         {

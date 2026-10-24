@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class FrameGenerationPass : DisposableObject
+internal class FrameGenerationPass : DisposableObject
 {
     private DLSSFrameGeneration? dlss;
     private Buffer? disableInterpolation;

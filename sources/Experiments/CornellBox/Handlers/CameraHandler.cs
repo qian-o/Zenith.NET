@@ -8,6 +8,7 @@ internal class CameraHandler
 {
     private readonly HashSet<Key> keyDowns = [];
 
+    private Vector2 size = new(800.0f, 600.0f);
     private Vector2? lastMousePosition;
 
     public CameraHandler(Vector3 position, Vector3 target)
@@ -17,8 +18,6 @@ internal class CameraHandler
         Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
-
-    public Vector2 Size { get; private set; } = new(800, 600);
 
     public Vector3 Position { get; private set; }
 
@@ -36,7 +35,7 @@ internal class CameraHandler
 
     public float Speed { get; set; } = 12.0f;
 
-    public float AspectRatio => Size.X / Size.Y;
+    public float AspectRatio => size.X / size.Y;
 
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
@@ -44,7 +43,7 @@ internal class CameraHandler
 
     public void Update(double deltaSeconds, uint width, uint height, ReadOnlySpan<Input> inputs)
     {
-        Size = new(width, height);
+        size = new(width, height);
 
         foreach (Input input in inputs)
         {
@@ -114,14 +113,12 @@ internal class CameraHandler
             return;
         }
 
-        float pixelToRadianX = MathF.PI / Size.X;
-        float pixelToRadianY = MathF.PI / Size.Y;
         Vector2 delta = position - lastMousePosition.Value;
-        float yaw = -(delta.X * pixelToRadianX);
-        float pitch = -(delta.Y * pixelToRadianY);
-        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
+        float yaw = -(delta.X * (MathF.PI / size.X));
+        float pitch = -(delta.Y * (MathF.PI / size.Y));
+        float previousPitch = MathF.Asin(Forward.Y);
 
-        pitch = newPitch - MathF.Asin(Forward.Y);
+        pitch = Math.Clamp(previousPitch + pitch, -ClipRadians, ClipRadians) - previousPitch;
 
         Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Up, yaw));
         Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Right, pitch));
