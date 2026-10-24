@@ -91,27 +91,35 @@ internal class FramePresenter : DisposableObject
         renderWake.Set();
     }
 
-    public void Submit(Texture texture, TextureLayout currentLayout, int outputIndex, int outputCount)
+    public void Submit(ReadOnlySpan<Texture?> textures, TextureLayout currentLayout)
     {
-        double position = (outputIndex + 1.0) / outputCount;
-
-        if (batch.Count == batch.Frames.Count)
+        for (int i = 0; i < textures.Length; i++)
         {
-            batch.Frames.Add((context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
+            if (textures[i] is not Texture texture)
             {
-                Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
-            }), position));
-        }
-        else
-        {
-            batch.Frames[batch.Count] = (batch.Frames[batch.Count].Texture, position);
-        }
+                continue;
+            }
 
-        Texture slot = batch.Frames[batch.Count++].Texture;
+            double position = (i + 1.0) / textures.Length;
 
-        copies.Transition(texture, default, currentLayout, TextureLayout.CopySrc);
-        CopyFrame(copies, texture, slot, TextureLayout.CopySrc);
-        copies.Transition(texture, default, TextureLayout.CopySrc, currentLayout);
+            if (batch.Count == batch.Frames.Count)
+            {
+                batch.Frames.Add((context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
+                {
+                    Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
+                }), position));
+            }
+            else
+            {
+                batch.Frames[batch.Count] = (batch.Frames[batch.Count].Texture, position);
+            }
+
+            Texture slot = batch.Frames[batch.Count++].Texture;
+
+            copies.Transition(texture, default, currentLayout, TextureLayout.CopySrc);
+            CopyFrame(copies, texture, slot, TextureLayout.CopySrc);
+            copies.Transition(texture, default, TextureLayout.CopySrc, currentLayout);
+        }
     }
 
     protected override void Destroy()

@@ -18,7 +18,7 @@ internal class Renderer : DisposableObject
 
     private Matrix4x4 previousView;
     private Matrix4x4 previousProjection;
-    private int[] outputIndices = [0];
+    private Texture?[] outputs = [null];
     private double elapsedSeconds;
     private uint frameIndex;
 
@@ -47,8 +47,6 @@ internal class Renderer : DisposableObject
     public FrameGenerationMode FrameGeneration { get; set; }
 
     public Texture Overlay => compositePass.Overlay;
-
-    public ReadOnlySpan<Texture> Colors => compositePass.Colors;
 
     public void Update(double deltaSeconds)
     {
@@ -103,11 +101,14 @@ internal class Renderer : DisposableObject
         });
     }
 
-    public ReadOnlySpan<int> ReadOutputIndices(TimelineValue completion)
+    public ReadOnlySpan<Texture?> ReadOutputs(TimelineValue completion)
     {
+        ReadOnlySpan<Texture> colors = compositePass.Colors;
+        outputs[^1] = colors[^1];
+
         if (frameGenerationPass.Readback is not Buffer readback)
         {
-            return outputIndices;
+            return outputs;
         }
 
         completion.Wait();
@@ -115,27 +116,21 @@ internal class Renderer : DisposableObject
         unsafe
         {
             byte* flags = (byte*)readback.Map();
-            int count = 0;
 
             try
             {
-                for (int i = 0; i < frameGenerationPass.Colors.Length; i++)
+                for (int i = 0; i < colors.Length - 1; i++)
                 {
-                    if (flags[i * sizeof(uint)] is 0)
-                    {
-                        outputIndices[count++] = i;
-                    }
+                    outputs[i] = flags[i * sizeof(uint)] is 0 ? colors[i] : null;
                 }
             }
             finally
             {
                 readback.Unmap();
             }
-
-            outputIndices[count++] = frameGenerationPass.Colors.Length;
-
-            return outputIndices.AsSpan(0, count);
         }
+
+        return outputs;
     }
 
     public void Resize(uint width, uint height)
@@ -169,9 +164,9 @@ internal class Renderer : DisposableObject
         frameGenerationPass.Resize(desc);
         compositePass.Resize(desc);
 
-        if (outputIndices.Length != Colors.Length)
+        if (outputs.Length != compositePass.Colors.Length)
         {
-            outputIndices = new int[Colors.Length];
+            outputs = new Texture?[compositePass.Colors.Length];
         }
 
         frameIndex = 0;

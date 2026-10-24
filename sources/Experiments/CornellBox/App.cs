@@ -184,10 +184,7 @@ internal static class App
 
         renderer.Composite(commandBuffer);
 
-        foreach (int index in renderer.ReadOutputIndices(commandBuffer.Submit()))
-        {
-            presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment, index, renderer.Colors.Length);
-        }
+        presenter.Submit(renderer.ReadOutputs(commandBuffer.Submit()), TextureLayout.ColorAttachment);
     }
 
     private static void OnResize(uint width, uint height)
