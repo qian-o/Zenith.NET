@@ -91,8 +91,10 @@ internal class FramePresenter : DisposableObject
         renderWake.Set();
     }
 
-    public void Submit(Texture texture, TextureLayout currentLayout, double position)
+    public void Submit(Texture texture, TextureLayout currentLayout, int outputIndex, int outputCount)
     {
+        double position = (outputIndex + 1.0) / outputCount;
+
         if (batch.Count == batch.Frames.Count)
         {
             batch.Frames.Add((context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
