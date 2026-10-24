@@ -159,6 +159,7 @@ internal class FramePresenter : DisposableObject
             }
             else
             {
+                long ready = Stopwatch.GetTimestamp();
                 batch = freeBatches.Take();
                 if (isStopping)
                 {
@@ -170,6 +171,7 @@ internal class FramePresenter : DisposableObject
                 long start = Stopwatch.GetTimestamp();
                 double deltaSeconds = Stopwatch.GetElapsedTime(previousStart, start).TotalSeconds;
 
+                batch.IntervalTicks = ready - previousStart;
                 previousStart = start;
 
                 Update?.Invoke(deltaSeconds);
@@ -180,7 +182,6 @@ internal class FramePresenter : DisposableObject
                 Render?.Invoke(deltaSeconds);
 
                 copies.Submit().Wait();
-                batch.RenderTicks = Stopwatch.GetTimestamp() - start;
 
                 queuedBatches.Add(batch);
             }
@@ -203,7 +204,7 @@ internal class FramePresenter : DisposableObject
             for (int i = 0; i < frame.Count && !isStopping; i++)
             {
                 (Texture texture, double position) = frame.Frames[i];
-                long intervalTicks = (long)(frame.RenderTicks * (position - previousPosition));
+                long intervalTicks = (long)(frame.IntervalTicks * (position - previousPosition));
                 CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
                 CopyFrame(commandBuffer, texture, swapChain.Drawable, TextureLayout.Present);
@@ -301,7 +302,7 @@ internal class FramePresenter : DisposableObject
 
         public int Count;
 
-        public long RenderTicks;
+        public long IntervalTicks;
 
         protected override void Destroy()
         {
