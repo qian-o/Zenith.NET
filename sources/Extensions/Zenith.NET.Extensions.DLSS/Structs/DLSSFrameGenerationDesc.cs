@@ -4,11 +4,7 @@ public struct DLSSFrameGenerationDesc
 {
     public PixelFormat Format;
 
-    public uint InputWidth;
+    public uint Width;
 
-    public uint InputHeight;
-
-    public uint OutputWidth;
-
-    public uint OutputHeight;
+    public uint Height;
 }

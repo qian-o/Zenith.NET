@@ -79,7 +79,7 @@ internal class FrameGenerationPass : DisposableObject
 
     public void Resize(RenderDesc desc)
     {
-        if (colors.Length == (int)desc.FrameGeneration && (dlss is null || (dlss.Desc.InputWidth == desc.InputWidth && dlss.Desc.InputHeight == desc.InputHeight && dlss.Desc.OutputWidth == desc.OutputWidth && dlss.Desc.OutputHeight == desc.OutputHeight)))
+        if (colors.Length == (int)desc.FrameGeneration && (dlss is null || (dlss.Desc.Width == desc.OutputWidth && dlss.Desc.Height == desc.OutputHeight)))
         {
             return;
         }
@@ -103,10 +103,8 @@ internal class FrameGenerationPass : DisposableObject
         dlss = App.Context.CreateDLSSFrameGeneration(new()
         {
             Format = PixelFormat.R8G8B8A8UNorm,
-            InputWidth = desc.InputWidth,
-            InputHeight = desc.InputHeight,
-            OutputWidth = desc.OutputWidth,
-            OutputHeight = desc.OutputHeight
+            Width = desc.OutputWidth,
+            Height = desc.OutputHeight
         });
 
         colors = new Texture[(int)desc.FrameGeneration];

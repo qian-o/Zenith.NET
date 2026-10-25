@@ -223,16 +223,14 @@ internal unsafe partial class DLSSBackend : DisposableObject
     {
         NGXDLSSGCreateParams createParams = new()
         {
-            Width = feature.Desc.OutputWidth,
-            Height = feature.Desc.OutputHeight,
+            Width = feature.Desc.Width,
+            Height = feature.Desc.Height,
             NativeBackbufferFormat = Context.GraphicsApi switch
             {
                 GraphicsApi.DirectX12 => DLSSFormats.DirectX12(feature.Desc.Format),
                 GraphicsApi.Vulkan => DLSSFormats.Vulkan(feature.Desc.Format).Format,
                 _ => default
-            },
-            RenderWidth = feature.Desc.InputWidth,
-            RenderHeight = feature.Desc.InputHeight
+            }
         };
 
         switch (Context.GraphicsApi)
