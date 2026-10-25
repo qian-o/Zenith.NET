@@ -117,7 +117,6 @@ struct PathTracingConstants
     DescriptorHandle<RWTexture2D<float>> Roughness;
 
     DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
-
 };
 
 ConstantBuffer<PathTracingConstants> pathTracing;
@@ -661,8 +660,8 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     bool hasFirstHit = TraceSurface(pathTracing.Position.xyz, direction, firstSurface, firstDistance);
     float specularHitDistance;
 
-    float3 color = min(TracePath(pathTracing.Position.xyz, direction, firstSurface, firstDistance, hasFirstHit,
-                                 seed, specularHitDistance),
+    float3 color = min(TracePath(pathTracing.Position.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed,
+                                 specularHitDistance),
                        float3(30.0));
 
     WriteGuides(pixel, direction, firstSurface, hasFirstHit, specularHitDistance);
