@@ -197,6 +197,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
     {
         NGXDLSSDCreateParams createParams = new()
         {
+            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
             RoughnessMode = NGXDLSSRoughnessMode.Unpacked,
             UseHWDepth = NGXDLSSDepthType.Hw,
             Width = feature.Desc.InputWidth,
