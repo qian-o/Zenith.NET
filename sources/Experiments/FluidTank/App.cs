@@ -4,6 +4,7 @@ using FluidTank.Helpers;
 using FluidTank.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
+using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
@@ -42,7 +43,7 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
         window = Window.Create(WindowOptions.Default with
         {
@@ -54,6 +55,13 @@ internal static class App
         window.Center();
 
         input = window.CreateInput();
+        imGui = new(input);
+
+        Context.InitializeImGui(imGui, new()
+        {
+            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+            SampleCount = SampleCount.Count1
+        }, ImGuiColorSpace.Legacy);
 
         Surface surface;
         if (OperatingSystem.IsWindows())
@@ -73,12 +81,6 @@ internal static class App
         {
             Surface = surface,
             Format = PixelFormat.B8G8R8A8UNorm
-        });
-
-        imGui = new(input, new()
-        {
-            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
-            SampleCount = SampleCount.Count1
         });
 
         camera = new(input, new(9.2f, 5.3f, -10.8f), new(0.0f, 1.45f, 0.0f))
@@ -102,101 +104,115 @@ internal static class App
 
     public static void Run()
     {
-        window.Update += static delta =>
-        {
-            if (Width is 0 || Height is 0)
-            {
-                return;
-            }
-
-            uint width = (uint)(Width / DpiScale.X);
-            uint height = (uint)(Height / DpiScale.Y);
-
-            imGui.Update(delta, width, height);
-            camera.Update(delta, width, height);
-            renderer.Update(delta);
-
-            if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)
-            {
-                renderer.PushFluid(origin, direction);
-            }
-
-            ImGuiHelper.Overlay(static () =>
-            {
-                ImGui.Text(Context.Capabilities.DeviceName);
-                ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
-            });
-
-            ImGuiHelper.Settings(static () =>
-            {
-                bool paused = renderer.Paused;
-                if (ImGui.Checkbox("Pause", ref paused))
-                {
-                    renderer.Paused = paused;
-                }
-
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Reset").X - (ImGui.GetStyle().FramePadding.X * 2.0f));
-
-                if (ImGui.Button("Reset"))
-                {
-                    renderer.Reset();
-                }
-
-                ImGui.Separator();
-
-                int viewMode = (int)renderer.ViewMode;
-                if (ImGui.Combo("View", ref viewMode, "Water\0Particles\0"))
-                {
-                    renderer.ViewMode = (FluidViewMode)viewMode;
-                }
-            });
-
-            ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
-        };
-
-        window.Render += static _ =>
-        {
-            if (Width is 0 || Height is 0)
-            {
-                return;
-            }
-
-            TimelineValue simulationReady = renderer.Simulate();
-
-            CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-
-            renderer.Render(commandBuffer, camera);
-
-            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-            imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
-            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
-
-            commandBuffer.Submit(simulationReady).Wait();
-
-            swapChain.Present();
-        };
-
-        window.Resize += static _ =>
-        {
-            if (Width is 0 || Height is 0)
-            {
-                return;
-            }
-
-            renderer.Resize(Width, Height);
-            swapChain.Resize(Width, Height);
-        };
+        window.Update += OnUpdate;
+        window.Render += OnRender;
+        window.Resize += OnResize;
 
         window.Run();
 
+        window.Update -= OnUpdate;
+        window.Render -= OnRender;
+        window.Resize -= OnResize;
+
         renderer.Dispose();
-        imGui.Dispose();
+        camera.Dispose();
         swapChain.Dispose();
+        imGui.Dispose();
         input.Dispose();
         window.Dispose();
 
         Context.Dispose();
+    }
+
+    private static void OnUpdate(double deltaSeconds)
+    {
+        if (Width is 0 || Height is 0)
+        {
+            return;
+        }
+
+        Vector2 dpiScale = DpiScale;
+        uint width = (uint)(Width / dpiScale.X);
+        uint height = (uint)(Height / dpiScale.Y);
+
+        camera.Update(deltaSeconds, width, height);
+        renderer.Update(deltaSeconds);
+
+        ImGui.GetIO().DisplayFramebufferScale = dpiScale;
+        Context.BeginImGuiFrame(deltaSeconds, width, height);
+
+        if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)
+        {
+            renderer.PushFluid(origin, direction);
+        }
+
+        ImGuiHelper.Overlay(DrawOverlay);
+        ImGuiHelper.Settings(DrawSettings);
+
+        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(width, height));
+    }
+
+    private static void OnRender(double deltaSeconds)
+    {
+        if (Width is 0 || Height is 0)
+        {
+            return;
+        }
+
+        TimelineValue simulationReady = renderer.Simulate();
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+        renderer.Render(commandBuffer, camera);
+
+        Texture drawable = swapChain.Drawable;
+        commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+        commandBuffer.Submit(simulationReady).Wait();
+
+        swapChain.Present();
+    }
+
+    private static void OnResize(Vector2D<int> size)
+    {
+        if (Width is 0 || Height is 0)
+        {
+            return;
+        }
+
+        renderer.Resize(Width, Height);
+        swapChain.Resize(Width, Height);
+    }
+
+    private static void DrawOverlay()
+    {
+        ImGui.Text(Context.Capabilities.DeviceName);
+        ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
+        ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+    }
+
+    private static void DrawSettings()
+    {
+        bool isPaused = renderer.IsPaused;
+        if (ImGui.Checkbox("Pause", ref isPaused))
+        {
+            renderer.IsPaused = isPaused;
+        }
+
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Reset").X - (ImGui.GetStyle().FramePadding.X * 2.0f));
+
+        if (ImGui.Button("Reset"))
+        {
+            renderer.Reset();
+        }
+
+        ImGui.Separator();
+
+        int viewMode = (int)renderer.ViewMode;
+        if (ImGui.Combo("View", ref viewMode, "Water\0Particles\0"))
+        {
+            renderer.ViewMode = (FluidViewMode)viewMode;
+        }
     }
 }

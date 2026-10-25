@@ -1,17 +1,18 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using FluidTank.Handlers;
 using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
+internal unsafe class GlassPass : DisposableObject
 {
-    private Buffer constantBuffer = null!;
-    private GraphicsPipeline pipeline = null!;
+    private readonly Buffer constantBuffer;
+    private readonly GraphicsPipeline pipeline;
 
-    protected override void Initialize()
+    public GlassPass()
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -21,14 +22,22 @@ internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
         });
 
         InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Position
+        });
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Normal
+        });
 
         BlendState blend = BlendState.AlphaBlend();
         blend.ColorAttachment0.ColorWrites = ColorWrites.Red | ColorWrites.Green | ColorWrites.Blue;
 
-        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Glass.slang"), "GlassVS"));
-        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Glass.slang"), "GlassFS"));
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Glass.slang"), "GlassVS"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Glass.slang"), "GlassFS"));
 
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
@@ -51,11 +60,9 @@ internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
         });
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Texture color, Texture depthStencil, bool useFrontFaces)
     {
-        SceneResources scene = args.Scene;
-        Texture color = args.Color;
-        Texture depthStencil = args.DepthStencil;
+        Matrix4x4 view = camera.View;
         ReadOnlySpan<(Vector3 Center, Vector3 Normal)> faces = scene.GlassFaces;
         Span<(uint FirstIndex, float Depth)> sortedFaces = stackalloc (uint FirstIndex, float Depth)[faces.Length];
         int faceCount = 0;
@@ -63,11 +70,11 @@ internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
         for (int i = 0; i < faces.Length; i++)
         {
             (Vector3 center, Vector3 normal) = faces[i];
-            bool frontFace = Vector3.Dot(normal, args.CameraPosition - center) < 0.0f;
+            bool isFrontFace = Vector3.Dot(normal, camera.Position - center) < 0.0f;
 
-            if (frontFace == args.FrontFaces)
+            if (isFrontFace == useFrontFaces)
             {
-                float depth = -Vector3.Transform(center, args.View).Z;
+                float depth = -Vector3.Transform(center, view).Z;
                 int position = faceCount;
 
                 while (position > 0 && sortedFaces[position - 1].Depth < depth)
@@ -83,9 +90,9 @@ internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
 
         GlassConstants constants = new()
         {
-            View = args.View,
-            Projection = args.Projection,
-            CameraPosition = args.CameraPosition
+            View = view,
+            Projection = camera.Projection,
+            CameraPosition = camera.Position
         };
 
         constantBuffer.Upload(0, new()
@@ -111,14 +118,10 @@ internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
         commandBuffer.Transition(color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 
-    protected override void ResizeImpl()
-    {
-    }
-
     protected override void Destroy()
     {
-        pipeline.Dispose();
-        constantBuffer.Dispose();
+        pipeline?.Dispose();
+        constantBuffer?.Dispose();
     }
 }
 

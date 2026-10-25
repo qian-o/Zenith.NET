@@ -116,7 +116,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
                         VertexFormat = DXFormats.DirectX12(geometry.TriangleGeometry.VertexFormat),
                         IndexCount = geometry.TriangleGeometry.IndexCount,
                         VertexCount = geometry.TriangleGeometry.VertexCount,
-                        IndexBuffer = geometry.TriangleGeometry.IndexBuffer is not null ? geometry.TriangleGeometry.IndexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.IndexOffsetInBytes : 0ul,
+                        IndexBuffer = geometry.TriangleGeometry.IndexBuffer is not null ? geometry.TriangleGeometry.IndexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.IndexOffsetInBytes : 0UL,
                         VertexBuffer = new()
                         {
                             StartAddress = geometry.TriangleGeometry.VertexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.VertexOffsetInBytes,

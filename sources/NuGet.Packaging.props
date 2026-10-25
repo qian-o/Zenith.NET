@@ -2,34 +2,27 @@
 
     <PropertyGroup>
         <IsAotCompatible>true</IsAotCompatible>
-
-        <!-- Output -->
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 
-        <!-- Package Metadata -->
         <Version>1.1.0</Version>
         <Authors>qian-o</Authors>
         <Copyright>Copyright (c) 2026 qian-o</Copyright>
         <Description>A cross-platform rendering hardware interface for .NET with a shared C# API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4.</Description>
 
-        <!-- Repository Information -->
         <RepositoryType>Git</RepositoryType>
         <RepositoryUrl>https://github.com/qian-o/Zenith.NET.git</RepositoryUrl>
 
-        <!-- Package Content -->
         <PackageIcon>Zenith.NET.png</PackageIcon>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>RHI;Graphics;GPU;Rendering;CSharp</PackageTags>
         <PackageProjectUrl>https://qian-o.github.io/Zenith.NET</PackageProjectUrl>
 
-        <!-- Debug Symbols & Source Link -->
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
     </PropertyGroup>
 
-    <!-- Only auto-generate package on Release builds -->
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>

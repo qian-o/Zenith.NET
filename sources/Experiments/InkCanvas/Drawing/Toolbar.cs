@@ -6,12 +6,13 @@ namespace InkCanvas.Drawing;
 internal class Toolbar : DisposableObject
 {
     public const float ToolbarHeight = 64.0f;
+
     public const float StatusHeight = 34.0f;
 
     private const float SwatchSize = 30.0f;
     private const float SwatchGap = 12.0f;
     private const float CheckboxSize = 18.0f;
-    private const float MSAAWidth = 72.0f;
+    private const float MsaaWidth = 72.0f;
     private const float ButtonWidth = 64.0f;
 
     private static readonly SKColor Panel = new(31, 34, 43);
@@ -34,21 +35,39 @@ internal class Toolbar : DisposableObject
 
     private readonly SKRect[] swatchRects = new SKRect[Palette.Length];
     private readonly SKRect[] strokeWidthRects = new SKRect[StrokeWidths.Length];
-
     private readonly SKFont labelFont;
     private readonly SKPaint fillPaint = new();
     private readonly SKPaint strokePaint = new() { Style = SKPaintStyle.Stroke };
+    private readonly SKTextBlob? msaaLabel;
+    private readonly SKTextBlob? clearLabel;
+    private readonly SKTextBlob? hintLabel;
 
+    private SKTextBlob? statistics;
     private SKRect msaaRect;
     private SKRect clearRect;
     private SKSize size;
-
     private int colorIndex;
     private int strokeWidthIndex = 1;
 
     public Toolbar()
     {
-        string family = OperatingSystem.IsMacOS() ? "SF Pro Text" : OperatingSystem.IsWindows() ? "Segoe UI" : "Noto Sans";
+        const string ClearText = "CLEAR";
+        const string HintText = "DRAG TO DRAW   RIGHT DRAG TO ERASE";
+
+        string family;
+
+        if (OperatingSystem.IsMacOS())
+        {
+            family = "SF Pro Text";
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            family = "Segoe UI";
+        }
+        else
+        {
+            family = "Noto Sans";
+        }
 
         using SKTypeface typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
 
@@ -58,46 +77,57 @@ internal class Toolbar : DisposableObject
             Edging = SKFontEdging.SubpixelAntialias,
             Hinting = SKFontHinting.Slight
         };
+
+        msaaLabel = SKTextBlob.Create("MSAA", labelFont);
+        clearLabel = SKTextBlob.Create(ClearText, labelFont, new(-labelFont.MeasureText(ClearText) * 0.5f, 0.0f));
+        hintLabel = SKTextBlob.Create(HintText, labelFont, new(-labelFont.MeasureText(HintText), 0.0f));
     }
 
     public SKColor SelectedColor => Palette[colorIndex];
 
     public float SelectedStrokeWidth => StrokeWidths[strokeWidthIndex];
 
-    public bool MSAA { get; private set; } = true;
+    public bool IsMsaaEnabled { get; private set; } = true;
 
     public void Resize(float width, float height)
     {
-        const float top = (ToolbarHeight - SwatchSize) * 0.5f;
-        const float bottom = top + SwatchSize;
+        const float Top = (ToolbarHeight - SwatchSize) * 0.5f;
+        const float Bottom = Top + SwatchSize;
 
         size = new(width, height);
 
-        for (int index = 0; index < swatchRects.Length; index++)
+        for (int i = 0; i < swatchRects.Length; i++)
         {
-            float left = SwatchGap + (index * (SwatchSize + SwatchGap));
-            swatchRects[index] = new(left, top, left + SwatchSize, bottom);
+            float left = SwatchGap + (i * (SwatchSize + SwatchGap));
+            swatchRects[i] = new(left, Top, left + SwatchSize, Bottom);
         }
 
         float strokeWidthLeft = swatchRects[^1].Right + (SwatchGap * 2.0f);
 
-        for (int index = 0; index < strokeWidthRects.Length; index++)
+        for (int i = 0; i < strokeWidthRects.Length; i++)
         {
-            float left = strokeWidthLeft + (index * (SwatchSize + SwatchGap));
-            strokeWidthRects[index] = new(left, top, left + SwatchSize, bottom);
+            float left = strokeWidthLeft + (i * (SwatchSize + SwatchGap));
+            strokeWidthRects[i] = new(left, Top, left + SwatchSize, Bottom);
         }
 
         float msaaLeft = strokeWidthRects[^1].Right + (SwatchGap * 2.0f);
-        msaaRect = new(msaaLeft, top, msaaLeft + MSAAWidth, bottom);
+        msaaRect = new(msaaLeft, Top, msaaLeft + MsaaWidth, Bottom);
 
         float clearLeft = MathF.Max(msaaRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
-        clearRect = new(clearLeft, top, clearLeft + ButtonWidth, bottom);
+        clearRect = new(clearLeft, Top, clearLeft + ButtonWidth, Bottom);
     }
 
-    public void Draw(SKCanvas canvas, int strokeCount, int nodeCount, bool canClear)
+    public void Draw(SKCanvas canvas, bool canClear)
     {
         DrawToolbar(canvas, canClear);
-        DrawStatus(canvas, strokeCount, nodeCount);
+        DrawStatus(canvas);
+    }
+
+    public void SetStatistics(int strokeCount, int nodeCount)
+    {
+        statistics?.Dispose();
+        statistics = null;
+        statistics = SKTextBlob.Create($"STROKES {strokeCount}   NODES {nodeCount}", labelFont);
     }
 
     public void SelectAt(SKPoint position)
@@ -115,7 +145,7 @@ internal class Toolbar : DisposableObject
         }
         else if (msaaRect.Contains(position.X, position.Y))
         {
-            MSAA = !MSAA;
+            IsMsaaEnabled = !IsMsaaEnabled;
         }
     }
 
@@ -126,14 +156,18 @@ internal class Toolbar : DisposableObject
 
     protected override void Destroy()
     {
-        strokePaint.Dispose();
-        fillPaint.Dispose();
-        labelFont.Dispose();
+        statistics?.Dispose();
+        hintLabel?.Dispose();
+        clearLabel?.Dispose();
+        msaaLabel?.Dispose();
+        labelFont?.Dispose();
+        strokePaint?.Dispose();
+        fillPaint?.Dispose();
     }
 
     private void DrawToolbar(SKCanvas canvas, bool canClear)
     {
-        const float checkboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
+        const float CheckboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
 
         fillPaint.Color = Panel;
         canvas.DrawRect(0.0f, 0.0f, size.Width, ToolbarHeight, fillPaint);
@@ -141,14 +175,14 @@ internal class Toolbar : DisposableObject
         fillPaint.Color = Divider;
         canvas.DrawRect(0.0f, ToolbarHeight - 1.0f, size.Width, 1.0f, fillPaint);
 
-        for (int index = 0; index < Palette.Length; index++)
+        for (int i = 0; i < Palette.Length; i++)
         {
-            SKRect swatch = swatchRects[index];
+            SKRect swatch = swatchRects[i];
 
-            fillPaint.Color = Palette[index];
+            fillPaint.Color = Palette[i];
             canvas.DrawRoundRect(swatch, 6.0f, 6.0f, fillPaint);
 
-            if (index == colorIndex)
+            if (i == colorIndex)
             {
                 strokePaint.Color = Highlight;
                 strokePaint.StrokeWidth = 2.0f;
@@ -156,27 +190,27 @@ internal class Toolbar : DisposableObject
             }
         }
 
-        for (int index = 0; index < StrokeWidths.Length; index++)
+        for (int i = 0; i < StrokeWidths.Length; i++)
         {
-            SKRect slot = strokeWidthRects[index];
+            SKRect slot = strokeWidthRects[i];
 
-            fillPaint.Color = index == strokeWidthIndex ? Selected : Panel;
+            fillPaint.Color = i == strokeWidthIndex ? Selected : Panel;
             canvas.DrawRoundRect(slot, 6.0f, 6.0f, fillPaint);
 
             fillPaint.Color = Palette[colorIndex];
-            canvas.DrawCircle(slot.MidX, slot.MidY, StrokeWidths[index] * 0.5f, fillPaint);
+            canvas.DrawCircle(slot.MidX, slot.MidY, StrokeWidths[i] * 0.5f, fillPaint);
         }
 
-        SKRect checkbox = new(msaaRect.Left, checkboxTop, msaaRect.Left + CheckboxSize, checkboxTop + CheckboxSize);
+        SKRect checkbox = new(msaaRect.Left, CheckboxTop, msaaRect.Left + CheckboxSize, CheckboxTop + CheckboxSize);
 
-        fillPaint.Color = MSAA ? Selected : Panel;
+        fillPaint.Color = IsMsaaEnabled ? Selected : Panel;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, fillPaint);
 
-        strokePaint.Color = MSAA ? Highlight : Label;
+        strokePaint.Color = IsMsaaEnabled ? Highlight : Label;
         strokePaint.StrokeWidth = 1.5f;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, strokePaint);
 
-        if (MSAA)
+        if (IsMsaaEnabled)
         {
             strokePaint.StrokeWidth = 2.0f;
             canvas.DrawLine(checkbox.Left + 4.0f, checkbox.MidY, checkbox.Left + 8.0f, checkbox.Bottom - 4.0f, strokePaint);
@@ -184,7 +218,7 @@ internal class Toolbar : DisposableObject
         }
 
         fillPaint.Color = Label;
-        canvas.DrawText("MSAA", checkbox.Right + 8.0f, msaaRect.MidY + 4.0f, SKTextAlign.Left, labelFont, fillPaint);
+        canvas.DrawText(msaaLabel, checkbox.Right + 8.0f, msaaRect.MidY + 4.0f, fillPaint);
 
         SKColor accent = canClear ? Label : Divider;
 
@@ -196,10 +230,10 @@ internal class Toolbar : DisposableObject
         canvas.DrawRoundRect(clearRect, 6.0f, 6.0f, strokePaint);
 
         fillPaint.Color = accent;
-        canvas.DrawText("CLEAR", clearRect.MidX, clearRect.MidY + 4.0f, SKTextAlign.Center, labelFont, fillPaint);
+        canvas.DrawText(clearLabel, clearRect.MidX, clearRect.MidY + 4.0f, fillPaint);
     }
 
-    private void DrawStatus(SKCanvas canvas, int strokeCount, int nodeCount)
+    private void DrawStatus(SKCanvas canvas)
     {
         float top = size.Height - StatusHeight;
 
@@ -212,17 +246,17 @@ internal class Toolbar : DisposableObject
         float baseline = top + (StatusHeight * 0.5f) + 4.0f;
 
         fillPaint.Color = Label;
-        canvas.DrawText($"STROKES {strokeCount}   NODES {nodeCount}", SwatchGap, baseline, SKTextAlign.Left, labelFont, fillPaint);
-        canvas.DrawText("DRAG TO DRAW   RIGHT DRAG TO ERASE", size.Width - SwatchGap, baseline, SKTextAlign.Right, labelFont, fillPaint);
+        canvas.DrawText(statistics, SwatchGap, baseline, fillPaint);
+        canvas.DrawText(hintLabel, size.Width - SwatchGap, baseline, fillPaint);
     }
 
-    private static int IndexAt(SKRect[] rects, SKPoint position)
+    private static int IndexAt(ReadOnlySpan<SKRect> rects, SKPoint position)
     {
-        for (int index = 0; index < rects.Length; index++)
+        for (int i = 0; i < rects.Length; i++)
         {
-            if (rects[index].Contains(position.X, position.Y))
+            if (rects[i].Contains(position.X, position.Y))
             {
-                return index;
+                return i;
             }
         }
 

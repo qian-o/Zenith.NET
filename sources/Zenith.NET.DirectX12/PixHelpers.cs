@@ -2,9 +2,7 @@
 
 namespace Zenith.NET.DirectX12;
 
-/// <summary>
-/// https://github.com/amerkoleci/Vortice.Windows/blob/main/src/Vortice.Direct3D12/PixHelpers.cs
-/// </summary>
+// Ported from https://github.com/amerkoleci/Vortice.Windows/blob/main/src/Vortice.Direct3D12/PixHelpers.cs
 internal static unsafe class PixHelpers
 {
     public const uint Version = 2;
@@ -15,11 +13,11 @@ internal static unsafe class PixHelpers
 
     public static uint CalculateEventSize(string label)
     {
-        const uint startMarker = 3;
-        const uint nullTerminator = 1;
-        const uint endMarker = 1;
+        const uint StartMarker = 3;
+        const uint NullTerminator = 1;
+        const uint EndMarker = 1;
 
-        return (uint)((startMarker + (label.Length / 4) + nullTerminator + endMarker) * 8);
+        return (uint)((StartMarker + (label.Length / 4) + NullTerminator + EndMarker) * 8);
     }
 
     public static void FormatEventToBuffer(ulong* buffer, ulong pixType, ulong color, string label)
@@ -36,7 +34,6 @@ internal static unsafe class PixHelpers
 
         while (true)
         {
-            // char #1
             if (strIndex >= label.Length)
             {
                 buffer[bufferIndex++] = 0;
@@ -47,7 +44,6 @@ internal static unsafe class PixHelpers
             uint c = str[strIndex++];
             ulong longValue = c;
 
-            // char #2
             if (strIndex >= label.Length)
             {
                 buffer[bufferIndex++] = longValue;
@@ -58,7 +54,6 @@ internal static unsafe class PixHelpers
             c = str[strIndex++];
             longValue |= (ulong)c << 16;
 
-            // char #3
             if (strIndex >= label.Length)
             {
                 buffer[bufferIndex++] = longValue;
@@ -69,7 +64,6 @@ internal static unsafe class PixHelpers
             c = str[strIndex++];
             longValue |= (ulong)c << 32;
 
-            // char #4
             if (strIndex >= label.Length)
             {
                 buffer[bufferIndex++] = longValue;
@@ -80,7 +74,6 @@ internal static unsafe class PixHelpers
             c = str[strIndex++];
             longValue |= (ulong)c << 48;
 
-            // Write to the buffer.
             buffer[bufferIndex++] = longValue;
         }
 

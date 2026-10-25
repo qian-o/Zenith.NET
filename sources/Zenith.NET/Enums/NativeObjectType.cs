@@ -10,6 +10,8 @@ public enum NativeObjectType
 
     D3D12GpuVirtualAddress,
 
+    D3D12GraphicsCommandList,
+
     D3D12Resource,
 
     MTLAccelerationStructure,
@@ -25,6 +27,8 @@ public enum NativeObjectType
     VulkanAccelerationStructure,
 
     VulkanBuffer,
+
+    VulkanCommandBuffer,
 
     VulkanDevice,
 

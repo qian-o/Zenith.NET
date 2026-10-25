@@ -16,7 +16,7 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
         }
     } = string.Empty;
 
-    protected GraphicsContext Context => context;
+    public GraphicsContext Context => context;
 
     public abstract nint GetNativeObject(NativeObjectType type);
 

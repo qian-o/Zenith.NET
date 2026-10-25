@@ -3,134 +3,202 @@ using CornellBox.Handlers;
 using CornellBox.Models;
 using CornellBox.Passes;
 using Zenith.NET;
+using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox;
 
 internal class Renderer : DisposableObject
 {
-    private readonly PathTracingPass pathTracing;
-    private readonly DenoisePass denoise;
-    private readonly UpscalePass upscale;
-    private readonly TonemapPass tonemap;
+    private readonly SceneResources scene;
+    private readonly PathTracingPass pathTracingPass;
+    private readonly DenoisingUpscalingPass denoisingUpscalingPass;
+    private readonly OutputPass outputPass;
+    private readonly FrameGenerationPass frameGenerationPass;
+    private readonly CompositePass compositePass;
 
+    private Matrix4x4 previousView;
+    private Matrix4x4 previousProjection;
+    private int[] outputIndices = [0];
+    private double elapsedSeconds;
     private uint frameIndex;
-    private Matrix4x4 previousViewProjection;
-    private Vector2 previousJitter;
-    private bool history;
 
     public Renderer()
     {
-        uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
+        RenderDesc desc = new()
+        {
+            InputWidth = App.Width,
+            InputHeight = App.Height,
+            OutputWidth = App.Width,
+            OutputHeight = App.Height
+        };
 
-        pathTracing = new(renderWidth, renderHeight, App.Width, App.Height);
-        denoise = new(renderWidth, renderHeight, App.Width, App.Height);
-        upscale = new(renderWidth, renderHeight, App.Width, App.Height);
-        tonemap = new(renderWidth, renderHeight, App.Width, App.Height);
+        scene = new();
+        denoisingUpscalingPass = new(desc);
+        pathTracingPass = new(desc);
+        outputPass = new(desc);
+        frameGenerationPass = new(desc);
+        compositePass = new(desc);
     }
 
-    public float RenderPrecision { get; set; } = 0.67f;
+    public bool IsPaused { get; set; }
 
-    public UpscaleMode UpscaleMode { get; set; } = UpscaleMode.Temporal;
+    public DenoisingUpscalingMode DenoisingUpscaling { get; set; }
 
-    public Texture Color => tonemap.Color;
+    public FrameGenerationMode FrameGeneration { get; set; }
+
+    public Texture Overlay => compositePass.Overlay;
+
+    public ReadOnlySpan<Texture> Colors => compositePass.Colors;
+
+    public void Update(double deltaSeconds)
+    {
+        if (!IsPaused)
+        {
+            elapsedSeconds += deltaSeconds;
+        }
+    }
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
+        Resize(App.Width, App.Height);
+
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
-        Matrix4x4 viewProjection = view * projection;
-        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
-        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
-
-        Vector2 jitter = new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f);
-
-        if (!history)
+        uint sample = frameIndex + 1u;
+        RenderArgs args = new()
         {
-            previousViewProjection = viewProjection;
-            previousJitter = jitter;
+            Scene = scene,
+            Camera = camera,
+            Input = pathTracingPass.Output,
+            View = view,
+            Projection = projection,
+            PreviousView = frameIndex is 0 ? view : previousView,
+            PreviousProjection = frameIndex is 0 ? projection : previousProjection,
+            JitterOffset = denoisingUpscalingPass.Color is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f),
+            FrameIndex = frameIndex
+        };
+
+        scene.Update(commandBuffer, elapsedSeconds);
+
+        pathTracingPass.Record(commandBuffer, args);
+        denoisingUpscalingPass.Record(commandBuffer, args);
+
+        args = args with { Color = denoisingUpscalingPass.Color ?? args.Input.Color };
+        outputPass.Record(commandBuffer, args);
+
+        args = args with { Color = outputPass.Color };
+        frameGenerationPass.Record(commandBuffer, args);
+
+        previousView = view;
+        previousProjection = projection;
+        frameIndex++;
+    }
+
+    public void Composite(CommandBuffer commandBuffer)
+    {
+        compositePass.Record(commandBuffer, new()
+        {
+            Color = outputPass.Color,
+            Generated = frameGenerationPass.Colors
+        });
+    }
+
+    public ReadOnlySpan<int> ReadOutputIndices(TimelineValue completion)
+    {
+        if (frameGenerationPass.Readback is not Buffer readback)
+        {
+            return outputIndices;
         }
 
-        bool sameCamera = viewProjection == previousViewProjection;
-        Matrix4x4 clipToPrevClip = sameCamera ? Matrix4x4.Identity : inverseProjection * (inverseView * previousViewProjection);
+        completion.Wait();
 
-        PassArgs args = new()
+        unsafe
         {
-            InverseView = inverseView,
-            InverseProjection = inverseProjection,
-            ViewProjection = viewProjection,
-            PreviousViewProjection = previousViewProjection,
-            ClipToPrevClip = clipToPrevClip,
-            CameraPosition = camera.Position,
-            CameraFovAngleHor = 2.0f * MathF.Atan(MathF.Tan(float.DegreesToRadians(camera.Fov) * 0.5f) * camera.AspectRatio),
-            Jitter = jitter,
-            PreviousJitter = previousJitter,
-            FrameIndex = frameIndex,
-            SameCamera = sameCamera,
-            UpscaleMode = UpscaleMode
-        };
+            byte* flags = (byte*)readback.Map();
+            int count = 0;
 
-        pathTracing.Record(commandBuffer, in args);
+            try
+            {
+                for (int i = 0; i < frameGenerationPass.Colors.Length; i++)
+                {
+                    if (flags[i * sizeof(uint)] is 0)
+                    {
+                        outputIndices[count++] = i;
+                    }
+                }
+            }
+            finally
+            {
+                readback.Unmap();
+            }
 
-        args = args with
-        {
-            Color = pathTracing.Color,
-            Normal = pathTracing.Normal,
-            Depth = pathTracing.Depth,
-            MotionVectors = pathTracing.MotionVectors
-        };
-        denoise.Record(commandBuffer, in args);
+            outputIndices[count++] = frameGenerationPass.Colors.Length;
 
-        args = args with
-        {
-            Color = denoise.Color,
-            ResolvedColor = denoise.ResolvedColor
-        };
-        upscale.Record(commandBuffer, in args);
-
-        args = args with { Color = upscale.Color };
-        tonemap.Record(commandBuffer, in args);
-
-        previousViewProjection = viewProjection;
-        previousJitter = jitter;
-        history = true;
-
-        frameIndex++;
+            return outputIndices.AsSpan(0, count);
+        }
     }
 
     public void Resize(uint width, uint height)
     {
-        uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
+        RenderDesc desc = new()
+        {
+            InputWidth = width,
+            InputHeight = height,
+            OutputWidth = width,
+            OutputHeight = height,
+            DenoisingUpscaling = DenoisingUpscaling,
+            FrameGeneration = FrameGeneration
+        };
+        if (App.Technology is not RenderingTechnology.DLSS)
+        {
+            desc.DenoisingUpscaling = DenoisingUpscalingMode.Off;
+            desc.FrameGeneration = FrameGenerationMode.X1;
+        }
 
-        pathTracing.Resize(renderWidth, renderHeight, width, height);
-        denoise.Resize(renderWidth, renderHeight, width, height);
-        upscale.Resize(renderWidth, renderHeight, width, height);
-        tonemap.Resize(renderWidth, renderHeight, width, height);
+        if (outputPass.Color.Desc.Width == width && outputPass.Color.Desc.Height == height && denoisingUpscalingPass.Desc.DenoisingUpscaling == desc.DenoisingUpscaling && frameGenerationPass.Colors.Length == (int)desc.FrameGeneration)
+        {
+            return;
+        }
 
-        history = false;
+        denoisingUpscalingPass.Resize(desc);
+        desc.InputWidth = denoisingUpscalingPass.Desc.InputWidth;
+        desc.InputHeight = denoisingUpscalingPass.Desc.InputHeight;
+
+        pathTracingPass.Resize(desc);
+        outputPass.Resize(desc);
+        frameGenerationPass.Resize(desc);
+        compositePass.Resize(desc);
+
+        if (outputIndices.Length != Colors.Length)
+        {
+            outputIndices = new int[Colors.Length];
+        }
+
+        frameIndex = 0;
     }
 
     protected override void Destroy()
     {
-        tonemap.Dispose();
-        upscale.Dispose();
-        denoise.Dispose();
-        pathTracing.Dispose();
+        compositePass?.Dispose();
+        frameGenerationPass?.Dispose();
+        outputPass?.Dispose();
+        pathTracingPass?.Dispose();
+        denoisingUpscalingPass?.Dispose();
+        scene?.Dispose();
     }
 
     private static float Halton(uint index, uint radix)
     {
-        float result = 0.0f;
-        float fraction = 1.0f;
+        float value = 0.0f;
+        float weight = 1.0f;
 
-        while (index is not 0)
+        while (index > 0u)
         {
-            fraction /= radix;
-            result += fraction * (index % radix);
+            weight /= radix;
+            value += weight * (index % radix);
             index /= radix;
         }
 
-        return result;
+        return value;
     }
 }

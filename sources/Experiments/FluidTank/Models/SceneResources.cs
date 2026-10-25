@@ -6,6 +6,10 @@ namespace FluidTank.Models;
 
 internal unsafe class SceneResources : DisposableObject
 {
+    public const float LightIntensity = 2.7f;
+
+    public static readonly Vector3 SunDirection = Vector3.Normalize(new(-0.38f, -0.83f, -0.42f));
+
     private readonly BottomLevelAccelerationStructure? geometry;
 
     public SceneResources()
@@ -24,11 +28,11 @@ internal unsafe class SceneResources : DisposableObject
         }
 
         CommandBuffer uploadCommandBuffer = App.Context.TransferQueue.CommandBuffer();
-        Vertices = LoadBuffer(uploadCommandBuffer, sceneVertices, BufferUsages.Vertex | BufferUsages.StorageReadOnly);
-        Indices = LoadBuffer(uploadCommandBuffer, sceneIndices, BufferUsages.Index | BufferUsages.StorageReadOnly);
-        GlassVertices = LoadBuffer(uploadCommandBuffer, glassVertices, BufferUsages.Vertex);
-        GlassIndices = LoadBuffer(uploadCommandBuffer, glassIndices, BufferUsages.Index);
-        Materials = LoadBuffer(uploadCommandBuffer, materials, BufferUsages.StorageReadOnly);
+        Vertices = CreateBuffer(uploadCommandBuffer, sceneVertices, BufferUsages.Vertex | BufferUsages.StorageReadOnly);
+        Indices = CreateBuffer(uploadCommandBuffer, sceneIndices, BufferUsages.Index | BufferUsages.StorageReadOnly);
+        GlassVertices = CreateBuffer(uploadCommandBuffer, glassVertices, BufferUsages.Vertex);
+        GlassIndices = CreateBuffer(uploadCommandBuffer, glassIndices, BufferUsages.Index);
+        Materials = CreateBuffer(uploadCommandBuffer, materials, BufferUsages.StorageReadOnly);
         uploadCommandBuffer.Submit().Wait();
 
         if (App.Context.Capabilities.RayTracingSupported)
@@ -99,14 +103,14 @@ internal unsafe class SceneResources : DisposableObject
     {
         Scene?.Dispose();
         geometry?.Dispose();
-        Materials.Dispose();
-        GlassIndices.Dispose();
-        GlassVertices.Dispose();
-        Indices.Dispose();
-        Vertices.Dispose();
+        Materials?.Dispose();
+        GlassIndices?.Dispose();
+        GlassVertices?.Dispose();
+        Indices?.Dispose();
+        Vertices?.Dispose();
     }
 
-    private static Buffer LoadBuffer<T>(CommandBuffer commandBuffer, T[] data, BufferUsages usages) where T : unmanaged
+    private static Buffer CreateBuffer<T>(CommandBuffer commandBuffer, ReadOnlySpan<T> data, BufferUsages usages) where T : unmanaged
     {
         Buffer buffer = App.Context.CreateBuffer(new()
         {

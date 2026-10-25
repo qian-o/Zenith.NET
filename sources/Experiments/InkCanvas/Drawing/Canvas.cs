@@ -11,9 +11,8 @@ internal class Canvas : DisposableObject
     private static readonly SKColor Grid = new(32, 35, 43);
     private static readonly SKColor Cursor = new(150, 158, 172, 200);
 
-    private readonly Toolbar toolbar = new();
     private readonly List<Stroke> strokes = [];
-
+    private readonly Toolbar toolbar = new();
     private readonly SKPathBuilder eraserBuilder = new();
     private readonly SKPaint fillPaint = new();
     private readonly SKPaint strokePaint = new()
@@ -24,38 +23,48 @@ internal class Canvas : DisposableObject
     };
 
     private SKPicture? cachedPicture;
-    private int nodeCount;
-    private bool pictureDirty = true;
-
+    private bool isPictureDirty = true;
     private Stroke? activeStroke;
     private SKPoint pointer;
-    private bool erasing;
-    private bool erasePending;
-
+    private bool isErasing;
+    private bool isErasePending;
     private SKRect drawingArea;
     private SKSize size;
 
-    public bool MSAA => toolbar.MSAA;
+    public bool IsMsaaEnabled => toolbar.IsMsaaEnabled;
 
-    private bool CanClear => strokes.Count > 0 || activeStroke is not null || erasing || erasePending;
+    private bool CanClear => strokes.Count > 0 || activeStroke is not null || isErasing || isErasePending;
 
-    public void Draw(SKCanvas canvas, float width, float height)
+    public void Resize(float width, float height)
     {
-        EnsureLayout(width, height);
+        if (width == size.Width && height == size.Height)
+        {
+            return;
+        }
 
-        if (erasePending)
+        size = new(width, height);
+        drawingArea = new(0.0f, Toolbar.ToolbarHeight, width, MathF.Max(Toolbar.ToolbarHeight, height - Toolbar.StatusHeight));
+
+        toolbar.Resize(width, height);
+        isPictureDirty = true;
+    }
+
+    public void Draw(SKCanvas canvas)
+    {
+        if (isErasePending)
         {
             ApplyEraser();
         }
 
         fillPaint.Color = Surface;
-        canvas.DrawRect(0.0f, 0.0f, width, height, fillPaint);
+        canvas.DrawRect(0.0f, 0.0f, size.Width, size.Height, fillPaint);
 
-        if (pictureDirty)
+        if (isPictureDirty)
         {
             cachedPicture?.Dispose();
+            cachedPicture = null;
             cachedPicture = RecordCanvas();
-            pictureDirty = false;
+            isPictureDirty = false;
         }
 
         canvas.Save();
@@ -70,24 +79,24 @@ internal class Canvas : DisposableObject
             canvas.DrawLine(activeStroke.TailStart, activeStroke.TailEnd, strokePaint);
         }
 
-        if (erasing && drawingArea.Contains(pointer.X, pointer.Y))
+        if (isErasing && drawingArea.Contains(pointer.X, pointer.Y))
         {
             DrawEraserCursor(canvas);
         }
 
         canvas.Restore();
 
-        toolbar.Draw(canvas, strokes.Count, nodeCount, CanClear);
+        toolbar.Draw(canvas, CanClear);
     }
 
     public void PointerMove(SKPoint position)
     {
         pointer = position;
 
-        if (erasing)
+        if (isErasing)
         {
             eraserBuilder.LineTo(position);
-            erasePending = true;
+            isErasePending = true;
         }
         else
         {
@@ -101,40 +110,50 @@ internal class Canvas : DisposableObject
         {
             pointer = position;
             ClearCanvas();
-        }
-        else if (activeStroke is null && !erasing)
-        {
-            pointer = position;
 
-            if (!erase && position.Y <= Toolbar.ToolbarHeight)
-            {
-                toolbar.SelectAt(position);
-            }
-            else if (drawingArea.Contains(position.X, position.Y))
-            {
-                if (erase)
-                {
-                    erasing = true;
-                    eraserBuilder.MoveTo(position);
-                    eraserBuilder.LineTo(position);
-                    erasePending = true;
-                }
-                else
-                {
-                    activeStroke = new(toolbar.SelectedColor, toolbar.SelectedStrokeWidth);
-                    activeStroke.Add(position);
-                }
-            }
+            return;
+        }
+
+        if (activeStroke is not null || isErasing)
+        {
+            return;
+        }
+
+        pointer = position;
+
+        if (!erase && position.Y <= Toolbar.ToolbarHeight)
+        {
+            toolbar.SelectAt(position);
+
+            return;
+        }
+
+        if (!drawingArea.Contains(position.X, position.Y))
+        {
+            return;
+        }
+
+        if (erase)
+        {
+            isErasing = true;
+            eraserBuilder.MoveTo(position);
+            eraserBuilder.LineTo(position);
+            isErasePending = true;
+        }
+        else
+        {
+            activeStroke = new(toolbar.SelectedColor, toolbar.SelectedStrokeWidth);
+            activeStroke.Add(position);
         }
     }
 
     public void PointerUp(bool erase)
     {
-        if (erase && erasing)
+        if (erase && isErasing)
         {
-            erasing = false;
+            isErasing = false;
 
-            if (erasePending)
+            if (isErasePending)
             {
                 ApplyEraser();
             }
@@ -144,59 +163,47 @@ internal class Canvas : DisposableObject
             activeStroke.Complete(strokePaint);
             strokes.Add(activeStroke);
             activeStroke = null;
-            pictureDirty = true;
+            isPictureDirty = true;
         }
     }
 
     protected override void Destroy()
     {
-        foreach (Stroke stroke in strokes)
-        {
-            stroke.Dispose();
-        }
-
-        strokes.Clear();
-        activeStroke?.Dispose();
         cachedPicture?.Dispose();
+        activeStroke?.Dispose();
 
-        eraserBuilder.Dispose();
-        strokePaint.Dispose();
-        fillPaint.Dispose();
-
-        toolbar.Dispose();
-    }
-
-    private void EnsureLayout(float width, float height)
-    {
-        if (width == size.Width && height == size.Height)
+        if (strokes is not null)
         {
-            return;
+            foreach (Stroke stroke in strokes)
+            {
+                stroke.Dispose();
+            }
+            strokes.Clear();
         }
 
-        size = new(width, height);
-        drawingArea = new(0.0f, Toolbar.ToolbarHeight, width, MathF.Max(Toolbar.ToolbarHeight, height - Toolbar.StatusHeight));
-
-        toolbar.Resize(width, height);
-        pictureDirty = true;
+        strokePaint?.Dispose();
+        fillPaint?.Dispose();
+        eraserBuilder?.Dispose();
+        toolbar?.Dispose();
     }
 
     private SKPicture RecordCanvas()
     {
-        const float spacing = 32.0f;
+        const float Spacing = 32.0f;
 
         using SKPictureRecorder recorder = new();
         SKCanvas canvas = recorder.BeginRecording(drawingArea);
-        int nodes = 0;
+        int nodeCount = 0;
 
         strokePaint.Color = Grid;
         strokePaint.StrokeWidth = 1.0f;
 
-        for (float x = drawingArea.Left + spacing; x < drawingArea.Right; x += spacing)
+        for (float x = drawingArea.Left + Spacing; x < drawingArea.Right; x += Spacing)
         {
             canvas.DrawLine(x, drawingArea.Top, x, drawingArea.Bottom, strokePaint);
         }
 
-        for (float y = drawingArea.Top + spacing; y < drawingArea.Bottom; y += spacing)
+        for (float y = drawingArea.Top + Spacing; y < drawingArea.Bottom; y += Spacing)
         {
             canvas.DrawLine(drawingArea.Left, y, drawingArea.Right, y, strokePaint);
         }
@@ -205,10 +212,10 @@ internal class Canvas : DisposableObject
         {
             fillPaint.Color = stroke.Color;
             canvas.DrawPath(stroke.Path, fillPaint);
-            nodes += stroke.NodeCount;
+            nodeCount += stroke.NodeCount;
         }
 
-        nodeCount = nodes;
+        toolbar.SetStatistics(strokes.Count, nodeCount);
 
         return recorder.EndRecording();
     }
@@ -222,28 +229,30 @@ internal class Canvas : DisposableObject
 
     private void ClearCanvas()
     {
-        if (CanClear)
+        if (!CanClear)
         {
-            foreach (Stroke stroke in strokes)
-            {
-                stroke.Dispose();
-            }
-
-            strokes.Clear();
-            activeStroke?.Dispose();
-            activeStroke = null;
-            eraserBuilder.Reset();
-            erasing = false;
-            erasePending = false;
-            pictureDirty = true;
+            return;
         }
+
+        foreach (Stroke stroke in strokes)
+        {
+            stroke.Dispose();
+        }
+        strokes.Clear();
+
+        activeStroke?.Dispose();
+        activeStroke = null;
+        eraserBuilder.Reset();
+        isErasing = false;
+        isErasePending = false;
+        isPictureDirty = true;
     }
 
     private void ApplyEraser()
     {
         using SKPath centerline = eraserBuilder.Detach();
 
-        if (erasing)
+        if (isErasing)
         {
             eraserBuilder.MoveTo(pointer);
         }
@@ -253,22 +262,24 @@ internal class Canvas : DisposableObject
         using SKPath eraser = strokePaint.GetFillPath(centerline)!;
         SKRect eraserBounds = eraser.Bounds;
 
-        erasePending = false;
+        isErasePending = false;
 
-        for (int index = strokes.Count - 1; index >= 0; index--)
+        for (int i = strokes.Count - 1; i >= 0; i--)
         {
-            Stroke stroke = strokes[index];
+            Stroke stroke = strokes[i];
 
-            if (stroke.Erase(eraser, eraserBounds))
+            if (!stroke.Erase(eraser, eraserBounds))
             {
-                if (stroke.IsEmpty)
-                {
-                    stroke.Dispose();
-                    strokes.RemoveAt(index);
-                }
-
-                pictureDirty = true;
+                continue;
             }
+
+            if (stroke.IsEmpty)
+            {
+                stroke.Dispose();
+                strokes.RemoveAt(i);
+            }
+
+            isPictureDirty = true;
         }
     }
 }

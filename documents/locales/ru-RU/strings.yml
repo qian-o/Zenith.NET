@@ -1,23 +1,23 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: '{graphicsContext} связывает приложение с устройством GPU через выбранный графический API и предоставляет очереди графики, вычислений и передачи данных. Совместно используемые ресурсы должны принадлежать одному контексту: буферы, текстуры, шейдеры, конвейеры и их дескрипторы нельзя привязывать между разными контекстами.'
+concepts.execution.context.description: '{graphicsContext} связывает приложение с устройством GPU через выбранный графический API и предоставляет очереди графики, вычислений, передачи данных и вывода. Совместно используемые ресурсы должны принадлежать одному контексту: буферы, текстуры, шейдеры, конвейеры и их дескрипторы нельзя привязывать между разными контекстами.'
 concepts.execution.context.details: '{capabilities} сообщает имя устройства и поддерживаемые возможности. Перед созданием ресурсов для трассировки лучей или меш-шейдинга проверяйте соответственно {rayTracingSupported} и {meshShadingSupported}. Такие проверки при инициализации показаны в примерах {link} и {detail}.'
 concepts.execution.context.details.detail: 'меш-шейдинга'
 concepts.execution.context.details.link: трассировки лучей
 concepts.execution.context.title: 'Графический контекст'
 concepts.execution.description: 'Подготовка работы GPU начинается на CPU: приложение создаёт ресурсы, записывает команды, которые их используют, и отправляет команды в очередь. После отправки CPU может продолжать работу, пока GPU выполняет команды. Нужные им ресурсы должны оставаться доступными до завершения выполнения.'
 concepts.execution.ownership.description: 'Владение определяет, кто освобождает объект, а завершение работы GPU — когда его можно освободить. Вызов {dispose} освобождает нативные ресурсы, даже если ссылки C# на объект ещё существуют. Отправка команд не передаёт очереди владение их ресурсами.'
-concepts.execution.ownership.details: 'При завершении приложения прекратите новые отправки и дождитесь последнего использования ресурсов во всех задействованных очередях. Затем освободите ресурсы приложения и контекст. Контекст освобождает свои очереди и внутренние вспомогательные объекты, поэтому этот последний шаг должен выполняться после завершения работы приложения с GPU.'
+concepts.execution.ownership.details: 'При завершении приложения прекратите новые отправки и дождитесь последнего использования ресурсов во всех задействованных очередях. Сначала освободите ресурсы приложения, а затем контекст, который освобождает свои очереди.'
 concepts.execution.ownership.guidance: 'Во время рендеринга отслеживайте завершение обращений к данным, которые предстоит перезаписать, или к ресурсам, которые предстоит заменить. Прежде чем изменять или освобождать память, дождитесь окончания этих обращений. Время жизни представлений и лежащих в их основе ресурсов описано в статье «{link}».'
 concepts.execution.ownership.guidance.link: Управление ресурсами
+concepts.execution.ownership.table.applicationResources.disposalResponsibility: Приложение освобождает их после последнего использования на GPU.
 concepts.execution.ownership.table.applicationResources.object: Ресурсы, созданные приложением
-concepts.execution.ownership.table.applicationResources.ownership: Приложение освобождает их после последнего использования на GPU.
+concepts.execution.ownership.table.commandBuffers.disposalResponsibility: Очередь управляет ими и повторно использует их.
 concepts.execution.ownership.table.commandBuffers.object: 'Заимствованные командные буферы'
-concepts.execution.ownership.table.commandBuffers.ownership: Очередь управляет ими и повторно использует их.
+concepts.execution.ownership.table.headings.disposalResponsibility: 'Ответственность за освобождение'
 concepts.execution.ownership.table.headings.object: Объект
-concepts.execution.ownership.table.headings.ownership: 'Ответственность за освобождение'
+concepts.execution.ownership.table.queues.disposalResponsibility: Контекст и очереди управляют ими.
 concepts.execution.ownership.table.queues.object: Очереди контекста и их временные шкалы
-concepts.execution.ownership.table.queues.ownership: Контекст и очереди управляют ими.
-concepts.execution.ownership.table.swapChainDrawable.ownership: Цепочка обмена управляет ею.
+concepts.execution.ownership.table.swapChainDrawable.disposalResponsibility: Цепочка обмена управляет ею.
 concepts.execution.ownership.title: 'Владение и время жизни'
 concepts.execution.pipelines.description: 'Графический конвейер задаёт шейдеры, формат вершинных данных, сборку примитивов, форматы вложений и состояние для команд рисования. Выберите конвейер до привязки вершин, индексов и констант. Форматы вложений и число выборок должны соответствовать проходу рендеринга.'
 concepts.execution.pipelines.details: 'Вычислительный конвейер выбирает точку входа шейдера для запуска вычислений. Привяжите конвейер и его константы перед запуском, вне графического прохода рендеринга.'
@@ -26,73 +26,63 @@ concepts.execution.pipelines.guidance.detail: 'вычислительном пр
 concepts.execution.pipelines.guidance.link: 'обработчике рендеринга треугольника'
 concepts.execution.pipelines.title: 'Состояние конвейера'
 concepts.execution.queues.description: '{graphicsQueue} обычно подходит для кадра, объединяющего рисование, вычисления и копирование. Размещение зависимых операций в одной очереди упрощает их упорядочивание.'
-concepts.execution.queues.details: 'Дополнительные очереди могут помочь совместить выполнение независимых задач, хотя каждой очереди не обязательно соответствует отдельный аппаратный блок. Если одна очередь использует данные, созданные другой, задайте явную зависимость между отправками.'
+concepts.execution.queues.details: 'Используйте дополнительные очереди для совмещения независимых задач. Когда одна очередь потребляет данные, созданные другой, задайте явную зависимость между отправками.'
 concepts.execution.queues.guidance: 'Даже в одной очереди зависимым операциям могут понадобиться барьеры или переходы состояния текстур, чтобы последующие обращения видели результаты предыдущих записей. Эти зависимости по памяти отличаются от порядка отправки команд. Как их задавать, описано в статье «{link}».'
 concepts.execution.queues.guidance.link: Синхронизация
-concepts.execution.queues.table.computeQueue.workToRecord: 'Запуск вычислений и совместимые операции передачи данных, без графических проходов рендеринга.'
-concepts.execution.queues.table.graphicsQueue.workToRecord: 'Проходы рендеринга, рисование, вычисления и передача данных.'
+concepts.execution.queues.table.computeQueue.supportedWork: 'Запуск вычислений и совместимые операции передачи данных, без графических проходов рендеринга.'
+concepts.execution.queues.table.graphicsQueue.supportedWork: 'Проходы рендеринга, рисование, вычисления и передача данных.'
 concepts.execution.queues.table.headings.queue: Очередь
-concepts.execution.queues.table.headings.workToRecord: 'Поддерживаемые операции'
-concepts.execution.queues.table.transferQueue.workToRecord: 'Загрузка, считывание и копирование без рисования и вычислительных запусков.'
+concepts.execution.queues.table.headings.supportedWork: 'Поддерживаемые операции'
+concepts.execution.queues.table.presentQueue.supportedWork: 'Те же операции, что и в графической очереди; используется для записи и вывода выходных текстур, когда {swapChainDescIsPresentQueueEnabled} равно {true}.'
+concepts.execution.queues.table.transferQueue.supportedWork: 'Загрузка, считывание и копирование без рисования и вычислительных запусков.'
 concepts.execution.queues.title: 'Выбор очереди'
 concepts.execution.recording.context: 'Очередь повторно использует командные буферы после завершения работы. Для каждой записи получите буфер через {queueCommandBuffer}, записывайте команды из одного потока за раз и отправьте буфер только однажды. После отправки оставьте управление очереди: не изменяйте буфер, не отправляйте его повторно и не освобождайте самостоятельно.'
 concepts.execution.recording.description: '{queueCommandBuffer} возвращает {commandBuffer}, уже открытый для записи. Запишите операции и зависимости, затем один раз вызовите {submit}. Вызов завершает запись и возвращает {timelineValue}, обозначающий точку завершения в этой очереди.'
 concepts.execution.recording.details: 'После записи кадра в {commandBuffer} учебный пример отправляет команды и ожидает завершения:'
-concepts.execution.recording.guidance: 'Запись формирует последовательность команд, а {submit} планирует её выполнение. Последующий вызов {wait} блокирует поток CPU до завершения отправленной работы. Поэтому цикл кадров в уроке легко проследить: каждый кадр заканчивается до начала следующего.'
+concepts.execution.recording.guidance: '{submit} планирует выполнение записанных команд, а {wait} блокирует вызывающий поток до завершения этой отправки, поэтому каждый кадр завершается до начала следующего.'
 concepts.execution.recording.title: 'Запись и отправка команд'
 concepts.execution.title: Модель выполнения
-concepts.platforms.description: 'Выводом управляет приложение или элемент управления рендерингом. От этого зависит, кто получает выходную текстуру кадра, записывает и отправляет команды и выводит результат. Эта выходная текстура называется drawable.'
-concepts.platforms.frame.context: 'Записывайте привязку конвейера и команды рисования внутри прохода и завершайте его до возврата из обработчика. Обработчик не должен отправлять командный буфер и не должен освобождать ни один из двух переданных объектов. Если он меняет состояние выходной текстуры, перед возвратом нужно восстановить {colorAttachment}, чтобы элемент управления выполнил заключительный переход.'
+concepts.platforms.description: 'Выводом может управлять напрямую приложение или элемент управления рендерингом. От этого выбора зависит, кто получает выходную текстуру (drawable) каждого кадра, отправляет команды и выводит результат.'
+concepts.platforms.frame.context: 'Завершите любой открытый проход рендеринга до возврата из обработчика и не отправляйте и не освобождайте переданные командный буфер или выходную текстуру. Если обработчик переводит выходную текстуру в другое состояние, восстановите {colorAttachment} перед возвратом.'
 concepts.platforms.frame.description: 'Элементы реализуют {iZenithView}. Приложение назначает {graphicsContext}, обновляет сцену в {updateRequested} и записывает команды в {renderRequested}, используя переданный {renderEventArgs}.'
-concepts.platforms.frame.details: 'Для каждого кадра элемент управления получает выходную текстуру и командный буфер, переводит текстуру в {colorAttachment} и вызывает обработчики обновления и рендеринга. Затем он отправляет записанные команды и выводит изображение средствами выбранного UI-фреймворка.'
+concepts.platforms.frame.details: 'На каждом кадре элемент управления получает командный буфер и выходную текстуру, переводит выходную текстуру в состояние {colorAttachment} и вызывает обработчики обновления и рендеринга перед отправкой и выводом кадра.'
 concepts.platforms.frame.guidance: 'Добавьте {usingZenithNET} в файл. Для инициализированного {iZenithView} с именем {view} и назначенным графическим контекстом зарегистрируйте обработчик, заполняющий выходную текстуру цветом:'
 concepts.platforms.frame.notes: 'Первый переход использует {undefined}, разрешая отбросить прежнее содержимое изображения. Поэтому каждый кадр должен заново заполнять или отрисовывать всё изображение. Накопленные или кешированные результаты храните в текстуре приложения, а затем рисуйте её в выходную текстуру элемента управления.'
+concepts.platforms.frame.reference: 'При создании соответствующих вложений используйте {descFormat}, {descWidth}, {descHeight} и {descSampleCount} выходной текстуры, переданной событием рендеринга. Эта текстура задаёт реальные размеры цели вывода; их не следует вычислять по размеру элемента интерфейса или масштабу экрана.'
 concepts.platforms.frame.title: 'Рендеринг в элементах интерфейса'
-concepts.platforms.integration.context: 'WinForms, WPF и Windows-интеграция WinUI работают под Windows. Для MAUI установите рабочую нагрузку целевой платформы и зарегистрируйте обработчик элемента управления через {useZenithView}, как показано в {extensionsCs}.'
-concepts.platforms.integration.description: 'Интерфейс событий общий, но механизм вывода зависит от фреймворка:'
-concepts.platforms.integration.details: 'Способ вывода изображения GPU зависит от выбранной интеграции. При считывании в растровое изображение пиксели перед показом копируются в память CPU. Совместное использование текстуры позволяет обойтись без этой копии, но всё ещё может требовать копирования на GPU и синхронизации. Учитывайте способ вывода наряду с общим событием {renderRequested}.'
-concepts.platforms.integration.table.avalonia.integration: Avalonia
-concepts.platforms.integration.table.avalonia.presentation: 'Рисует в текстуру и считывает пиксели в {writeableBitmap}. Реализация: {zenithViewCs} и {surfaceCs}.'
-concepts.platforms.integration.table.headings.integration: Интеграция
-concepts.platforms.integration.table.headings.presentation: 'Механизм вывода'
-concepts.platforms.integration.table.maui.integration: .NET MAUI
-concepts.platforms.integration.table.maui.presentation: Использует нативные поверхности в Android, iOS и Mac Catalyst, а в Windows — композицию через разделяемые текстуры. См. {link}.
-concepts.platforms.integration.table.maui.presentation.link: реализации для платформ
-concepts.platforms.integration.table.uno.integration: Uno Platform
-concepts.platforms.integration.table.uno.presentation: Считывает пиксели в {writeableBitmap}. См. {zenithViewUnoCs}.
-concepts.platforms.integration.table.winForms.integration: WinForms
-concepts.platforms.integration.table.winForms.presentation: Создаёт цепочку обмена Zenith.NET для дескриптора {hWND} элемента управления. См. {zenithViewCs}.
-concepts.platforms.integration.table.winUI.integration: WinUI в Windows
-concepts.platforms.integration.table.winUI.presentation: 'Рисует в импортированную разделяемую текстуру Direct3D 11, затем копирует результат в композиционную цепочку обмена, связанную с {swapChainPanel}. Реализация: {zenithViewWinUICs}.'
-concepts.platforms.integration.table.wpf.integration: WPF
-concepts.platforms.integration.table.wpf.presentation: 'Импортирует разделяемую текстуру Direct3D 11 и через взаимодействие с Direct3D копирует её в поверхность, отображаемую {d3DImage}. Реализация: {surfaceCs}.'
-concepts.platforms.integration.title: 'Фреймворк и вывод изображения'
-concepts.platforms.lifecycle.context: 'При создании соответствующих вложений используйте {descWidth}, {descHeight}, {descFormat} и {descSampleCount} выходной текстуры, переданной событием рендеринга. Эта текстура задаёт реальные размеры цели вывода; их не следует вычислять по размеру элемента интерфейса или масштабу экрана.'
 concepts.platforms.lifecycle.description: 'Цепочка обмена использует ширину и высоту кадрового буфера в пикселях. При масштабировании экрана они могут отличаться от логических размеров окна. Отложите рендеринг и изменение размера цепочки, пока хотя бы один размер равен нулю. Получайте {swapChainDrawable} для каждого кадра: цепочка обмена владеет этой текстурой и может заменить её после вывода или изменения размера.'
-concepts.platforms.lifecycle.details: 'При изменении размеров кадрового буфера дождитесь всех обращений GPU к старым изображениям перед вызовом {swapChainResize}. Чтобы заменить нативную цель вывода, после завершения этих обращений передайте её новое описание и дескрипторы в {swapChainRefresh}. При завершении приложения освободите цепочку обмена до уничтожения её нативной цели вывода.'
+concepts.platforms.lifecycle.details: 'При изменении размера кадрового буфера дождитесь завершения выполняемой работы GPU со старыми изображениями перед вызовом {swapChainResize}. Если заменяется сама нативная цель вывода, также дождитесь завершения обращений и передайте новое описание поверхности в {swapChainRefresh}. При завершении работы освободите цепочку обмена до уничтожения её нативной цели вывода.'
 concepts.platforms.lifecycle.guidance: 'Если размеры принадлежащих приложению текстур глубины или внеэкранных текстур следуют за окном, пересоздайте их при изменении размера и обновите константы с их дескрипторами. Конвейер можно использовать дальше, пока форматы вложений и число выборок совпадают. Повторное использование конвейера при замене текстур показано в {link}.'
 concepts.platforms.lifecycle.guidance.link: 'примере вращающегося куба'
 concepts.platforms.lifecycle.title: 'Размеры и время жизни цепочки обмена'
-concepts.platforms.ownership.description: 'Приложение владеет назначенным контекстом и своими ресурсами рендеринга, а элемент управления — ресурсами вывода. При изменении {graphicsContext} представления планировщик пересоздаёт ресурсы элемента управления для нового контекста. Приложение также должно пересоздать для этого контекста свои конвейеры, буферы и текстуры.'
+concepts.platforms.ownership.description: 'Приложение владеет назначенным контекстом и своими ресурсами рендеринга, тогда как элемент управления владеет ресурсами вывода. При изменении {graphicsContext} элемент управления пересоздаёт свои ресурсы вывода; пересоздайте также буферы, текстуры и конвейеры приложения для нового контекста.'
 concepts.platforms.ownership.details: 'Перед заменой ресурсов рендеринга остановите цикл обработки кадров представления и дождитесь использующей их работы GPU. Затем освободите старые ресурсы. Освобождайте контекст только после того, как каждое представление освободит свои ресурсы вывода, относящиеся к этому контексту, и будут освобождены все ресурсы приложения, созданные из него.'
-concepts.platforms.ownership.guidance: 'Общий {frameSchedulerCs} выполняет обработчики кадров через диспетчер UI представления. Ограничивайте их работу обновлением сцены и записью команд: длительные вычисления на CPU здесь задерживают и отклик интерфейса.'
+concepts.platforms.ownership.guidance: 'Элемент управления выполняет обработчики кадров через свой диспетчер UI. Ограничивайте их работу обновлением сцены и записью команд: длительные вычисления на CPU здесь задерживают и отклик интерфейса.'
 concepts.platforms.ownership.title: 'Владение ресурсами приложения и элемента управления'
+concepts.platforms.presentQueue.context: '{swapChainPresent} ожидает только на {swapChainQueue}. Отслеживайте отправки рендеринга отдельно перед повторным использованием или освобождением их ресурсов и прекращайте вывод перед вызовом {swapChainResize} или освобождением цепочки обмена.'
+concepts.platforms.presentQueue.description: 'По умолчанию цепочка обмена выводит изображения через {graphicsQueue}. Установка {swapChainDescIsPresentQueueEnabled} в {true} назначает ей {presentQueue}, отделяя вывод от последующей работы в {graphicsQueue}, чтобы выделенный поток мог независимо задавать темп отрисованных и сгенерированных кадров.'
+concepts.platforms.presentQueue.details: '{swapChainQueue} возвращает очередь вывода цепочки обмена. Записывайте все операции записи в {swapChainDrawable} в этой очереди, отправляйте их с зависимостью от отправки рендеринга, дождитесь завершения и выполните вывод:'
+concepts.platforms.presentQueue.guidance: 'Здесь {rendered} — значение завершения отправки, сформировавшей {frame} в состоянии {copySrc}, а {extent} совпадает с размером выходной текстуры. Ожидание отправки копирования охватывает как зависимость рендеринга, так и само копирование, не блокируясь на последующей работе графической очереди.'
+concepts.platforms.presentQueue.title: 'Использование очереди вывода'
 concepts.platforms.surface.description: 'В {link} Silk.NET создаёт окно и обрабатывает события. Zenith.NET получает нативные дескрипторы окна и его размеры через описание {surface}, по которому создаёт {swapChain}. За само окно операционной системы по-прежнему отвечает приложение.'
 concepts.platforms.surface.description.link: 'уроке с треугольником'
 concepts.platforms.surface.details: 'Дескрипторы поверхности зависят от графического API и оконной системы. Распространённые сочетания:'
 concepts.platforms.surface.guidance: 'Общая оболочка примеров в {appCs} поддерживает Windows, macOS и X11. Под Linux её окно предоставляет дескрипторы Xlib, поэтому в сеансе Wayland для запуска нужен XWayland. Приложение с нативным Wayland передаёт дескрипторы дисплея и поверхности через {surfaceWayland}.'
-concepts.platforms.surface.table.android.backend: Vulkan в Android.
-concepts.platforms.surface.table.apple.backend: Metal на платформах Apple.
-concepts.platforms.surface.table.headings.backend: 'Графический API и платформа'
+concepts.platforms.surface.table.android.graphicsApiAndPlatform: Vulkan в Android.
+concepts.platforms.surface.table.apple.graphicsApiAndPlatform: Metal на платформах Apple.
 concepts.platforms.surface.table.headings.factory: Фабрика поверхности
+concepts.platforms.surface.table.headings.graphicsApiAndPlatform: 'Графический API и платформа'
 concepts.platforms.surface.table.headings.handles: Дескрипторы, предоставляемые хостом
-concepts.platforms.surface.table.wayland.backend: Vulkan с нативным хостом Wayland.
+concepts.platforms.surface.table.wayland.graphicsApiAndPlatform: Vulkan с нативным хостом Wayland.
 concepts.platforms.surface.table.wayland.handles: Дисплей и поверхность Wayland
-concepts.platforms.surface.table.win32.backend: DirectX 12 или Vulkan в Windows.
-concepts.platforms.surface.table.xlib.backend: Vulkan в Linux с X11 или XWayland.
+concepts.platforms.surface.table.win32.graphicsApiAndPlatform: DirectX 12 или Vulkan в Windows.
+concepts.platforms.surface.table.xlib.graphicsApiAndPlatform: Vulkan в Linux с X11 или XWayland.
 concepts.platforms.surface.table.xlib.handles: Дисплей и окно X11
 concepts.platforms.surface.title: 'Нативные поверхности вывода'
 concepts.platforms.title: Интеграция с платформами
+concepts.platforms.verticalSync.description: 'Вертикальная синхронизация привязывает вывод к циклу обновления экрана, предотвращая разрывы изображения. По умолчанию {swapChainDescIsVerticalSyncEnabled} равно {false}, что позволяет {swapChainPresent} выводить кадры без ожидания следующего обновления; установите {true}, чтобы синхронизировать вывод и привязать {swapChainPresent} к частоте обновления.'
+concepts.platforms.verticalSync.details: 'Эта настройка фиксируется при создании цепочки обмена. Чтобы изменить её, дождитесь завершения незавершённой работы GPU с выходными текстурами — как перед {swapChainResize} —, затем освободите цепочку обмена и создайте новую.'
+concepts.platforms.verticalSync.title: 'Вертикальная синхронизация'
 concepts.resources.allocation.context: 'Размещённые в куче ресурсы зависят от её памяти в течение всего своего времени жизни. После последнего использования на GPU освободите сначала ресурсы, затем кучу.'
 concepts.resources.allocation.description: 'Используйте {heap}, если приложение должно самостоятельно управлять выделением памяти. Ресурсы размещаются в куче по явно заданным смещениям в байтах; приложение выбирает эти смещения и учитывает занятые области.'
 concepts.resources.allocation.details: 'Для каждого ресурса вызовите {contextGetSizeAndAlignment} с тем описанием буфера или текстуры, которое будет использовано при создании. Выделите область возвращённого размера по смещению, кратному указанному выравниванию. Эта область должна помещаться в куче и не пересекаться с другим ещё используемым выделением. Размер текстуры может включать дополнительные байты заполнения, поэтому вычислить его только по числу пикселей и байтам на пиксель нельзя.'
@@ -113,20 +103,20 @@ concepts.resources.bufferUsages.title: Назначения буфера
 concepts.resources.description: 'Описание ресурса задаёт допустимые способы использования его памяти. Например, текстуре, которая служит целью рендеринга, читается шейдером и копируется на CPU, нужны флаги назначения для всех трёх операций. Размещение памяти определяет доступ CPU, а синхронизация и управление временем жизни — когда можно обращаться к данным и освобождать память.'
 concepts.resources.memory.context: 'Для буферов, доступных CPU, {map} возвращает адрес, по которому можно читать или записывать данные. Ни отображение памяти, ни {unmap} не ждут завершения работы GPU. Перед чтением результата приложение должно дождаться его записи на GPU, а перед изменением тех же байтов — всех ещё выполняющихся обращений GPU к ним.'
 concepts.resources.memory.description: 'Поле {residency} в {bufferDesc} задаёт предполагаемый доступ CPU к памяти:'
-concepts.resources.memory.details: 'Резидентность выражает требования к доступу CPU, в том числе на системах с общей физической памятью CPU и GPU. В примере треугольника {cpuWriteOnly} позволяет напрямую заполнить небольшой вершинный буфер. Для более объёмной статической геометрии может быть предпочтительнее загрузка в память, предназначенную только для GPU.'
+concepts.resources.memory.details: 'В примере треугольника {cpuWriteOnly} позволяет напрямую заполнить небольшой вершинный буфер; для статических ресурсов, используемых преимущественно на GPU, загружайте данные в память, предназначенную только для GPU.'
 concepts.resources.memory.guidance: 'Текстуры, создаваемые непосредственно через контекст, используют память GPU. Поэтому в {textureDesc} нет поля резидентности: приложение обменивается данными с памятью CPU через загрузку и считывание.'
-concepts.resources.memory.table.cpuReadOnly.cPUAccess: 'Только чтение'
+concepts.resources.memory.table.cpuReadOnly.cpuAccess: 'Только чтение'
 concepts.resources.memory.table.cpuReadOnly.typicalRole: 'Данные, полученные на GPU для считывания на CPU'
-concepts.resources.memory.table.cpuWriteOnly.cPUAccess: 'Только запись'
+concepts.resources.memory.table.cpuWriteOnly.cpuAccess: 'Только запись'
 concepts.resources.memory.table.cpuWriteOnly.typicalRole: 'Данные, предоставляемые или обновляемые CPU'
-concepts.resources.memory.table.gpuOnly.cPUAccess: 'Не предусмотрен'
+concepts.resources.memory.table.gpuOnly.cpuAccess: 'Не предусмотрен'
 concepts.resources.memory.table.gpuOnly.typicalRole: 'Статическая геометрия и рабочие данные GPU'
-concepts.resources.memory.table.headings.cPUAccess: 'Предусмотренный доступ CPU'
+concepts.resources.memory.table.headings.cpuAccess: 'Предусмотренный доступ CPU'
 concepts.resources.memory.table.headings.residency: 'Резидентность'
 concepts.resources.memory.table.headings.typicalRole: Типичная роль
 concepts.resources.memory.title: 'Доступ CPU и размещение памяти'
 concepts.resources.textureUsages.description: 'Флаги передачи указывают, служит ли ресурс источником или приёмником при копировании средствами GPU. Прямой доступ CPU к его памяти определяется отдельно, при выборе размещения памяти.'
-concepts.resources.textureUsages.details: 'Флаги назначения объявляют допустимые способы использования текстуры. Переход между ними требует соблюдения правил, описанных в разделе «{link}». Устройство также должно поддерживать выбранные операции для указанного формата текстуры.'
+concepts.resources.textureUsages.details: 'Флаги назначения объявляют допустимые роли текстуры; переход между этими ролями требует соблюдения правил из раздела «{link}».'
 concepts.resources.textureUsages.details.link: 'состояния доступа и синхронизация'
 concepts.resources.textureUsages.table.colorAttachment.role: 'Цветовое вложение в проходе рендеринга.'
 concepts.resources.textureUsages.table.depthStencilAttachment.role: 'Вложение глубины и трафарета в проходе рендеринга.'
@@ -139,23 +129,20 @@ concepts.resources.textureUsages.table.transferDst.role: 'Память изоб�
 concepts.resources.textureUsages.table.transferSrc.role: 'Исходные данные изображения для копирования средствами GPU.'
 concepts.resources.textureUsages.title: Назначения текстуры
 concepts.resources.title: Управление ресурсами
-concepts.resources.transfers.context: 'При считывании данные GPU сначала копируются во внутреннюю память для считывания. Затем библиотека переносит их в указанную память CPU, когда забирает завершённый командный буфер для повторного использования. Вызов {wait} для значения отправки, содержащей считывание, завершает оба шага. До возврата из этого вызова память назначения должна оставаться выделенной, а управляемая память — закреплённой.'
+concepts.resources.transfers.context: 'Записанные операции передачи текстуры не включают переходы состояния. Для загрузки требуется {copyDst}, для считывания — {copySrc}. Перед копированием запишите переход в соответствующее состояние, а после него — в состояние, необходимое для следующего использования.'
 concepts.resources.transfers.description: 'Загрузка копирует данные CPU в ресурс GPU, а считывание — данные ресурса в память CPU. Методы буферов и текстур завершают передачу до возврата управления:'
 concepts.resources.transfers.details: 'Перед вызовом этих методов устраните конфликтующие обращения из других очередей. Внутреннее ожидание метода относится только к его собственной передаче и не создаёт зависимость от другой очереди. При прямом копировании через отображённую память ожидание конфликтующих обращений GPU полностью возлагается на вызывающий код.'
-concepts.resources.transfers.guidance: 'Чтобы отправить передачу данных вместе с другой работой GPU, запишите её через {commandBufferUpload} или {commandBufferDownload}. Требования ко времени жизни исходной памяти при загрузке и памяти назначения при считывании различаются:'
-concepts.resources.transfers.item: 'Во время вызова загрузки библиотека копирует исходные данные во временную промежуточную память. Позже GPU читает данные именно из неё, поэтому исходный указатель приложения нужен только до возврата из вызова.'
-concepts.resources.transfers.layouts: 'Записанные операции передачи текстуры не включают переходы состояния. Для загрузки требуется {copyDst}, для считывания — {copySrc}. Перед копированием запишите переход в соответствующее состояние, а после него — в состояние, необходимое для следующего использования.'
+concepts.resources.transfers.guidance: 'Чтобы отправить передачу данных вместе с другой работой GPU, запишите её через {commandBufferUpload} или {commandBufferDownload}. {commandBufferUpload} читает исходную память до возврата, поэтому исходный указатель должен оставаться действительным только на время вызова. {commandBufferDownload} записывает в память назначения при вызове {wait} для значения завершения отправки; до возврата из {wait} сохраняйте память назначения выделенной, а управляемую память — закреплённой.'
 concepts.resources.transfers.notes: 'При передаче текстур шаг строки — это расстояние в байтах между соседними строками данных CPU, а шаг среза — расстояние между соседними срезами по глубине. По этим значениям выполняется копирование между памятью CPU и хранилищем текстуры на GPU.'
 concepts.resources.transfers.table.bufferDownload.transfer: 'Для {cpuReadOnly} копирует непосредственно из отображённой памяти. В остальных случаях отправляет считывание в очередь передачи данных и дожидается его завершения.'
 concepts.resources.transfers.table.bufferUpload.transfer: 'Для {cpuWriteOnly} копирует непосредственно в отображённую память. В остальных случаях отправляет загрузку в очередь передачи данных и дожидается её завершения.'
 concepts.resources.transfers.table.headings.method: Метод
 concepts.resources.transfers.table.headings.transfer: 'Как выполняется передача'
-concepts.resources.transfers.table.textureTransfers.method: '{textureUpload} / {textureDownload}'
 concepts.resources.transfers.table.textureTransfers.transfer: 'Отправляет копирование и переходы состояния текстуры в графическую очередь, затем ожидает завершения. Выбранный подресурс остаётся в запрошенном конечном состоянии.'
 concepts.resources.transfers.title: 'Непосредственная передача и передача через командный буфер'
-concepts.resources.usages.description: '{bufferUsages} и {textureUsages} — флаговые перечисления, объявляющие предполагаемые роли ресурса. Они задаются в полях {bufferDescUsages} и {textureDescUsages} соответственно. Если у ресурса несколько ролей, члены флагового перечисления можно объединить с помощью {value}.'
+concepts.resources.usages.description: '{bufferUsages} и {textureUsages} — флаговые перечисления, объявляющие предполагаемые роли ресурса. Они задаются в полях {bufferDescUsages} и {textureDescUsages} соответственно. Если у ресурса несколько ролей, члены флагового перечисления можно объединить с помощью {bitwiseOr}.'
 concepts.resources.usages.title: 'Назначения ресурсов'
-concepts.resources.views.description: '{bufferView} описывает область буфера и интерпретацию её данных. {textureView} выбирает диапазон подресурсов, совместимые тип и формат текстуры. Оба представления ссылаются на существующую память с назначениями, объявленными при её создании. Диапазоны представлений описывают доступ, но не гарантируют единообразной проверки границ в шейдерах.'
+concepts.resources.views.description: '{bufferView} выбирает диапазон байтов и шаг элемента в буфере; {textureView} выбирает совместимые тип текстуры, формат пикселей и диапазон подресурсов. Оба представления ссылаются на существующее хранилище и наследуют объявленные при его создании назначения.'
 concepts.resources.views.details: 'Собственный дескриптор ресурса предоставляет его представление по умолчанию. Для другой области или совместимого способа интерпретации создайте отдельное представление. Сохраняйте и представление, и исходный ресурс до завершения их использования на GPU: дескриптор сам по себе не удерживает ни один из объектов. При замене любого из них обновите константы, содержащие прежний {link}.'
 concepts.resources.views.details.link: 'дескриптор ресурса'
 concepts.resources.views.title: 'Представления и исходные ресурсы'
@@ -163,7 +150,7 @@ concepts.shaders.binding.context: 'В вычислительном пример�
 concepts.shaders.binding.description: '{setConstantBuffer} выбирает существующий буфер и смещение в байтах, с которого текущий конвейер читает константы. Загрузите параметры в эту память до обращения шейдера. Если ранее отправленная работа GPU ещё читает те же байты, дождитесь её завершения перед обновлением.'
 concepts.shaders.binding.details: 'Подготовьте командный буфер, вычислительный конвейер, заполненный константный буфер и число групп потоков. Затем запишите запуск вычислений в следующем порядке. Сначала выберите конвейер, поскольку привязка константного буфера относится именно к нему:'
 concepts.shaders.binding.guidance: 'Константному буферу нужно назначение {bufferUsagesConstant}. Если в буфере несколько записей констант, начальное смещение каждой должно соответствовать требуемому выравниванию привязки. Это условие не зависит от размещения полей внутри записи.'
-concepts.shaders.binding.notes: '{resourceHandle} содержит два 32-битных поля, интерпретация которых зависит от графического API. Их значения действительны только в контексте, где создан ресурс.'
+concepts.shaders.binding.notes: '{resourceHandle} — непрозрачный дескриптор, действительный только в контексте, где создан ресурс.'
 concepts.shaders.binding.reference: 'Сохраняйте ресурс и представление, из которого получен дескриптор, до завершения последнего обращения шейдера. При замене текстуры или представления обновите константы со старым дескриптором. Правила владения изложены в статье «{link}».'
 concepts.shaders.binding.reference.link: Управление ресурсами
 concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: 'Чтение структурированных элементов шейдерного типа {t}'
@@ -187,7 +174,7 @@ concepts.shaders.dispatch.details.link: Синхронизация
 concepts.shaders.dispatch.title: 'Группы потоков'
 concepts.shaders.layout.context: 'Такая организация показана в {link}: они содержат размеры изображения и два дескриптора текстур. Явные смещения указывают начало каждого поля. Для объявления используются {systemRuntimeInteropServices} и {zenithNET}:'
 concepts.shaders.layout.context.link: 'константах C# примера вычислений'
-concepts.shaders.layout.description: 'Для вершинного ввода {inputLayout} задаёт формат, смещение и семантику каждого атрибута, а также шаг между вершинами. В треугольнике за позицией {float3} следует цвет {float4}: цвет начинается со смещения 12 байт, а вершина занимает 28 байт. {inputLayoutAdd} рассчитывает эту плотную раскладку по форматам элементов. Если структура C# содержит выравнивающие промежутки, учитывайте их в смещениях и шаге.'
+concepts.shaders.layout.description: 'Для вершинного ввода {inputLayout} определяет формат, семантику и байтовое смещение каждого атрибута, а также шаг вершин. В треугольнике позиция {float3} предшествует цвету {float4}, размещая цвет по байтовому смещению 12 при шаге 28 байт. {inputLayoutAdd} вычисляет эту плотную раскладку по форматам элементов; если структура C# содержит выравнивающие промежутки, задайте смещения и шаг явно.'
 concepts.shaders.layout.details: 'Константные буферы содержат параметры шейдера, а структурированные — массивы типизированных элементов. Их раскладка определяется объявлениями Slang, а не {inputLayout}. Смещения полей C#, размеры элементов и выравнивающие промежутки должны соответствовать раскладке скомпилированного шейдера. Неуправляемый тип C# можно скопировать как последовательность байтов, но его размещение в памяти не обязательно соответствует раскладке шейдера: плотно упакованный {float3} в вершине может требовать другого выравнивания в буфере шейдера.'
 concepts.shaders.layout.guidance: 'Параметры шейдера могут содержать дескрипторы ресурсов наряду с обычными значениями. Дескриптор указывает на уже существующую память, поэтому его копирование в константный буфер не копирует содержимое ресурса.'
 concepts.shaders.layout.notes: 'Соответствующее объявление в {computeShaderSlang}:'
@@ -199,10 +186,6 @@ concepts.shaders.matrices.description.link: 'рендерере вращающе
 concepts.shaders.matrices.details: 'Порядок хранения определяет размещение элементов матрицы в памяти; порядок умножения — преобразование. Используйте согласованные соглашения в C# и Slang.'
 concepts.shaders.matrices.title: 'Соглашения о матрицах'
 concepts.shaders.title: Данные шейдеров и привязка
-concepts.synchronization.backends.description: 'DirectX 12 и Vulkan кодируют переходы текстур как изменения состояния и доступа. В реализации {transition} для Metal в Zenith.NET нет эквивалентной операции. Вместо этого реализация для Metal объединяет команды в графические и вычислительные кодировщики и вставляет барьеры видимости при завершении кодировщика. Для зависимых операций внутри одного кодировщика, например последовательных вычислительных запусков, нужны явные вызовы {barrier}.'
-concepts.synchronization.backends.details: 'В {link} начало графического прохода завершает вычислительный кодировщик и делает его результат видимым графическим командам. Два последовательных вычислительных запуска остаются в одном кодировщике, поэтому их зависимость требует барьера, даже если между ними записан переход состояния текстуры.'
-concepts.synchronization.backends.details.link: примере вычислений
-concepts.synchronization.backends.title: 'Синхронизация в разных графических API'
 concepts.synchronization.barriers.context: 'Выбирайте стадии, которые охватывают нужные обращения и поддерживаются очередью. {barrierStagesAll} включает все поддерживаемые стадии. Если зависимость затрагивает лишь часть из них, можно указать более узкий набор.'
 concepts.synchronization.barriers.description: 'Рассмотрим два запуска вычислений в одном командном буфере: первый записывает данные симуляции, второй их читает. Барьер между ними позволяет второму запуску увидеть результаты завершённых записей. Для буфера хранения он упорядочивает обращения без перехода состояния текстуры:'
 concepts.synchronization.barriers.details: 'Первый аргумент указывает стадии, которые произвели данные, второй — стадии, которым они понадобятся. Вместе они описывают порядок выполнения и видимость памяти, необходимые между двумя запусками.'
@@ -229,14 +212,9 @@ concepts.synchronization.layouts.description: 'Флаги назначения �
 concepts.synchronization.layouts.details: 'Здесь {outputTexture} создана с назначением {sampledStorage}, а выбранный подресурс находится в {storage}. {default} выбирает уровень mip 0 и слой 0. Остальные уровни и слои переход не затрагивает.'
 concepts.synchronization.layouts.guidance: 'В {transition} передавайте состояние предыдущего использования подресурса. Приложение отслеживает это состояние при записи команд и передаче текстур между этапами рендеринга.'
 concepts.synchronization.layouts.title: 'Состояния текстур'
-concepts.synchronization.readback.description: '{isCompleted} сообщает о завершении работы GPU. У записанного считывания есть ещё один этап: копирование результата из внутренней памяти для считывания в память назначения приложения.'
-concepts.synchronization.readback.details: '{commandBufferDownload} записывает копирование на GPU во внутреннюю память. После завершения отправки библиотека выполняет копию на CPU, возвращая командный буфер для повторного использования. Вызов {wait} для значения этой отправки дожидается GPU и обрабатывает завершённые буферы той же очереди, тем самым завершая оба этапа. До возврата память назначения должна оставаться выделенной, а управляемая память — закреплённой.'
-concepts.synchronization.readback.guidance: 'Один лишь опрос {isCompleted} не выполняет заключительную копию на CPU. Ожидание другой очереди тоже не обрабатывает завершённые командные буферы очереди считывания. Когда загрузка и считывание используют прямой доступ к памяти, а когда промежуточное хранилище, описано в статье «{link}».'
-concepts.synchronization.readback.guidance.link: Управление ресурсами
-concepts.synchronization.readback.title: 'Завершение считывания'
 concepts.synchronization.reuse.description: 'Треугольник дожидается завершения каждого кадра перед повторным использованием данных. Чтобы выполнение кадров перекрывалось, выделите каждому ещё выполняющемуся кадру собственную изменяемую память и отслеживайте, когда она снова станет доступной. Перед изменением данных дождитесь обращений GPU к тем же байтам, а перед освобождением ресурса — всех его незавершённых использований.'
 concepts.synchronization.reuse.details: 'Изменение размера и завершение приложения подчиняются тому же правилу: прекратить новые обращения, дождаться текущих, затем заменить или освободить ресурсы. Соблюдайте этот порядок перед {swapChainResize} и перед освобождением ресурсов или контекста. Треугольник уже ждёт каждый кадр, поэтому может менять размер между вызовами обработчиков.'
-concepts.synchronization.reuse.guidance: 'После вывода изображения {swapChainPresent} устанавливает точку завершения в графической очереди и ожидает её. Поэтому треугольник всё равно ждёт при выводе, даже если удалить явное ожидание после отправки команд. Работа, независимо отправленная в другие очереди, требует отдельного отслеживания завершения.'
+concepts.synchronization.reuse.guidance: '{swapChainPresent} подаёт сигнал и ожидает на {swapChainQueue} после вывода. Поскольку учебный пример с треугольником выводит через графическую очередь, вывод всё равно ждёт завершения кадра даже без явного ожидания при отправке. Работу в других очередях — включая рендеринг в графической очереди, когда цепочка обмена использует очередь вывода, — необходимо отслеживать отдельно.'
 concepts.synchronization.reuse.title: 'Повторное использование ресурсов'
 concepts.synchronization.timelines.context: 'Если после потребителя CPU должен прочитать результат, перезаписать общие данные или освободить ресурсы, дождитесь этой отправки:'
 concepts.synchronization.timelines.description: 'Временная шкала отмечает завершение в очереди возрастающими значениями. {submit} возвращает {timelineValue} со шкалой и значением отправки. Числовые поля {value} разных шкал нельзя сравнивать напрямую.'
@@ -294,23 +272,18 @@ reference.meta.description: 'Пространства имён, типы и чл
 reference.navigation.core: 'Справочник основного API'
 reference.title: Справочник API
 samples.computeShader.description: 'Вычислительный шейдер преобразует цветное изображение в оттенки серого и демонстрирует обработку изображений на GPU.'
-samples.computeShader.details: '{computeShaderRendererCs} · {computeShaderSlang}'
 samples.computeShader.title: Вычислительный шейдер
 samples.cube.description: 'Вращающийся куб знакомит с индексированной геометрией, трёхмерными преобразованиями и проверкой глубины.'
-samples.cube.details: '{spinningCubeRendererCs} · {spinningCubeSlang}'
 samples.cube.title: Вращающийся куб
 samples.description: 'Эти примеры охватывают рендеринг и вычисления — от одного треугольника до интерактивных приложений и диагностических утилит.'
 samples.execution.description: 'Запустите проект {link} и выберите пример в меню консоли.'
 samples.execution.description.link: ZenithTutorials
 samples.execution.title: 'Запуск примеров'
 samples.indirectDrawing.description: 'Сетка вращающихся кубов разных цветов демонстрирует косвенное рисование с использованием буфера аргументов рисования.'
-samples.indirectDrawing.details: '{indirectDrawingRendererCs} · {indirectDrawingSlang}'
 samples.indirectDrawing.title: 'Косвенное рисование'
 samples.meshShading.description: 'В этом примере шейдеры задач и меш-шейдеры используются для отрисовки сетки цветных сфер; сферы вне поля зрения камеры пропускаются. Требуется поддержка меш-шейдинга.'
-samples.meshShading.details: '{meshShadingRendererCs} · {meshShadingSlang}'
 samples.meshShading.title: 'Меш-шейдинг'
 samples.rayTracing.description: 'В этом примере запросы лучей используются для отрисовки отражающих сфер и теней на клетчатом полу. Требуется поддержка трассировки лучей.'
-samples.rayTracing.details: '{rayTracingRendererCs} · {rayTracingSlang}'
 samples.rayTracing.title: Трассировка лучей
 samples.title: Примеры
 samples.triangle.description: 'Треугольник с плавными переходами между цветами вершин знакомит с основами графического конвейера.'
@@ -319,20 +292,12 @@ samples.triangle.details.link: 'Полный урок'
 samples.triangle.title: 'Треугольник'
 samples.workloads.description: 'Каталог {link} репозитория Zenith.NET содержит следующие приложения и утилиты.'
 samples.workloads.description.link: 'Experiments'
-samples.workloads.table.cornellBox.example: '{link}'
-samples.workloads.table.cornellBox.example.link: CornellBox
-samples.workloads.table.cornellBox.whatItDemonstratesAndRequires: 'Интерактивная сцена комнаты для изучения освещения и отражений. Требуется поддержка трассировки лучей.'
-samples.workloads.table.fluidTank.example: '{link}'
-samples.workloads.table.fluidTank.example.link: FluidTank
-samples.workloads.table.fluidTank.whatItDemonstratesAndRequires: 'Симуляция воды в резервуаре с режимами отображения поверхности и частиц.'
+samples.workloads.table.cornellBox.description: 'Интерактивная сцена комнаты для изучения освещения и отражений. Требуется поддержка трассировки лучей.'
+samples.workloads.table.fluidTank.description: 'Симуляция воды в резервуаре с режимами отображения поверхности и частиц.'
+samples.workloads.table.headings.description: 'Описание'
 samples.workloads.table.headings.example: Пример
-samples.workloads.table.headings.whatItDemonstratesAndRequires: 'Описание'
-samples.workloads.table.inkCanvas.example: '{link}'
-samples.workloads.table.inkCanvas.example.link: InkCanvas
-samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Холст для рисования от руки и стирания штрихов.
-samples.workloads.table.platformDetection.example: '{link}'
-samples.workloads.table.platformDetection.example.link: PlatformDetection
-samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 'Консольная утилита, которая сообщает о доступности графических API и возможностях устройства.'
+samples.workloads.table.inkCanvas.description: Холст для рисования от руки и стирания штрихов.
+samples.workloads.table.platformDetection.description: 'Консольная утилита, которая сообщает о доступности графических API и возможностях устройства.'
 samples.workloads.title: 'Приложения и утилиты'
 tutorial.context.description: '{graphicsContext} связывает приложение с GPU через выбранный графический API и предоставляет методы создания ресурсов для рендеринга.'
 tutorial.context.details: 'Вставьте инициализацию контекста {emphasis}:'
@@ -345,19 +310,21 @@ tutorial.details: 'В уроке три проверочных этапа: пу�
 tutorial.draw.context: 'Аргументы метода {draw}:'
 tutorial.draw.description: 'В обработчике {windowRender} замените {addTheTriangleDrawCommandsHereLater} следующими командами между {beginRenderPass} и {endRenderPass}:'
 tutorial.draw.details: '{setPipeline} выбирает шейдеры и состояние рендеринга. Сначала выберите конвейер: его описание вершинного ввода определяет, как читать данные из вершинного буфера.'
-tutorial.draw.guidance: '{setVertexBufferVertexBuffer} привязывает загруженные вершинные данные со смещения 0 байт к входному слоту 0, соответствующему единственной записи {inputLayouts}.'
+tutorial.draw.guidance: '{setVertexBuffer} привязывает загруженные вершинные данные со смещения 0 байт к входному слоту 0, соответствующему единственной записи {inputLayouts}.'
 tutorial.draw.notes: 'Сохраните очистку в начале прохода, чтобы область за пределами треугольника имела определённый цвет фона.'
 tutorial.draw.table.firstInstance.meaning: Начать нумерацию экземпляров с нуля.
 tutorial.draw.table.firstVertex.meaning: Начать с первой вершины в буфере.
 tutorial.draw.table.headings.argument: Аргумент
-tutorial.draw.table.headings.description: Значение
 tutorial.draw.table.headings.meaning: Назначение
+tutorial.draw.table.headings.value: Значение
 tutorial.draw.table.instanceCount.meaning: Нарисовать одну копию треугольника.
 tutorial.draw.table.vertexCount.meaning: Считать три вершины.
 tutorial.draw.title: 'Команды рисования'
+tutorial.execution.context: 'После закрытия окна {run} возвращает управление, и выполнение продолжается в коде освобождения ресурсов. В цикле рендеринга приложение уже дождалось выполнения команд каждого кадра, поэтому использованные ими ресурсы можно освободить. Полный код после {windowRun} выглядит так:'
 tutorial.execution.description: 'Соберите и запустите проект {firstTriangle}.'
 tutorial.execution.details: 'На тёмном фоне должен появиться треугольник: красный сверху, зелёный справа внизу и синий слева внизу. Интерполяция цветов вершин создаёт плавные переходы внутри треугольника.'
 tutorial.execution.guidance: 'При изменении размера окна меняются размеры изображения в пикселях, но координаты вершин остаются прежними. Область вывода преобразует эти координаты с учётом новой ширины и высоты. Поэтому изменение соотношения сторон окна растягивает треугольник.'
+tutorial.execution.notes: 'Освободите цепочку обмена перед уничтожением её окна, а контекст — после его ресурсов. Очередь повторно использует отправленные командные буферы, а цепочка обмена управляет своей выходной текстурой. Отдельный вызов {dispose} для этих объектов не нужен.'
 tutorial.execution.title: 'Запуск приложения'
 tutorial.frame.commands.context: 'После {endRenderPass} второй переход подготавливает выходную текстуру к выводу. {submit} завершает запись и отправляет командный буфер; {wait} блокирует поток до завершения этой работы. Затем {present} запрашивает отображение готового изображения.'
 tutorial.frame.commands.description: 'Проход рендеринга объединяет команды рисования, которые записывают результаты в одни и те же вложения. В этом проходе цвет записывается в выходную текстуру цепочки обмена. {colorAttachmentClear} задаёт её начальное заполнение цветом RGBA и сохранение содержимого после прохода. {beginRenderPass} записывает начало прохода с этими настройками.'
@@ -386,36 +353,26 @@ tutorial.geometry.format.title: 'Представление вершины'
 tutorial.geometry.title: 'Вершинные данные'
 tutorial.geometry.upload.context: '{fixed} не позволяет сборщику мусора перемещать массив, пока используется его адрес. Для этого буфера с доступом CPU на запись метод {upload} отображает память, копирует данные и отменяет отображение до возврата. Поэтому массив достаточно закрепить на время вызова. Загрузите вершины один раз при инициализации и сохраняйте буфер до завершения рендеринга.'
 tutorial.geometry.upload.description: 'Поместите вершины в {buffer}, чтобы GPU мог читать их при рисовании. Добавьте выделение памяти и загрузку данных сразу после массива:'
-tutorial.geometry.upload.details: 'Размер выделения — {sizeofVertexVerticesLength}: три вершины по 28 байт, всего 84 байта. {bufferUsagesVertex} объявляет вершинный ввод, {cpuWriteOnly} разрешает начальное заполнение с CPU. Шаг в описании буфера фиксирует размер элемента. Описание входа ниже определит интерпретацию каждого атрибута.'
+tutorial.geometry.upload.details: 'Размер выделения составляет {sizeofVertexVerticesLength} (три вершины по 28 байт, или 84 байта), а шаг в описании фиксирует размер элемента. {bufferUsagesVertex} включает привязку в качестве вершинного буфера, тогда как {cpuWriteOnly} разрешает прямую запись с CPU.'
 tutorial.geometry.upload.guidance: 'Выделение памяти не заполняет буфер. {upload} копирует массив в начало буфера, используя исходный указатель и число байтов из описания данных.'
 tutorial.geometry.upload.imports: 'В {programCs} добавьте {bufferAlias} к директивам using, чтобы отличить тип буфера Zenith.NET от {systemBuffer}.'
 tutorial.geometry.upload.notes: 'В коде освобождения в конце {programCs} вставьте {vertexBufferDispose} непосредственно перед {swapChainDispose}.'
 tutorial.geometry.upload.title: 'Выделение буфера и загрузка данных'
-tutorial.input.description: 'GPU нужно знать, где хранятся атрибуты вершины, например позиция и цвет. Описание входа задаёт их формат и смещение, а также шаг — расстояние в байтах до следующей вершины. Добавьте этот код после создания шейдеров:'
-tutorial.input.details: '{inputLayoutAdd} размещает каждый атрибут сразу после предыдущего и увеличивает шаг между вершинами на размер добавленного атрибута. Смещения рассчитываются по указанным форматам, без анализа структуры C#. Для этих двух полей получается следующая раскладка:'
+tutorial.input.description: 'Описание входа задаёт формат, семантику и байтовое смещение каждого атрибута вершины, а также байтовый шаг между вершинами. Добавьте этот код после создания шейдеров:'
+tutorial.input.details: '{inputLayoutAdd} размещает каждый атрибут сразу после предыдущего и увеличивает шаг между вершинами на его размер, формируя шаг в 28 байт по обоим полям:'
 tutorial.input.guidance: 'Значение {semanticIndex} по умолчанию равно нулю и соответствует {pOSITION0} и {cOLOR0} в шейдере. Позиция и цвет хранятся вместе в одном вершинном буфере, поэтому конвейер использует одно описание входных данных в слоте 0. Если порядок полей или выравнивающие промежутки в структуре C# изменятся, измените и это описание.'
 tutorial.input.table.headings.byteOffset: Байтовое смещение
 tutorial.input.table.headings.cField: 'Поле C#'
 tutorial.input.table.headings.format: Формат
 tutorial.input.table.headings.shaderInput: Вход шейдера
-tutorial.input.table.nextVertex.cField: Следующая вершина
-tutorial.input.table.nextVertex.format: 'Полный шаг: 28 байт'
-tutorial.input.table.nextVertex.shaderInput: Следующая входная запись
 tutorial.input.table.vertexColor.format: '{float4} (16 байт)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 байт)'
 tutorial.input.title: 'Описание вершинного входа'
-tutorial.lifecycle.description: 'В каждом кадре приложение получает текущую выходную текстуру, переводит её в состояние для рендеринга, очищает и рисует треугольник. Затем оно переводит текстуру в состояние для вывода, отправляет команды, дожидается завершения и выводит изображение.'
-tutorial.lifecycle.details: 'После закрытия окна {run} возвращает управление, и выполнение продолжается в коде освобождения ресурсов. В цикле рендеринга приложение уже дождалось выполнения команд каждого кадра, поэтому использованные ими ресурсы можно освободить. Полный код после {windowRun} выглядит так:'
-tutorial.lifecycle.guidance: 'Освободите цепочку обмена перед уничтожением её окна, а контекст — после его ресурсов. Очередь повторно использует отправленные командные буферы, а цепочка обмена управляет своей выходной текстурой. Отдельный вызов {dispose} для этих объектов не нужен.'
-tutorial.pipeline.behavior: 'После описания входа создайте конвейер:'
-tutorial.pipeline.context: '{cullNone} отключает отбрасывание граней. Треугольник будет нарисован независимо от того, расположены ли его вершины на экране по часовой стрелке или против неё.'
-tutorial.pipeline.description: '{graphicsPipeline} объединяет описание вершин, два шейдера и настройки сборки примитивов и записи во вложения.'
-tutorial.pipeline.guidance: 'Цветовой формат конвейера должен совпадать с вложением прохода, поэтому берётся из {swapChainDescFormat}. {count1} задаёт одну выборку на пиксель.'
-tutorial.pipeline.item: '{triangleList} собирает каждую последовательную тройку вершин в треугольник.'
-tutorial.pipeline.notes: '{depthNone} отключает проверку и запись глубины, что соответствует отсутствию вложения глубины.'
-tutorial.pipeline.reference: '{opaque} отключает смешивание. Поэтому результат фрагментного шейдера заменяет фон внутри треугольника.'
+tutorial.pipeline.context: 'Объекты шейдеров можно освободить после создания конвейера. Сам конвейер сохраняйте на время рендеринга; в коде освобождения добавьте {pipelineDispose} перед {vertexBufferDispose}.'
+tutorial.pipeline.description: '{graphicsPipeline} объединяет шейдерные стадии, описание вершинного входа, топологию примитивов, форматы вложений и состояние рендеринга. После описания входа создайте конвейер:'
+tutorial.pipeline.details: '{triangleList} собирает каждую последовательную тройку вершин в треугольник. Цветовой формат берётся из {swapChainDescFormat} для соответствия вложению прохода, а {count1} задаёт одну выборку на пиксель.'
+tutorial.pipeline.guidance: '{cullNone} отключает отбрасывание граней, чтобы треугольник рисовался независимо от порядка обхода вершин. {depthNone} отключает проверку и запись глубины, так как у прохода нет вложения глубины, а {opaque} отключает смешивание, чтобы цвет фрагмента заменял фон.'
 tutorial.pipeline.title: 'Графический конвейер'
-tutorial.pipeline.usage: 'Объекты шейдеров можно освободить после создания конвейера. Сам конвейер сохраняйте на время рендеринга; в коде освобождения добавьте {pipelineDispose} перед {vertexBufferDispose}.'
 tutorial.presentation.title: 'Графический контекст и вывод'
 tutorial.project.context: 'В настройках сборки включите «{emphasis}» ({allowUnsafeBlocks}). Небезопасный код нужен для нативных вызовов вспомогательного класса для окна и загрузки вершин.'
 tutorial.project.context.emphasis: Разрешить небезопасный код
@@ -426,13 +383,13 @@ tutorial.project.title: 'Настройка проекта'
 tutorial.requirements.description: 'Нужны {emphasis} и базовые знания C#. GPU и драйвер должны поддерживать следующие графические возможности для вашей платформы:'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: 'Zenith.NET выполняет рендеринг на нативной поверхности, предоставленной приложением. Silk.NET.Windowing создаёт окно и обрабатывает его события.'
-tutorial.requirements.table.headings.graphicsBackend: 'Требования к графике'
+tutorial.requirements.table.headings.graphicsSupport: 'Требования к графике'
 tutorial.requirements.table.headings.platform: Платформа
-tutorial.requirements.table.linux.graphicsBackend: 'Vulkan 1.4 с VK_EXT_descriptor_heap'
+tutorial.requirements.table.linux.graphicsSupport: 'Vulkan 1.4 с VK_EXT_descriptor_heap'
 tutorial.requirements.table.linux.platform: 'Linux (X11 или XWayland)'
-tutorial.requirements.table.macOS.graphicsBackend: Metal 4
+tutorial.requirements.table.macOS.graphicsSupport: Metal 4
 tutorial.requirements.table.macOS.platform: macOS
-tutorial.requirements.table.windows.graphicsBackend: 'DirectX 12 с Shader Model 6.6'
+tutorial.requirements.table.windows.graphicsSupport: 'DirectX 12 с Shader Model 6.6'
 tutorial.requirements.table.windows.platform: Windows
 tutorial.requirements.title: 'Необходимые условия'
 tutorial.resize.context: 'Снова соберите и запустите приложение. Фон должен заполнять всё окно и после изменения его размера. Сохраните обработчик рендеринга — в его проход будет добавлено рисование треугольника.'
@@ -450,7 +407,7 @@ tutorial.shaders.compilation.details: 'В {programCs} добавьте иниц�
 tutorial.shaders.compilation.guidance: '{zenithCompiler} компилирует исходный код для {contextGraphicsApi}, а {createShader} создаёт объект шейдера из полученного описания. Имена точек входа {vSMain} и {fSMain} выбирают две функции, определённые в файле Slang.'
 tutorial.shaders.compilation.title: 'Компиляция шейдеров'
 tutorial.shaders.context: '{fSInput} связывает две шейдерные стадии. Вершинный шейдер записывает в {sVPOSITION} позицию в пространстве отсечения; по ней GPU определяет видимую часть треугольника. Поле {cOLOR0} передаёт цвет вершины, который интерполируется по треугольнику перед поступлением во фрагментный шейдер. Тип и семантика этого поля должны совпадать между стадиями.'
-tutorial.shaders.description: 'Шейдеры — программы, выполняемые на GPU. Вершинный шейдер определяет положение каждой вершины, а фрагментный — цвет в точках изображения, покрытых треугольником. Обе стадии будут записаны в одном файле Slang. Для каждой задаётся отдельная точка входа — функция, с которой начинается выполнение.'
+tutorial.shaders.description: 'Вершинный шейдер выдаёт позицию каждой вершины в пространстве отсечения, а фрагментный шейдер — цвет каждого покрытого пикселя. Обе стадии размещаются в одном файле Slang с отдельными точками входа.'
 tutorial.shaders.details: 'Создайте {triangleSlang} в корне проекта с этими структурами входа и выхода:'
 tutorial.shaders.fragment.description: 'Добавьте в тот же файл точку входа фрагментного шейдера:'
 tutorial.shaders.fragment.details: 'Растеризация определяет, какие точки изображения покрывает треугольник, и создаёт для них фрагменты. Каждый фрагмент получает цвет, интерполированный из цветов трёх вершин. {fSMain} возвращает этот цвет, а {sVTARGET} направляет результат в первое цветовое вложение.'
@@ -458,23 +415,22 @@ tutorial.shaders.fragment.title: 'Фрагментный шейдер'
 tutorial.shaders.guidance: '{vSInput} задаёт вход вершинного шейдера. {pOSITION0} и {cOLOR0} связывают атрибуты по семантикам; одних имён полей C# для этого недостаточно.'
 tutorial.shaders.title: 'Стадии шейдеров'
 tutorial.shaders.vertex.description: 'Добавьте в {triangleSlang} точку входа вершинного шейдера:'
-tutorial.shaders.vertex.details: 'GPU выполняет эту функцию для каждой входной вершины. Функция добавляет четвёртую компоненту позиции, {w}, и передаёт цвет. После обработки вершин GPU делит x, y и z на w, получая нормализованные координаты устройства. При w, равном 1, эти значения не меняются.'
+tutorial.shaders.vertex.details: 'Эта точка входа выполняется один раз на вершину, задаёт {w} для формирования 4D-позиции в пространстве отсечения и передаёт цвет вершины. Последующее перспективное деление на w оставляет x, y и z без изменений в нормализованных координатах устройства.'
 tutorial.shaders.vertex.title: 'Вершинный шейдер'
-tutorial.surface.description: 'Задайте нативную поверхность вывода {emphasis}:'
-tutorial.surface.description.emphasis: после {windowCenter} и перед {windowRun}
-tutorial.surface.details: 'Кадровый буфер — изображение окна в пикселях. {surface} описывает нативный объект вывода и его размеры; {framebufferSize} сообщает размер в пикселях. При масштабировании экрана он может отличаться от логического размера окна.'
-tutorial.surface.guidance: 'Поверхность предоставляет нативные дескрипторы для выбранного графического API: окно Win32 в Windows, дисплей и окно X11 в Linux или прикреплённый слой Metal в macOS.'
+tutorial.surface.description: 'Скачайте {cocoaHelperCs} в проект. Этот вспомогательный класс связывает слой Metal с окном macOS.'
+tutorial.surface.details: 'Задайте нативную поверхность вывода {emphasis}:'
+tutorial.surface.details.emphasis: после {windowCenter} и перед {windowRun}
+tutorial.surface.guidance: 'Кадровый буфер — это изображение окна в пикселях, чей {framebufferSize} при масштабировании экрана может отличаться от логического размера окна. {surface} объединяет эти размеры в пикселях с нативными дескрипторами для выбранного графического API: окном Win32 в Windows, прикреплённым слоем Metal в macOS или дисплеем и окном X11 в Linux.'
 tutorial.surface.title: 'Нативная поверхность'
 tutorial.swapChain.context: 'Цепочка обмена зависит от контекста и окна. Замените {windowDispose} в конце {programCs} следующим порядком освобождения:'
 tutorial.swapChain.description: 'Создайте цепочку обмена сразу после описания поверхности:'
-tutorial.swapChain.details: '{swapChain} управляет изображениями, выводимыми в окно. {drawable} предоставляет текущее изображение в виде {texture} — ресурса API для изображений. После рендеринга {present} запрашивает его вывод и переходит к следующей выходной текстуре.'
+tutorial.swapChain.details: '{swapChain} управляет выводимыми изображениями окна. {drawable} предоставляет текущий задний буфер в виде {texture}, а {present} отображает его и переходит к следующему изображению.'
 tutorial.swapChain.guidance: '{b8G8R8A8UNorm} хранит четыре 8-битных канала в порядке синий, зелёный, красный, альфа. {uNorm} отображает целые 0–255 в значения 0–1. Шейдер выдаёт логическое значение RGBA, а формат определяет его представление в памяти.'
 tutorial.swapChain.title: 'Цепочка обмена'
 tutorial.title: Первый треугольник
-tutorial.window.description: 'Скачайте {cocoaHelperCs} в проект. Этот вспомогательный класс связывает слой Metal с окном macOS.'
-tutorial.window.details: 'Замените содержимое {programCs} следующим кодом:'
-tutorial.window.guidance: '{graphicsAPINone} отключает создание графического контекста в Silk.NET. Позднее приложение создаёт контекст Zenith.NET. {initialize} создаёт нативное окно и открывает доступ к дескрипторам оконной системы. {center} размещает окно по центру экрана. {run} обрабатывает события до закрытия окна, после чего {dispose} освобождает его.'
-tutorial.window.notes: 'Соберите и запустите приложение. Убедитесь, что окно открывается, перемещается, меняет размер и закрывается. Содержимое пока не определено, поскольку команды рендеринга ещё не отправлены. Закройте окно перед продолжением.'
+tutorial.window.description: 'Замените содержимое {programCs} следующим кодом:'
+tutorial.window.details: '{graphicsAPINone} отключает создание графического контекста в Silk.NET. Позднее приложение создаёт контекст Zenith.NET. {initialize} создаёт нативное окно и открывает доступ к дескрипторам оконной системы. {center} размещает окно по центру экрана. {run} обрабатывает события до закрытия окна, после чего {dispose} освобождает его.'
+tutorial.window.guidance: 'Соберите и запустите приложение. Убедитесь, что окно открывается, перемещается, меняет размер и закрывается. Содержимое пока не определено, поскольку команды рендеринга ещё не отправлены. Закройте окно перед продолжением.'
 tutorial.window.title: 'Создание окна'
 ui.action.copy: Копировать
 ui.action.navigate: Перейти
@@ -492,8 +448,8 @@ ui.api.namespaces: Пространства имён
 ui.api.noNamespaceTypes: В этом пространстве имён нет типов.
 ui.api.noTypes: Совпадающих типов не найдено.
 ui.api.types: Типы
-ui.content.reference: Справочник
 ui.content.examples: Примеры кода
+ui.content.reference: Справочник
 ui.content.tutorial: 'Урок'
 ui.contents.close: Закрыть оглавление
 ui.contents.open: Открыть оглавление

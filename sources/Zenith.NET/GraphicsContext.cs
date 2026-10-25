@@ -1,5 +1,8 @@
-﻿namespace Zenith.NET;
+﻿using System.Runtime.InteropServices;
 
+namespace Zenith.NET;
+
+[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]
 public abstract class GraphicsContext : DisposableObject
 {
     protected GraphicsContext(GraphicsApi graphicsApi, bool useValidationLayer)
@@ -11,12 +14,14 @@ public abstract class GraphicsContext : DisposableObject
                    out CommandQueue graphicsQueue,
                    out CommandQueue computeQueue,
                    out CommandQueue transferQueue,
+                   out CommandQueue presentQueue,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
         GraphicsQueue = graphicsQueue;
         ComputeQueue = computeQueue;
         TransferQueue = transferQueue;
+        PresentQueue = presentQueue;
         ValidationLayer = validationLayer;
 
         Uploader = new(this);
@@ -32,6 +37,8 @@ public abstract class GraphicsContext : DisposableObject
     public CommandQueue ComputeQueue { get; }
 
     public CommandQueue TransferQueue { get; }
+
+    public CommandQueue PresentQueue { get; }
 
     internal ValidationLayer? ValidationLayer { get; }
 
@@ -118,11 +125,17 @@ public abstract class GraphicsContext : DisposableObject
 
     public abstract nint GetNativeObject(NativeObjectType type);
 
+    internal void OnValidationMessage(ValidationMessageEventArgs args)
+    {
+        ValidationMessage?.Invoke(this, args);
+    }
+
     protected override void Destroy()
     {
         GraphicsQueue.Dispose();
         ComputeQueue.Dispose();
         TransferQueue.Dispose();
+        PresentQueue.Dispose();
         ValidationLayer?.Dispose();
 
         Uploader.Dispose();
@@ -134,6 +147,7 @@ public abstract class GraphicsContext : DisposableObject
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
+                                       out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
@@ -165,9 +179,4 @@ public abstract class GraphicsContext : DisposableObject
     protected abstract MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc);
 
     protected abstract QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc);
-
-    internal void OnValidationMessage(ValidationMessageEventArgs args)
-    {
-        ValidationMessage?.Invoke(this, args);
-    }
 }

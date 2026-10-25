@@ -5,4 +5,8 @@ public struct SwapChainDesc
     public Surface Surface;
 
     public PixelFormat Format;
+
+    public bool IsVerticalSyncEnabled;
+
+    public bool IsPresentQueueEnabled;
 }

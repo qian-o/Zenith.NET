@@ -29,7 +29,14 @@ internal unsafe class DXSwapChain : SwapChain
 
     protected override void PresentImpl()
     {
-        SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+        if (Desc.IsVerticalSyncEnabled)
+        {
+            SwapChain.Present(1, 0).Success();
+        }
+        else
+        {
+            SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+        }
 
         index = SwapChain.GetCurrentBackBufferIndex();
     }
@@ -77,7 +84,7 @@ internal unsafe class DXSwapChain : SwapChain
             Flags = (uint)SwapChainFlag.AllowTearing
         };
 
-        Context.Factory.CreateSwapChainForHwnd((IUnknown*)Context.GraphicsQueue.DirectX12().CommandQueue.Handle,
+        Context.Factory.CreateSwapChainForHwnd((IUnknown*)Queue.DirectX12().CommandQueue.Handle,
                                                Desc.Surface.Handles[0],
                                                &swapChainDesc,
                                                default(SwapChainFullscreenDesc*),

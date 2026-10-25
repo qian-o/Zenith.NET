@@ -7,22 +7,26 @@ namespace FluidTank;
 
 internal unsafe class Simulation : DisposableObject
 {
-    public const float GridSpacing = 6.0f / 33.0f;
     public const float ParticleRadius = GridSpacing * 0.316f;
-    public const float RestDensity = 5.52f;
     public const float ParticleSpacing = ParticleRadius * 1.67f;
-    public const float FlipRatio = 0.97f;
-    public const float VelocityDamping = 0.9998f;
-    public const uint Substeps = 2;
-    public const uint PressureIterations = 18;
+    private const float GridSpacing = 6.0f / 33.0f;
+    private const float RestDensity = 5.52f;
+    private const float FlipRatio = 0.97f;
+    private const float VelocityDamping = 0.9998f;
+    private const uint Substeps = 2;
+    private const uint PressureIterations = 18;
 
-    public static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
+    private static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
+
     public static readonly uint ParticleCount = DamDimensions.X * DamDimensions.Y * DamDimensions.Z;
+
     public static readonly Vector3 TankMin = new(-6.0f, 0.0f, -3.0f);
+
     public static readonly Vector3 TankMax = new(6.0f, 5.2f, 3.0f);
-    public static readonly (uint X, uint Y, uint Z) GridDimensions = ((uint)MathF.Ceiling((TankMax.X - TankMin.X) / GridSpacing), (uint)MathF.Ceiling((TankMax.Y - TankMin.Y) / GridSpacing), (uint)MathF.Ceiling((TankMax.Z - TankMin.Z) / GridSpacing));
-    public static readonly uint CellCount = GridDimensions.X * GridDimensions.Y * GridDimensions.Z;
-    public static readonly uint GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
+
+    private static readonly (uint X, uint Y, uint Z) GridDimensions = ((uint)MathF.Ceiling((TankMax.X - TankMin.X) / GridSpacing), (uint)MathF.Ceiling((TankMax.Y - TankMin.Y) / GridSpacing), (uint)MathF.Ceiling((TankMax.Z - TankMin.Z) / GridSpacing));
+    private static readonly uint CellCount = GridDimensions.X * GridDimensions.Y * GridDimensions.Z;
+    private static readonly uint GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
 
     private readonly Buffer constantBuffer;
     private readonly Buffer particleAffine;
@@ -44,11 +48,10 @@ internal unsafe class Simulation : DisposableObject
     private readonly ComputePipeline projectGridPipeline;
     private readonly ComputePipeline gridToParticleAndAdvectPipeline;
 
-    private bool resetRequested = true;
+    private bool isResetRequested = true;
     private Vector3 interactionOrigin;
     private Vector3 interactionDirection;
     private float interactionStrength;
-    private TimelineValue ready;
 
     public Simulation()
     {
@@ -86,9 +89,11 @@ internal unsafe class Simulation : DisposableObject
 
     public Buffer PreviousPositions { get; }
 
+    public TimelineValue Ready { get; private set; }
+
     public void Reset()
     {
-        resetRequested = true;
+        isResetRequested = true;
     }
 
     public void Push(Vector3 origin, Vector3 direction)
@@ -98,26 +103,23 @@ internal unsafe class Simulation : DisposableObject
         interactionStrength = 4.8f;
     }
 
-    public TimelineValue Step(double deltaSeconds, bool paused)
+    public void Step(double deltaSeconds, bool isPaused)
     {
-        if (paused && !resetRequested)
+        if (isPaused && !isResetRequested)
         {
-            return ready;
+            return;
         }
-
-        float timeStep = paused ? 0.0f : (float)deltaSeconds / Substeps;
 
         SimulationConstants constants = new()
         {
             TankMin = TankMin,
-            TimeStep = MathF.Max(timeStep, 0.000001f),
+            TimeStep = (float)deltaSeconds / Substeps,
             TankMax = TankMax,
+            InteractionRadius = 1.15f,
             GridSpacing = GridSpacing,
             InverseGridSpacing = 1.0f / GridSpacing,
             FlipRatio = FlipRatio,
             VelocityDamping = VelocityDamping,
-            InteractionRadius = 1.15f,
-            InteractionStrength = interactionStrength,
             InteractionOrigin = interactionOrigin,
             ParticleRadius = ParticleRadius,
             InteractionDirection = interactionDirection,
@@ -125,10 +127,10 @@ internal unsafe class Simulation : DisposableObject
             ParticleCount = ParticleCount,
             CellCount = CellCount,
             GridPointCount = GridPointCount,
+            InteractionStrength = interactionStrength,
             GridX = GridDimensions.X,
             GridY = GridDimensions.Y,
             GridZ = GridDimensions.Z,
-            PressureIterations = PressureIterations,
             DamX = DamDimensions.X,
             DamY = DamDimensions.Y,
             DamZ = DamDimensions.Z,
@@ -152,15 +154,15 @@ internal unsafe class Simulation : DisposableObject
 
         CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
-        if (resetRequested)
+        if (isResetRequested)
         {
             Dispatch(commandBuffer, resetPipeline, ParticleCount);
             Dispatch(commandBuffer, initializeGridPipeline, CellCount);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            resetRequested = false;
+            isResetRequested = false;
         }
 
-        if (!paused)
+        if (!isPaused)
         {
             uint pressureParityDispatchCount = (GridDimensions.X + 1) / 2 * GridDimensions.Y * GridDimensions.Z;
 
@@ -197,33 +199,43 @@ internal unsafe class Simulation : DisposableObject
             interactionStrength = 0.0f;
         }
 
-        return ready = commandBuffer.Submit();
+        Ready = commandBuffer.Submit();
     }
 
     protected override void Destroy()
     {
-        gridToParticleAndAdvectPipeline.Dispose();
-        projectGridPipeline.Dispose();
-        pressureBlackPipeline.Dispose();
-        pressureRedPipeline.Dispose();
-        divergencePipeline.Dispose();
-        normalizeAndApplyForcesPipeline.Dispose();
-        particleToGridPipeline.Dispose();
-        beginParticleToGridPipeline.Dispose();
-        clearGridPipeline.Dispose();
-        initializeGridPipeline.Dispose();
-        resetPipeline.Dispose();
+        PreviousPositions?.Dispose();
+        Particles?.Dispose();
 
-        pressureA.Dispose();
-        divergence.Dispose();
-        cellTypes.Dispose();
-        gridVelocityOld.Dispose();
-        gridVelocity.Dispose();
-        gridAccumulation.Dispose();
-        particleAffine.Dispose();
-        PreviousPositions.Dispose();
-        Particles.Dispose();
-        constantBuffer.Dispose();
+        gridToParticleAndAdvectPipeline?.Dispose();
+        projectGridPipeline?.Dispose();
+        pressureBlackPipeline?.Dispose();
+        pressureRedPipeline?.Dispose();
+        divergencePipeline?.Dispose();
+        normalizeAndApplyForcesPipeline?.Dispose();
+        particleToGridPipeline?.Dispose();
+        beginParticleToGridPipeline?.Dispose();
+        clearGridPipeline?.Dispose();
+        initializeGridPipeline?.Dispose();
+        resetPipeline?.Dispose();
+
+        pressureA?.Dispose();
+        divergence?.Dispose();
+        cellTypes?.Dispose();
+        gridVelocityOld?.Dispose();
+        gridVelocity?.Dispose();
+        gridAccumulation?.Dispose();
+        particleAffine?.Dispose();
+        constantBuffer?.Dispose();
+    }
+
+    private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint count)
+    {
+        uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize.X;
+
+        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
+        commandBuffer.Dispatch((count + groupSize - 1) / groupSize, 1, 1);
     }
 
     private static Buffer CreateBuffer(uint count, uint strideInBytes, BufferUsages usages)
@@ -242,15 +254,6 @@ internal unsafe class Simulation : DisposableObject
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSimulation.slang"), entryPoint));
 
         return App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-    }
-
-    private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint count)
-    {
-        uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize.X;
-
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((count + groupSize - 1) / groupSize, 1, 1);
     }
 }
 
@@ -313,9 +316,6 @@ file struct SimulationConstants
 
     [FieldOffset(104)]
     public uint GridZ;
-
-    [FieldOffset(108)]
-    public uint PressureIterations;
 
     [FieldOffset(112)]
     public uint DamX;

@@ -42,6 +42,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
+                                       out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer)
     {
         if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
@@ -59,6 +60,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
         graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics);
         computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute);
         transferQueue = new MTLCommandQueue(this, CommandQueueType.Transfer);
+        presentQueue = new MTLCommandQueue(this, CommandQueueType.Present);
         validationLayer = null;
     }
 

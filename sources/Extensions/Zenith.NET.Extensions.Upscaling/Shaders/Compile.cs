@@ -176,7 +176,7 @@ static string FormatShaderDesc(string fieldName, ShaderDesc shaderDesc)
 
 static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
 {
-    if (codeBytes.Length == 0)
+    if (codeBytes.Length is 0)
     {
         builder.AppendLine("        CodeBytes = [],");
 
@@ -191,6 +191,7 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
         int count = Math.Min(BytesPerLine, codeBytes.Length - index);
 
         builder.Append("            ");
+
         for (int offset = 0; offset < count; offset++)
         {
             if (offset > 0)

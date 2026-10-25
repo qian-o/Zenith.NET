@@ -20,7 +20,7 @@ struct SimulationConstants
 
     private uint4 CountsAndInteractionStrength;
 
-    private uint4 GridAndPressure;
+    private uint4 GridAndPadding;
 
     private uint4 DamAndSubsteps;
 
@@ -157,14 +157,7 @@ struct SimulationConstants
     property uint3 GridDimensions
     {
         get {
-            return GridAndPressure.xyz;
-        }
-    }
-
-    property uint PressureIterations
-    {
-        get {
-            return GridAndPressure.w;
+            return GridAndPadding.xyz;
         }
     }
 

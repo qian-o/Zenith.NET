@@ -51,7 +51,7 @@ internal class MTLSwapChain : SwapChain
 
     protected override void PresentImpl()
     {
-        Context.GraphicsQueue.Metal().CommandQueue.SignalDrawable(MetalDrawable);
+        Queue.Metal().CommandQueue.SignalDrawable(MetalDrawable);
 
         MetalDrawable.Present();
         MetalDrawable.Dispose();
@@ -98,6 +98,11 @@ internal class MTLSwapChain : SwapChain
             FramebufferOnly = false,
             DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height)
         };
+
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
+        {
+            MetalLayer.DisplaySyncEnabled = Desc.IsVerticalSyncEnabled;
+        }
 
         MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }

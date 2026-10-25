@@ -17,4 +17,10 @@ internal struct Material
 
     [FieldOffset(20)]
     public float Roughness;
+
+    [FieldOffset(24)]
+    public SurfacePattern Pattern;
+
+    [FieldOffset(28)]
+    public float PatternScale;
 }

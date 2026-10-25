@@ -1,10 +1,13 @@
 ﻿using System.Numerics;
 using Silk.NET.Input;
+using Zenith.NET;
 
 namespace FluidTank.Handlers;
 
-internal class CameraHandler
+internal class CameraHandler : DisposableObject
 {
+    private readonly IMouse mouse;
+    private readonly IKeyboard keyboard;
     private readonly HashSet<Key> keyDowns = [];
 
     private Vector2? lastMousePosition;
@@ -12,12 +15,12 @@ internal class CameraHandler
 
     public CameraHandler(IInputContext input, Vector3 position, Vector3 target)
     {
-        IMouse mouse = input.Mice[0];
+        mouse = input.Mice[0];
+        keyboard = input.Keyboards[0];
+
         mouse.MouseDown += OnMouseDown;
         mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
-
-        IKeyboard keyboard = input.Keyboards[0];
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
 
@@ -51,11 +54,11 @@ internal class CameraHandler
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double delta, uint width, uint height)
+    public void Update(double deltaSeconds, uint width, uint height)
     {
         Size = new(width, height);
 
-        float distance = Speed * (float)delta;
+        float distance = Speed * (float)deltaSeconds;
 
         if (keyDowns.Contains(Key.W))
         {
@@ -104,16 +107,36 @@ internal class CameraHandler
         float x = (position.X / Size.X * 2.0f) - 1.0f;
         float y = 1.0f - (position.Y / Size.Y * 2.0f);
 
-        Matrix4x4.Invert(Projection, out Matrix4x4 invProjection);
-        Matrix4x4.Invert(View, out Matrix4x4 invView);
+        Matrix4x4.Invert(Projection, out Matrix4x4 inverseProjection);
+        Matrix4x4.Invert(View, out Matrix4x4 inverseView);
 
-        Vector4 target = Vector4.Transform(new Vector4(x, y, 1.0f, 1.0f), invProjection);
+        Vector4 target = Vector4.Transform(new Vector4(x, y, 1.0f, 1.0f), inverseProjection);
         Vector3 localDirection = Vector3.Normalize(new(target.X / target.W, target.Y / target.W, target.Z / target.W));
 
         origin = Position;
-        direction = Vector3.Normalize(Vector3.TransformNormal(localDirection, invView));
+        direction = Vector3.Normalize(Vector3.TransformNormal(localDirection, inverseView));
 
         return true;
+    }
+
+    protected override void Destroy()
+    {
+        if (keyboard is not null)
+        {
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
+        }
+
+        if (mouse is not null)
+        {
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
+        }
+
+        keyDowns.Clear();
+        clickPosition = null;
+        lastMousePosition = null;
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
@@ -138,7 +161,7 @@ internal class CameraHandler
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        const float clipRadians = 89.0f * MathF.PI / 180.0f;
+        const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
         if (!lastMousePosition.HasValue)
         {
@@ -150,7 +173,7 @@ internal class CameraHandler
         Vector2 delta = position - lastMousePosition.Value;
         float yaw = -(delta.X * pixelToRadianX);
         float pitch = -(delta.Y * pixelToRadianY);
-        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -clipRadians, clipRadians);
+        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
 
         pitch = newPitch - MathF.Asin(Forward.Y);
 

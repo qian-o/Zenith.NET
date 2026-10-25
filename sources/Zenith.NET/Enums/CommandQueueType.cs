@@ -6,5 +6,7 @@ public enum CommandQueueType
 
     Compute,
 
-    Transfer
+    Transfer,
+
+    Present
 }

@@ -3,32 +3,40 @@
 public static class Extensions
 {
     private static readonly Lock @lock = new();
-    private static readonly Dictionary<GraphicsContext, SKRenderer> renderers = [];
+    private static readonly Dictionary<GraphicsContext, SkiaBackend> backends = [];
 
     extension(GraphicsContext context)
     {
-        public SKTexture CreateSKTexture(SKTextureDesc desc)
+        public void InitializeSkia()
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!renderers.TryGetValue(context, out SKRenderer? renderer))
+            if (!backends.ContainsKey(context))
             {
-                renderers[context] = renderer = new(context);
+                backends[context] = new(context);
+
+                context.Disposing += static (sender, _) =>
+                {
+                    using Lock.Scope scope = @lock.EnterScope();
+
+                    if (backends.Remove((GraphicsContext)sender!, out SkiaBackend? disposedBackend))
+                    {
+                        disposedBackend.Dispose();
+                    }
+                };
+            }
+        }
+
+        public SkiaTexture CreateSkiaTexture(SkiaTextureDesc desc)
+        {
+            using Lock.Scope _ = @lock.EnterScope();
+
+            if (!backends.TryGetValue(context, out SkiaBackend? backend))
+            {
+                throw new InvalidOperationException("The graphics context has not been initialized for Skia.");
             }
 
-            renderer.AddReference();
-
-            return new(renderer, desc);
-        }
-    }
-
-    internal static void ReleaseRenderer(SKRenderer renderer)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (renderer.RemoveReference() && renderers.Remove(renderer.Context))
-        {
-            renderer.Dispose();
+            return new(backend, desc);
         }
     }
 }

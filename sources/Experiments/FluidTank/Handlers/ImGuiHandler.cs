@@ -6,78 +6,157 @@ using Zenith.NET.Extensions.ImGui;
 
 namespace FluidTank.Handlers;
 
-internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
+internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
 
-    public ImGuiHandler(IInputContext input, AttachmentFormats attachmentFormats) : base(App.Context, attachmentFormats, ImGuiColorSpace.Legacy, Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"), OtherSetup)
+    public ImGuiHandler(IInputContext input)
     {
         mouse = input.Mice[0];
+        keyboard = input.Keyboards[0];
+
         mouse.MouseDown += OnMouseDown;
         mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
         mouse.Scroll += OnMouseScroll;
 
-        keyboard = input.Keyboards[0];
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
         keyboard.KeyChar += OnKeyChar;
+    }
 
-        PlatformBindings = this;
+    public event EventHandler<ImGuiInputArgs>? Input;
+
+    public void Initialize(ImGuiIOPtr io)
+    {
+        io.DisplayFramebufferScale = App.DpiScale;
+
+        io.Fonts.Clear();
+        io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
+    }
+
+    public void SetCursor(ImGuiMouseCursor cursor)
+    {
+        mouse.Cursor.StandardCursor = cursor switch
+        {
+            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
+            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
+            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
+            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
+            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
+            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
+            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
+            ImGuiMouseCursor.Hand => StandardCursor.Hand,
+            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
+            _ => StandardCursor.Default
+        };
+    }
+
+    public string GetClipboardText()
+    {
+        return keyboard.ClipboardText;
+    }
+
+    public void SetClipboardText(string text)
+    {
+        keyboard.ClipboardText = text;
+    }
+
+    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
+    {
+    }
+
+    protected override void Destroy()
+    {
+        if (keyboard is not null)
+        {
+            keyboard.KeyChar -= OnKeyChar;
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
+        }
+
+        if (mouse is not null)
+        {
+            mouse.Scroll -= OnMouseScroll;
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
+        }
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        MouseDown(button switch
+        Input?.Invoke(this, new(ImGuiInput.MouseDown)
         {
-            MouseButton.Left => ImGuiMouseButton.Left,
-            MouseButton.Right => ImGuiMouseButton.Right,
-            MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            MouseButton = button switch
+            {
+                MouseButton.Left => ImGuiMouseButton.Left,
+                MouseButton.Right => ImGuiMouseButton.Right,
+                MouseButton.Middle => ImGuiMouseButton.Middle,
+                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            }
         });
     }
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        MouseUp(button switch
+        Input?.Invoke(this, new(ImGuiInput.MouseUp)
         {
-            MouseButton.Left => ImGuiMouseButton.Left,
-            MouseButton.Right => ImGuiMouseButton.Right,
-            MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            MouseButton = button switch
+            {
+                MouseButton.Left => ImGuiMouseButton.Left,
+                MouseButton.Right => ImGuiMouseButton.Right,
+                MouseButton.Middle => ImGuiMouseButton.Middle,
+                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            }
         });
     }
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        MouseMove(position);
+        Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = position });
     }
 
     private void OnMouseScroll(IMouse mouse, ScrollWheel offset)
     {
-        MouseWheel(new(offset.X, offset.Y));
+        Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = new(offset.X, offset.Y) });
     }
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
-        KeyDown(TranslateInputKeyToImGuiKey(key));
-        KeyDown(TranslateInputKeyToImGuiModifier(key));
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
-        KeyUp(TranslateInputKeyToImGuiKey(key));
-        KeyUp(TranslateInputKeyToImGuiModifier(key));
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private void OnKeyChar(IKeyboard keyboard, char c)
     {
-        KeyChar(c);
+        Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = c });
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
     {
+        if (key >= Key.Number0 && key <= Key.Number9)
+        {
+            return ImGuiKey.Key0 + (key - Key.Number0);
+        }
+
+        if (key >= Key.A && key <= Key.Z)
+        {
+            return ImGuiKey.A + (key - Key.A);
+        }
+
+        if (key >= Key.F1 && key <= Key.F24)
+        {
+            return ImGuiKey.F1 + (key - Key.F1);
+        }
+
         return key switch
         {
             Key.Tab => ImGuiKey.Tab,
@@ -137,9 +216,6 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
             Key.AltRight => ImGuiKey.RightAlt,
             Key.SuperRight => ImGuiKey.RightSuper,
             Key.Menu => ImGuiKey.Menu,
-            >= Key.Number0 and <= Key.Number9 => ImGuiKey.Key0 + (key - Key.Number0),
-            >= Key.A and <= Key.Z => ImGuiKey.A + (key - Key.A),
-            >= Key.F1 and <= Key.F24 => ImGuiKey.F1 + (key - Key.F1),
             _ => ImGuiKey.None
         };
     }
@@ -154,43 +230,5 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
             Key.SuperLeft or Key.SuperRight => ImGuiKey.ModSuper,
             _ => ImGuiKey.None
         };
-    }
-
-    private static void OtherSetup(ImGuiIOPtr io)
-    {
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-        io.DisplayFramebufferScale = App.DpiScale;
-    }
-
-    public void SetCursor(ImGuiMouseCursor cursor)
-    {
-        mouse.Cursor.StandardCursor = cursor switch
-        {
-            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
-            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
-            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
-            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
-            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
-            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
-            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
-            ImGuiMouseCursor.Hand => StandardCursor.Hand,
-            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
-            _ => StandardCursor.Default
-        };
-    }
-
-    public string GetClipboardText()
-    {
-        return keyboard.ClipboardText;
-    }
-
-    public void SetClipboardText(string text)
-    {
-        keyboard.ClipboardText = text;
-    }
-
-    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
-    {
-        // IME not supported.
     }
 }

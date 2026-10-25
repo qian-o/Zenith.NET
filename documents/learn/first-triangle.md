@@ -29,7 +29,7 @@ title: '@tutorial.title'
                 <resource key="tutorial.requirements.table.headings.platform"></resource>
             </th>
             <th>
-                <resource key="tutorial.requirements.table.headings.graphicsBackend"></resource>
+                <resource key="tutorial.requirements.table.headings.graphicsSupport"></resource>
             </th>
         </tr>
     </thead>
@@ -39,7 +39,7 @@ title: '@tutorial.title'
                 <resource key="tutorial.requirements.table.windows.platform"></resource>
             </td>
             <td>
-                <resource key="tutorial.requirements.table.windows.graphicsBackend"></resource>
+                <resource key="tutorial.requirements.table.windows.graphicsSupport"></resource>
             </td>
         </tr>
         <tr>
@@ -47,7 +47,7 @@ title: '@tutorial.title'
                 <resource key="tutorial.requirements.table.macOS.platform"></resource>
             </td>
             <td>
-                <resource key="tutorial.requirements.table.macOS.graphicsBackend"></resource>
+                <resource key="tutorial.requirements.table.macOS.graphicsSupport"></resource>
             </td>
         </tr>
         <tr>
@@ -55,7 +55,7 @@ title: '@tutorial.title'
                 <resource key="tutorial.requirements.table.linux.platform"></resource>
             </td>
             <td>
-                <resource key="tutorial.requirements.table.linux.graphicsBackend"></resource>
+                <resource key="tutorial.requirements.table.linux.graphicsSupport"></resource>
             </td>
         </tr>
     </tbody>
@@ -116,7 +116,7 @@ title: '@tutorial.title'
     3. <resource key="tutorial.window.title"></resource>
 </h2>
 <p>
-    <resource key="tutorial.window.details">
+    <resource key="tutorial.window.description">
         <slot name="programCs"><code>Program.cs</code></slot>
     </resource>
 </p>
@@ -139,7 +139,7 @@ window.Dispose();
 ```
 
 <p>
-    <resource key="tutorial.window.guidance">
+    <resource key="tutorial.window.details">
         <slot name="graphicsAPINone"><code>GraphicsAPI.None</code></slot>
         <slot name="initialize"><code>Initialize()</code></slot>
         <slot name="center"><code>Center()</code></slot>
@@ -148,7 +148,7 @@ window.Dispose();
     </resource>
 </p>
 <p>
-    <resource key="tutorial.window.notes"></resource>
+    <resource key="tutorial.window.guidance"></resource>
 </p>
 <p>
     <a id="context"></a>
@@ -210,13 +210,13 @@ context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Seve
     <resource key="tutorial.surface.title"></resource>
 </h3>
 <p>
-    <resource key="tutorial.window.description">
+    <resource key="tutorial.surface.description">
         <slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot>
     </resource>
 </p>
 <p>
-    <resource key="tutorial.surface.description">
-        <slot name="emphasis"><strong><resource key="tutorial.surface.description.emphasis"><slot name="windowCenter"><code>window.Center()</code></slot>
+    <resource key="tutorial.surface.details">
+        <slot name="emphasis"><strong><resource key="tutorial.surface.details.emphasis"><slot name="windowCenter"><code>window.Center()</code></slot>
         <slot name="windowRun"><code>window.Run()</code></slot></resource></strong></slot>
     </resource>
 </p>
@@ -241,13 +241,10 @@ else
 ```
 
 <p>
-    <resource key="tutorial.surface.details">
-        <slot name="surface"><a class="xref" href="xref:Zenith.NET.Surface"><code>Surface</code></a></slot>
+    <resource key="tutorial.surface.guidance">
         <slot name="framebufferSize"><code>FramebufferSize</code></slot>
+        <slot name="surface"><a class="xref" href="xref:Zenith.NET.Surface"><code>Surface</code></a></slot>
     </resource>
-</p>
-<p>
-    <resource key="tutorial.surface.guidance"></resource>
 </p>
 <h3 id="create-the-swap-chain">
     <resource key="tutorial.swapChain.title"></resource>
@@ -644,7 +641,7 @@ float4 FSMain(FSInput input) : SV_TARGET
         <slot name="sVTARGET"><code>SV_TARGET</code></slot>
     </resource>
 </p>
-<h3 id="compile-for-the-selected-backend">
+<h3 id="compile-the-shaders">
     <resource key="tutorial.shaders.compilation.title"></resource>
 </h3>
 <p>
@@ -709,13 +706,13 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
                 <resource key="tutorial.input.table.headings.cField"></resource>
             </th>
             <th>
-                <resource key="tutorial.input.table.headings.byteOffset"></resource>
-            </th>
-            <th>
                 <resource key="tutorial.input.table.headings.format"></resource>
             </th>
             <th>
                 <resource key="tutorial.input.table.headings.shaderInput"></resource>
+            </th>
+            <th>
+                <resource key="tutorial.input.table.headings.byteOffset"></resource>
             </th>
         </tr>
     </thead>
@@ -724,7 +721,6 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
             <td>
                 <code>Vertex.Position</code>
             </td>
-            <td>0</td>
             <td>
                 <resource key="tutorial.input.table.vertexPosition.format">
                     <slot name="float3"><a class="xref" href="xref:Zenith.NET.ElementFormat.Float3"><code>Float3</code></a></slot>
@@ -733,12 +729,12 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
             <td>
                 <code>POSITION0</code>
             </td>
+            <td>0</td>
         </tr>
         <tr>
             <td>
                 <code>Vertex.Color</code>
             </td>
-            <td>12</td>
             <td>
                 <resource key="tutorial.input.table.vertexColor.format">
                     <slot name="float4"><a class="xref" href="xref:Zenith.NET.ElementFormat.Float4"><code>Float4</code></a></slot>
@@ -747,18 +743,7 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
             <td>
                 <code>COLOR0</code>
             </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.input.table.nextVertex.cField"></resource>
-            </td>
-            <td>28</td>
-            <td>
-                <resource key="tutorial.input.table.nextVertex.format"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.input.table.nextVertex.shaderInput"></resource>
-            </td>
+            <td>12</td>
         </tr>
     </tbody>
 </table>
@@ -779,37 +764,6 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
     <resource key="tutorial.pipeline.description">
         <slot name="graphicsPipeline"><a class="xref" href="xref:Zenith.NET.GraphicsPipeline"><code>GraphicsPipeline</code></a></slot>
     </resource>
-</p>
-<ul>
-    <li>
-        <resource key="tutorial.pipeline.item">
-            <slot name="triangleList"><a class="xref" href="xref:Zenith.NET.PrimitiveTopology.TriangleList"><code>TriangleList</code></a></slot>
-        </resource>
-    </li>
-    <li>
-        <resource key="tutorial.pipeline.guidance">
-            <slot name="swapChainDescFormat"><code>swapChain.<a class="code-reference" href="xref:Zenith.NET.SwapChain.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.SwapChainDesc.Format">Format</a></code></slot>
-            <slot name="count1"><a class="xref" href="xref:Zenith.NET.SampleCount.Count1"><code>Count1</code></a></slot>
-        </resource>
-    </li>
-    <li>
-        <resource key="tutorial.pipeline.context">
-            <slot name="cullNone"><a class="xref" href="xref:Zenith.NET.RasterizerState.CullNone"><code>CullNone()</code></a></slot>
-        </resource>
-    </li>
-    <li>
-        <resource key="tutorial.pipeline.notes">
-            <slot name="depthNone"><a class="xref" href="xref:Zenith.NET.DepthStencilState.DepthNone"><code>DepthNone()</code></a></slot>
-        </resource>
-    </li>
-    <li>
-        <resource key="tutorial.pipeline.reference">
-            <slot name="opaque"><a class="xref" href="xref:Zenith.NET.BlendState.Opaque"><code>Opaque()</code></a></slot>
-        </resource>
-    </li>
-</ul>
-<p>
-    <resource key="tutorial.pipeline.behavior"></resource>
 </p>
 
 ```csharp
@@ -837,7 +791,21 @@ fragmentShader.Dispose();
 ```
 
 <p>
-    <resource key="tutorial.pipeline.usage">
+    <resource key="tutorial.pipeline.details">
+        <slot name="triangleList"><a class="xref" href="xref:Zenith.NET.PrimitiveTopology.TriangleList"><code>TriangleList</code></a></slot>
+        <slot name="swapChainDescFormat"><code>swapChain.<a class="code-reference" href="xref:Zenith.NET.SwapChain.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.SwapChainDesc.Format">Format</a></code></slot>
+        <slot name="count1"><a class="xref" href="xref:Zenith.NET.SampleCount.Count1"><code>Count1</code></a></slot>
+    </resource>
+</p>
+<p>
+    <resource key="tutorial.pipeline.guidance">
+        <slot name="cullNone"><a class="xref" href="xref:Zenith.NET.RasterizerState.CullNone"><code>CullNone()</code></a></slot>
+        <slot name="depthNone"><a class="xref" href="xref:Zenith.NET.DepthStencilState.DepthNone"><code>DepthNone()</code></a></slot>
+        <slot name="opaque"><a class="xref" href="xref:Zenith.NET.BlendState.Opaque"><code>Opaque()</code></a></slot>
+    </resource>
+</p>
+<p>
+    <resource key="tutorial.pipeline.context">
         <slot name="pipelineDispose"><code>pipeline.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot>
         <slot name="vertexBufferDispose"><code>vertexBuffer.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot>
     </resource>
@@ -871,7 +839,7 @@ commandBuffer.Draw(3, 1, 0, 0);
 </p>
 <p>
     <resource key="tutorial.draw.guidance">
-        <slot name="setVertexBufferVertexBuffer"><code><a class="code-reference" href="xref:Zenith.NET.CommandBuffer.SetVertexBuffer(Zenith.NET.Buffer,System.UInt32,System.UInt32)">SetVertexBuffer</a>(vertexBuffer, 0, 0)</code></slot>
+        <slot name="setVertexBuffer"><code><a class="code-reference" href="xref:Zenith.NET.CommandBuffer.SetVertexBuffer(Zenith.NET.Buffer,System.UInt32,System.UInt32)">SetVertexBuffer</a>(vertexBuffer, 0, 0)</code></slot>
         <slot name="inputLayouts"><a class="xref" href="xref:Zenith.NET.GraphicsPipelineDesc.InputLayouts"><code>InputLayouts</code></a></slot>
     </resource>
 </p>
@@ -887,7 +855,7 @@ commandBuffer.Draw(3, 1, 0, 0);
                 <resource key="tutorial.draw.table.headings.argument"></resource>
             </th>
             <th>
-                <resource key="tutorial.draw.table.headings.description"></resource>
+                <resource key="tutorial.draw.table.headings.value"></resource>
             </th>
             <th>
                 <resource key="tutorial.draw.table.headings.meaning"></resource>
@@ -954,12 +922,8 @@ commandBuffer.Draw(3, 1, 0, 0);
 <p>
     <resource key="tutorial.execution.guidance"></resource>
 </p>
-<p id="follow-the-lifetime-of-one-frame">
-    <resource key="tutorial.lifecycle.description"></resource>
-</p>
-
 <p>
-    <resource key="tutorial.lifecycle.details">
+    <resource key="tutorial.execution.context">
         <slot name="run"><code>Run</code></slot>
         <slot name="windowRun"><code>window.Run()</code></slot>
     </resource>
@@ -975,7 +939,7 @@ context.Dispose();
 ```
 
 <p>
-    <resource key="tutorial.lifecycle.guidance">
+    <resource key="tutorial.execution.notes">
         <slot name="dispose"><a class="xref" href="xref:Zenith.NET.DisposableObject.Dispose"><code>Dispose()</code></a></slot>
     </resource>
 </p>

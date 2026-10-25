@@ -21,7 +21,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12GraphicsCommandList => (nint)CommandList.Handle,
+            _ => default
+        };
     }
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
@@ -301,6 +305,9 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
+        ID3D12DescriptorHeap** ppDescriptorHeaps = stackalloc ID3D12DescriptorHeap*[] { Context.CbvSrvUavHeap.Heap, Context.SamplerHeap.Heap };
+        CommandList.SetDescriptorHeaps(2, ppDescriptorHeaps);
+
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
         CommandList.SetGraphicsRootSignature(Context.RootSignature);
 
@@ -309,12 +316,18 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
+        ID3D12DescriptorHeap** ppDescriptorHeaps = stackalloc ID3D12DescriptorHeap*[] { Context.CbvSrvUavHeap.Heap, Context.SamplerHeap.Heap };
+        CommandList.SetDescriptorHeaps(2, ppDescriptorHeaps);
+
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
         CommandList.SetComputeRootSignature(Context.RootSignature);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
+        ID3D12DescriptorHeap** ppDescriptorHeaps = stackalloc ID3D12DescriptorHeap*[] { Context.CbvSrvUavHeap.Heap, Context.SamplerHeap.Heap };
+        CommandList.SetDescriptorHeaps(2, ppDescriptorHeaps);
+
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
         CommandList.SetGraphicsRootSignature(Context.RootSignature);
     }
@@ -505,14 +518,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginImpl()
     {
-        if (Queue.Type is CommandQueueType.Transfer)
-        {
-            return;
-        }
-
-        ID3D12DescriptorHeap** ppDescriptorHeaps = stackalloc ID3D12DescriptorHeap*[] { Context.CbvSrvUavHeap.Heap, Context.SamplerHeap.Heap };
-
-        CommandList.SetDescriptorHeaps(2, ppDescriptorHeaps);
     }
 
     protected override void EndImpl()

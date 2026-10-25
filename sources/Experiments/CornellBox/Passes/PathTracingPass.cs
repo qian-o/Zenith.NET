@@ -6,217 +6,104 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class PathTracingPass : DisposableObject
 {
-    private const uint ThreadGroupSize = 8;
+    private readonly Buffer buffer;
+    private readonly ComputePipeline pipeline;
 
-    private Buffer vertexBuffer = null!;
-    private Buffer indexBuffer = null!;
-    private Buffer constantBuffer = null!;
-    private ComputePipeline pipeline = null!;
-    private BottomLevelAccelerationStructure blas = null!;
-    private TopLevelAccelerationStructure tlas = null!;
-    private Buffer materialBuffer = null!;
-
-    public Texture Color { get; private set; } = null!;
-
-    public Texture Depth { get; private set; } = null!;
-
-    public Texture Normal { get; private set; } = null!;
-
-    public Texture MotionVectors { get; private set; } = null!;
-
-    protected override void Initialize()
+    public PathTracingPass(RenderDesc desc)
     {
-        CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
-
-        vertexBuffer = App.Context.CreateBuffer(new()
+        buffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (Vertex* pointer = vertices)
-        {
-            vertexBuffer.Upload(0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
-            });
-        }
-
-        indexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (uint* pointer = indices)
-        {
-            indexBuffer.Upload(0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
-            });
-        }
-
-        constantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(Constants),
+            SizeInBytes = (uint)sizeof(PathTracingConstants),
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "PathTracingCS"));
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
 
-        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
-
-        blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
-        {
-            Geometries =
-            [
-                new()
-                {
-                    Type = RayTracingGeometryType.Triangle,
-                    TriangleGeometry = new()
-                    {
-                        VertexBuffer = vertexBuffer,
-                        VertexFormat = PixelFormat.R32G32B32Float,
-                        VertexCount = (uint)vertices.Length,
-                        VertexStrideInBytes = (uint)sizeof(Vertex),
-                        IndexBuffer = indexBuffer,
-                        IndexFormat = IndexFormat.UInt32,
-                        IndexCount = (uint)indices.Length,
-                        Transform = Matrix4x4.Identity
-                    },
-                    IsOpaque = true
-                }
-            ],
-            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-        });
-
-        tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
-        {
-            Instances =
-            [
-                new()
-                {
-                    AccelerationStructure = blas,
-                    InstanceId = 0,
-                    VisibilityMask = 0xFF,
-                    Transform = Matrix4x4.Identity,
-                    Flags = RayTracingInstanceFlags.None
-                }
-            ],
-            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-        });
-
-        commandBuffer.Submit().Wait();
-
-        materialBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
-            StrideInBytes = (uint)sizeof(Material),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (Material* pointer = materials)
-        {
-            materialBuffer.Upload(0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(Material) * materials.Length)
-            });
-        }
-
-        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
-        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
+        Resize(desc);
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    public PathTracingOutput Output { get; private set; } = null!;
+
+    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
     {
-        Constants constants = new()
+        Matrix4x4.Invert(args.View, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(args.Projection, out Matrix4x4 inverseProjection);
+
+        PathTracingConstants constants = new()
         {
-            InverseView = args.InverseView,
-            InverseProjection = args.InverseProjection,
-            ViewProjection = args.ViewProjection,
-            PreviousViewProjection = args.PreviousViewProjection,
-            PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
-            RenderSizeJitter = new(RenderWidth, RenderHeight, args.Jitter.X, args.Jitter.Y),
-            Scene = tlas.Handle,
-            Vertices = vertexBuffer.StorageReadOnlyHandle,
-            Indices = indexBuffer.StorageReadOnlyHandle,
-            Materials = materialBuffer.StorageReadOnlyHandle,
-            Color = Color.StorageHandle,
-            Depth = Depth.StorageHandle,
-            Normal = Normal.StorageHandle,
-            MotionVectors = MotionVectors.StorageHandle
+            InverseView = inverseView,
+            InverseProjection = inverseProjection,
+            ViewProjection = args.View * args.Projection,
+            PreviousViewProjection = args.PreviousView * args.PreviousProjection,
+            Position = new(args.Camera.Position, 1.0f),
+            RenderSize = new(Output.Width, Output.Height),
+            JitterOffset = args.JitterOffset,
+            FrameIndex = args.FrameIndex,
+            Scene = args.Scene.AccelerationStructure,
+            Vertices = args.Scene.Vertices,
+            Indices = args.Scene.Indices,
+            Materials = args.Scene.Materials,
+            Instances = args.Scene.Instances,
+            Color = Output.Color.StorageHandle,
+            Depth = Output.Depth.StorageHandle,
+            MotionVectors = Output.MotionVectors.StorageHandle,
+            DiffuseAlbedo = Output.DiffuseAlbedo.StorageHandle,
+            SpecularAlbedo = Output.SpecularAlbedo.StorageHandle,
+            Normals = Output.Normals.StorageHandle,
+            Roughness = Output.Roughness.StorageHandle,
+            SpecularHitDistance = Output.SpecularHitDistance.StorageHandle
         };
 
-        constantBuffer.Upload(0, new()
+        buffer.Upload(0, new()
         {
             Pointer = (nint)(&constants),
-            SizeInBytes = (uint)sizeof(Constants)
+            SizeInBytes = (uint)sizeof(PathTracingConstants)
         });
 
-        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(MotionVectors, default, TextureLayout.Undefined, TextureLayout.Storage);
+        foreach (Texture texture in Output.Textures)
+        {
+            commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.Storage);
+        }
+
+        ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        commandBuffer.SetConstantBuffer(buffer, 0);
+        commandBuffer.Dispatch((Output.Width + group.X - 1) / group.X, (Output.Height + group.Y - 1) / group.Y, 1);
 
-        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
+        foreach (Texture texture in Output.Textures)
+        {
+            commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
+        }
     }
 
-    protected override void ResizeImpl()
+    public void Resize(RenderDesc desc)
     {
-        Color.Dispose();
-        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        if (Output is not null && Output.Width == desc.InputWidth && Output.Height == desc.InputHeight)
+        {
+            return;
+        }
 
-        Depth.Dispose();
-        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
-
-        Normal.Dispose();
-        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-
-        MotionVectors.Dispose();
-        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
+        Output?.Dispose();
+        Output = null!;
+        Output = new(desc.InputWidth, desc.InputHeight);
     }
 
     protected override void Destroy()
     {
-        MotionVectors?.Dispose();
-        Normal?.Dispose();
-        Depth?.Dispose();
-        Color?.Dispose();
-        materialBuffer.Dispose();
-        tlas.Dispose();
-        blas.Dispose();
-        pipeline.Dispose();
-        constantBuffer.Dispose();
-        indexBuffer.Dispose();
-        vertexBuffer.Dispose();
+        Output?.Dispose();
+        pipeline?.Dispose();
+        buffer?.Dispose();
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 352)]
-file struct Constants
+[StructLayout(LayoutKind.Explicit, Size = 400)]
+file struct PathTracingConstants
 {
     [FieldOffset(0)]
     public Matrix4x4 InverseView;
@@ -231,32 +118,53 @@ file struct Constants
     public Matrix4x4 PreviousViewProjection;
 
     [FieldOffset(256)]
-    public Vector4 PositionFrame;
+    public Vector4 Position;
 
     [FieldOffset(272)]
-    public Vector4 RenderSizeJitter;
+    public Vector2 RenderSize;
+
+    [FieldOffset(280)]
+    public Vector2 JitterOffset;
 
     [FieldOffset(288)]
-    public ResourceHandle Scene;
+    public uint FrameIndex;
 
     [FieldOffset(296)]
-    public ResourceHandle Vertices;
+    public ResourceHandle Scene;
 
     [FieldOffset(304)]
-    public ResourceHandle Indices;
+    public ResourceHandle Vertices;
 
     [FieldOffset(312)]
-    public ResourceHandle Materials;
+    public ResourceHandle Indices;
 
     [FieldOffset(320)]
-    public ResourceHandle Color;
+    public ResourceHandle Materials;
 
     [FieldOffset(328)]
-    public ResourceHandle Depth;
+    public ResourceHandle Instances;
 
     [FieldOffset(336)]
-    public ResourceHandle Normal;
+    public ResourceHandle Color;
 
     [FieldOffset(344)]
+    public ResourceHandle Depth;
+
+    [FieldOffset(352)]
     public ResourceHandle MotionVectors;
+
+    [FieldOffset(360)]
+    public ResourceHandle DiffuseAlbedo;
+
+    [FieldOffset(368)]
+    public ResourceHandle SpecularAlbedo;
+
+    [FieldOffset(376)]
+    public ResourceHandle Normals;
+
+    [FieldOffset(384)]
+    public ResourceHandle Roughness;
+
+    [FieldOffset(392)]
+    public ResourceHandle SpecularHitDistance;
 }

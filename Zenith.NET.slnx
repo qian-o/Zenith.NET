@@ -7,6 +7,7 @@
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.DLSS/Zenith.NET.Extensions.DLSS.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" />

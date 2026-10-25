@@ -5,39 +5,6 @@ namespace Zenith.NET;
 
 public static unsafe class ZenithMarshal
 {
-    public class Scope : DisposableObject
-    {
-        private readonly List<nint> pointers = [];
-
-        internal nint Native<T>(uint length) where T : unmanaged
-        {
-            nint pointer = (nint)NativeMemory.AllocZeroed((nuint)(sizeof(T) * length));
-
-            pointers.Add(pointer);
-
-            return pointer;
-        }
-
-        internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
-        {
-            nint pointer = (nint)NativeMemory.Alloc((nuint)(sizeof(T) * data.Length));
-            data.CopyTo(new((void*)pointer, data.Length));
-
-            pointers.Add(pointer);
-
-            return pointer;
-        }
-
-        protected override void Destroy()
-        {
-            foreach (nint pointer in pointers)
-            {
-                NativeMemory.Free((void*)pointer);
-            }
-            pointers.Clear();
-        }
-    }
-
     public static nint Allocate<T>(Scope scope, uint length) where T : unmanaged
     {
         return scope.Native<T>(length);
@@ -94,5 +61,38 @@ public static unsafe class ZenithMarshal
         }
 
         return strings;
+    }
+
+    public class Scope : DisposableObject
+    {
+        private readonly List<nint> pointers = [];
+
+        internal nint Native<T>(uint length) where T : unmanaged
+        {
+            nint pointer = (nint)NativeMemory.AllocZeroed((nuint)(sizeof(T) * length));
+
+            pointers.Add(pointer);
+
+            return pointer;
+        }
+
+        internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
+        {
+            nint pointer = (nint)NativeMemory.Alloc((nuint)(sizeof(T) * data.Length));
+            data.CopyTo(new((void*)pointer, data.Length));
+
+            pointers.Add(pointer);
+
+            return pointer;
+        }
+
+        protected override void Destroy()
+        {
+            foreach (nint pointer in pointers)
+            {
+                NativeMemory.Free((void*)pointer);
+            }
+            pointers.Clear();
+        }
     }
 }

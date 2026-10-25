@@ -137,20 +137,6 @@ commandBuffer.Transition(outputTexture, default, TextureLayout.Storage, TextureL
         <slot name="undefined"><a class="xref" href="xref:Zenith.NET.TextureLayout.Undefined"><code>Undefined</code></a></slot>
     </resource>
 </p>
-<h3 id="a-transition-is-not-identical-on-every-backend">
-    <resource key="concepts.synchronization.backends.title"></resource>
-</h3>
-<p>
-    <resource key="concepts.synchronization.backends.description">
-        <slot name="transition"><a class="xref" href="xref:Zenith.NET.CommandBuffer.Transition(Zenith.NET.Texture,Zenith.NET.TextureSubresource,Zenith.NET.TextureLayout,Zenith.NET.TextureLayout)"><code>Transition</code></a></slot>
-        <slot name="barrier"><a class="xref" href="xref:Zenith.NET.CommandBuffer.Barrier(Zenith.NET.BarrierStages,Zenith.NET.BarrierStages)"><code>Barrier</code></a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="concepts.synchronization.backends.details">
-        <slot name="link"><a href="~/learn/samples.md#compute-shader"><resource key="concepts.synchronization.backends.details.link"></resource></a></slot>
-    </resource>
-</p>
 <p>
     <a id="cpu-and-gpu"></a>
 </p>
@@ -198,26 +184,6 @@ consumed.Wait();
         <slot name="signal"><a class="xref" href="xref:Zenith.NET.Timeline.Signal"><code>Signal()</code></a></slot>
     </resource>
 </p>
-<h3 id="gpu-completion-and-downloaded-cpu-data-are-separate-steps">
-    <resource key="concepts.synchronization.readback.title"></resource>
-</h3>
-<p>
-    <resource key="concepts.synchronization.readback.description">
-        <slot name="isCompleted"><a class="xref" href="xref:Zenith.NET.TimelineValue.IsCompleted"><code>IsCompleted</code></a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="concepts.synchronization.readback.details">
-        <slot name="commandBufferDownload"><a class="xref" href="xref:Zenith.NET.CommandBuffer.Download*"><code>CommandBuffer.Download</code></a></slot>
-        <slot name="wait"><a class="xref" href="xref:Zenith.NET.TimelineValue.Wait"><code>Wait()</code></a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="concepts.synchronization.readback.guidance">
-        <slot name="isCompleted"><a class="xref" href="xref:Zenith.NET.TimelineValue.IsCompleted"><code>IsCompleted</code></a></slot>
-        <slot name="link"><a href="~/learn/concepts/resource-management.md#memory-placement"><resource key="concepts.synchronization.readback.guidance.link"></resource></a></slot>
-    </resource>
-</p>
 <h2 id="reuse-data-only-after-its-final-access">
     <resource key="concepts.synchronization.reuse.title"></resource>
 </h2>
@@ -232,5 +198,6 @@ consumed.Wait();
 <p>
     <resource key="concepts.synchronization.reuse.guidance">
         <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
+        <slot name="swapChainQueue"><a class="xref" href="xref:Zenith.NET.SwapChain.Queue"><code>SwapChain.Queue</code></a></slot>
     </resource>
 </p>

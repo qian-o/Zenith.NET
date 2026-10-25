@@ -29,7 +29,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         ulong elapsedTicks = unchecked(endTimestamp - startTimestamp);
 
-        if (validBits is < 64)
+        if (validBits < 64)
         {
             elapsedTicks &= (1UL << (int)validBits) - 1;
         }

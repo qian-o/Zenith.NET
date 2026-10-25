@@ -53,6 +53,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
+                                       out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer)
     {
         using ComPtr<ID3D12Debug> debug = new();
@@ -121,6 +122,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         graphicsQueue = new DXCommandQueue(this, CommandQueueType.Graphics);
         computeQueue = new DXCommandQueue(this, CommandQueueType.Compute);
         transferQueue = new DXCommandQueue(this, CommandQueueType.Transfer);
+        presentQueue = new DXCommandQueue(this, CommandQueueType.Present);
         validationLayer = useValidationLayer ? new DXValidationLayer(this) : null;
     }
 

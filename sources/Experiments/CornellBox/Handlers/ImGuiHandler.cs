@@ -1,35 +1,28 @@
-﻿using System.Numerics;
+﻿using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
-using Zenith.NET;
 using Zenith.NET.Extensions.ImGui;
 
 namespace CornellBox.Handlers;
 
-internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
+internal class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
 {
-    private readonly IMouse mouse;
-    private readonly IKeyboard keyboard;
+    public event EventHandler<ImGuiInputArgs>? Input;
 
-    public ImGuiHandler(IInputContext input, AttachmentFormats attachmentFormats) : base(App.Context, attachmentFormats, ImGuiColorSpace.Legacy, Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"), OtherSetup)
+    public void Initialize(ImGuiIOPtr io)
     {
-        mouse = input.Mice[0];
-        mouse.MouseDown += OnMouseDown;
-        mouse.MouseUp += OnMouseUp;
-        mouse.MouseMove += OnMouseMove;
-        mouse.Scroll += OnMouseScroll;
+        io.DisplayFramebufferScale = platform.DpiScale;
 
-        keyboard = input.Keyboards[0];
-        keyboard.KeyDown += OnKeyDown;
-        keyboard.KeyUp += OnKeyUp;
-        keyboard.KeyChar += OnKeyChar;
-
-        PlatformBindings = this;
+        unsafe
+        {
+            io.Fonts.Clear();
+            io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
+        }
     }
 
     public void SetCursor(ImGuiMouseCursor cursor)
     {
-        mouse.Cursor.StandardCursor = cursor switch
+        platform.Cursor = cursor switch
         {
             ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
             ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
@@ -46,70 +39,74 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
 
     public string GetClipboardText()
     {
-        return keyboard.ClipboardText;
+        return platform.ClipboardText;
     }
 
     public void SetClipboardText(string text)
     {
-        keyboard.ClipboardText = text;
+        platform.ClipboardText = text;
     }
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
-        // IME not supported.
     }
 
-    private void OnMouseDown(IMouse mouse, MouseButton button)
+    public void Update(ReadOnlySpan<Input> inputs)
     {
-        MouseDown(button switch
+        foreach (Input input in inputs)
         {
-            MouseButton.Left => ImGuiMouseButton.Left,
-            MouseButton.Right => ImGuiMouseButton.Right,
-            MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
-        });
-    }
+            switch (input.Type)
+            {
+                case InputType.MouseDown when input.Button <= MouseButton.Button5:
+                    Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)input.Button });
+                    break;
 
-    private void OnMouseUp(IMouse mouse, MouseButton button)
-    {
-        MouseUp(button switch
-        {
-            MouseButton.Left => ImGuiMouseButton.Left,
-            MouseButton.Right => ImGuiMouseButton.Right,
-            MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
-        });
-    }
+                case InputType.MouseUp when input.Button <= MouseButton.Button5:
+                    Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)input.Button });
+                    break;
 
-    private void OnMouseMove(IMouse mouse, Vector2 position)
-    {
-        MouseMove(position);
-    }
+                case InputType.MouseMove:
+                    Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = input.Position });
+                    break;
 
-    private void OnMouseScroll(IMouse mouse, ScrollWheel offset)
-    {
-        MouseWheel(new(offset.X, offset.Y));
-    }
+                case InputType.MouseWheel:
+                    Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = input.Offset });
+                    break;
 
-    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
-    {
-        KeyDown(TranslateInputKeyToImGuiKey(key));
-        KeyDown(TranslateInputKeyToImGuiModifier(key));
-    }
+                case InputType.KeyDown:
+                    Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(input.Key) });
+                    Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
+                    break;
 
-    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
-    {
-        KeyUp(TranslateInputKeyToImGuiKey(key));
-        KeyUp(TranslateInputKeyToImGuiModifier(key));
-    }
+                case InputType.KeyUp:
+                    Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(input.Key) });
+                    Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
+                    break;
 
-    private void OnKeyChar(IKeyboard keyboard, char c)
-    {
-        KeyChar(c);
+                case InputType.TextInput:
+                    Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = input.Character });
+                    break;
+            }
+        }
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
     {
+        if (key >= Key.Number0 && key <= Key.Number9)
+        {
+            return ImGuiKey.Key0 + (key - Key.Number0);
+        }
+
+        if (key >= Key.A && key <= Key.Z)
+        {
+            return ImGuiKey.A + (key - Key.A);
+        }
+
+        if (key >= Key.F1 && key <= Key.F24)
+        {
+            return ImGuiKey.F1 + (key - Key.F1);
+        }
+
         return key switch
         {
             Key.Tab => ImGuiKey.Tab,
@@ -169,9 +166,6 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
             Key.AltRight => ImGuiKey.RightAlt,
             Key.SuperRight => ImGuiKey.RightSuper,
             Key.Menu => ImGuiKey.Menu,
-            >= Key.Number0 and <= Key.Number9 => ImGuiKey.Key0 + (key - Key.Number0),
-            >= Key.A and <= Key.Z => ImGuiKey.A + (key - Key.A),
-            >= Key.F1 and <= Key.F24 => ImGuiKey.F1 + (key - Key.F1),
             _ => ImGuiKey.None
         };
     }
@@ -186,11 +180,5 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
             Key.SuperLeft or Key.SuperRight => ImGuiKey.ModSuper,
             _ => ImGuiKey.None
         };
-    }
-
-    private static void OtherSetup(ImGuiIOPtr io)
-    {
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-        io.DisplayFramebufferScale = App.DpiScale;
     }
 }
