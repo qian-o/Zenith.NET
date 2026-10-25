@@ -4,8 +4,6 @@ public enum DLSSMode
 {
     DLAA,
 
-    UltraQuality,
-
     Quality,
 
     Balanced,

@@ -143,7 +143,6 @@ internal static class DLSSFormats
         return mode switch
         {
             DLSSMode.DLAA => NGXPerfQualityValue.Dlaa,
-            DLSSMode.UltraQuality => NGXPerfQualityValue.UltraQuality,
             DLSSMode.Quality => NGXPerfQualityValue.MaxQuality,
             DLSSMode.Balanced => NGXPerfQualityValue.Balanced,
             DLSSMode.Performance => NGXPerfQualityValue.MaxPerf,
