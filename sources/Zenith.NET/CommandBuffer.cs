@@ -275,12 +275,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetConstantBuffer(Buffer buffer, uint offsetInBytes)
     {
-        if (!TryGetCurrentPipeline(out Pipeline pipeline))
+        if (currentPipeline is null)
         {
             return;
         }
 
-        SetConstantBufferImpl(pipeline, buffer, offsetInBytes);
+        SetConstantBufferImpl(currentPipeline, buffer, offsetInBytes);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -500,20 +500,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void EndImpl();
 
     protected abstract void ResetImpl();
-
-    private bool TryGetCurrentPipeline(out Pipeline pipeline)
-    {
-        if (currentPipeline is not null)
-        {
-            pipeline = currentPipeline;
-
-            return true;
-        }
-
-        pipeline = null!;
-
-        return false;
-    }
 
     private bool TryGetCurrentPipeline<TPipeline>(out TPipeline pipeline) where TPipeline : Pipeline
     {
