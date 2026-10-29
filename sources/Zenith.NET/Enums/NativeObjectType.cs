@@ -22,6 +22,8 @@ public enum NativeObjectType
 
     MTLTexture,
 
+    MTL4CommandBuffer,
+
     MTL4CommandQueue,
 
     VulkanAccelerationStructure,

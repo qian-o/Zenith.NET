@@ -393,6 +393,20 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         InsertDebugMarkerImpl(label);
     }
 
+    public void BeginExternalCommands()
+    {
+        BeginExternalCommandsImpl();
+
+        Barrier(BarrierStages.All, BarrierStages.All);
+    }
+
+    public void EndExternalCommands()
+    {
+        Barrier(BarrierStages.All, BarrierStages.All);
+
+        EndExternalCommandsImpl();
+    }
+
     internal void Begin()
     {
         BeginImpl();
@@ -494,6 +508,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void EndDebugEventImpl();
 
     protected abstract void InsertDebugMarkerImpl(string label);
+
+    protected abstract void BeginExternalCommandsImpl();
+
+    protected abstract void EndExternalCommandsImpl();
 
     protected abstract void BeginImpl();
 

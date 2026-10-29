@@ -16,11 +16,11 @@ public class DLSSRayReconstruction : DLSSFeature
     public void Dispatch(CommandBuffer commandBuffer, DLSSRayReconstructionArgs args)
     {
         commandBuffer.BeginDebugEvent("DLSS Ray Reconstruction");
-        commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
+        commandBuffer.BeginExternalCommands();
 
         Backend.Evaluate(commandBuffer, this, args);
 
-        commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
+        commandBuffer.EndExternalCommands();
         commandBuffer.EndDebugEvent();
     }
 }

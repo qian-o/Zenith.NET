@@ -16,11 +16,11 @@ public class DLSSFrameGeneration : DLSSFeature
     public void Dispatch(CommandBuffer commandBuffer, DLSSFrameGenerationArgs args)
     {
         commandBuffer.BeginDebugEvent("DLSS Frame Generation");
-        commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
+        commandBuffer.BeginExternalCommands();
 
         Backend.Evaluate(commandBuffer, this, args);
 
-        commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
+        commandBuffer.EndExternalCommands();
         commandBuffer.EndDebugEvent();
     }
 }

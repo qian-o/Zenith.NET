@@ -58,7 +58,11 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.MTL4CommandBuffer => CommandBuffer.NativePtr,
+            _ => default
+        };
     }
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
@@ -490,6 +494,16 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         Render?.InsertDebugSignpost(label);
         Compute?.InsertDebugSignpost(label);
+    }
+
+    protected override void BeginExternalCommandsImpl()
+    {
+        EndComputeEncoding();
+    }
+
+    protected override void EndExternalCommandsImpl()
+    {
+        BeginComputeEncoding();
     }
 
     protected override void BeginImpl()
