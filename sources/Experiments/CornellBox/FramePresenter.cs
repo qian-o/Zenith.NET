@@ -7,6 +7,7 @@ namespace CornellBox;
 internal class FramePresenter : DisposableObject
 {
     private const int BatchCount = 2;
+    private const int MaxIntervalGrowth = 2;
 
     private readonly GraphicsContext context;
     private readonly SwapChain swapChain;
@@ -133,6 +134,7 @@ internal class FramePresenter : DisposableObject
     private void RenderLoop()
     {
         long previousStart = Stopwatch.GetTimestamp();
+        long previousIntervalTicks = 0;
 
         while (!isStopping)
         {
@@ -170,8 +172,10 @@ internal class FramePresenter : DisposableObject
 
                 long start = Stopwatch.GetTimestamp();
                 double deltaSeconds = Stopwatch.GetElapsedTime(previousStart, start).TotalSeconds;
+                long intervalTicks = ready - previousStart;
 
-                batch.IntervalTicks = ready - previousStart;
+                batch.IntervalTicks = previousIntervalTicks is 0 ? intervalTicks : Math.Min(intervalTicks, previousIntervalTicks * MaxIntervalGrowth);
+                previousIntervalTicks = batch.IntervalTicks;
                 previousStart = start;
 
                 Update?.Invoke(deltaSeconds);
