@@ -7,7 +7,7 @@
     <ItemGroup>
         <PackageVersion Include="Avalonia" Version="12.1.4" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
-        <PackageVersion Include="Metal.NET" Version="2.5.0" />
+        <PackageVersion Include="Metal.NET" Version="2.6.0" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.120" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
         <PackageVersion Include="NGX.NET" Version="310.9.16" />
