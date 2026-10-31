@@ -3,7 +3,7 @@ using CornellBox.Handlers;
 using CornellBox.Models;
 using CornellBox.Passes;
 using Zenith.NET;
-using Buffer = Zenith.NET.Buffer;
+using Zenith.NET.Extensions.Reconstruction;
 
 namespace CornellBox;
 
@@ -11,7 +11,7 @@ internal class Renderer : DisposableObject
 {
     private readonly SceneResources scene;
     private readonly PathTracingPass pathTracingPass;
-    private readonly DenoisingUpscalingPass denoisingUpscalingPass;
+    private readonly UpscalingPass upscalingPass;
     private readonly OutputPass outputPass;
     private readonly FrameGenerationPass frameGenerationPass;
     private readonly CompositePass compositePass;
@@ -19,6 +19,7 @@ internal class Renderer : DisposableObject
     private Matrix4x4 previousView;
     private Matrix4x4 previousProjection;
     private int[] outputIndices = [0];
+    private int firstOutputIndex;
     private double elapsedSeconds;
     private uint frameIndex;
 
@@ -33,7 +34,7 @@ internal class Renderer : DisposableObject
         };
 
         scene = new();
-        denoisingUpscalingPass = new(desc);
+        upscalingPass = new(desc);
         pathTracingPass = new(desc);
         outputPass = new(desc);
         frameGenerationPass = new(desc);
@@ -42,13 +43,17 @@ internal class Renderer : DisposableObject
 
     public bool IsPaused { get; set; }
 
-    public DenoisingUpscalingMode DenoisingUpscaling { get; set; }
+    public UpscalerKind Upscaler { get; set; }
+
+    public UpscalerMode UpscalerMode { get; set; } = UpscalerMode.Quality;
 
     public FrameGenerationMode FrameGeneration { get; set; }
 
     public Texture Overlay => compositePass.Overlay;
 
     public ReadOnlySpan<Texture> Colors => compositePass.Colors;
+
+    public ReadOnlySpan<int> OutputIndices => outputIndices.AsSpan(firstOutputIndex);
 
     public void Update(double deltaSeconds)
     {
@@ -58,7 +63,7 @@ internal class Renderer : DisposableObject
         }
     }
 
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera)
+    public void Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
         Resize(App.Width, App.Height);
 
@@ -74,21 +79,23 @@ internal class Renderer : DisposableObject
             Projection = projection,
             PreviousView = frameIndex is 0 ? view : previousView,
             PreviousProjection = frameIndex is 0 ? projection : previousProjection,
-            JitterOffset = denoisingUpscalingPass.Color is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f),
+            JitterOffset = upscalingPass.Color is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f),
+            DeltaSeconds = deltaSeconds,
             FrameIndex = frameIndex
         };
 
         scene.Update(commandBuffer, elapsedSeconds);
 
         pathTracingPass.Record(commandBuffer, args);
-        denoisingUpscalingPass.Record(commandBuffer, args);
+        upscalingPass.Record(commandBuffer, args);
 
-        args = args with { Color = denoisingUpscalingPass.Color ?? args.Input.Color };
+        args = args with { Color = upscalingPass.Color ?? args.Input.Color };
         outputPass.Record(commandBuffer, args);
 
         args = args with { Color = outputPass.Color };
         frameGenerationPass.Record(commandBuffer, args);
 
+        firstOutputIndex = args.Reset ? outputIndices.Length - 1 : 0;
         previousView = view;
         previousProjection = projection;
         frameIndex++;
@@ -103,41 +110,6 @@ internal class Renderer : DisposableObject
         });
     }
 
-    public ReadOnlySpan<int> ReadOutputIndices(TimelineValue completion)
-    {
-        if (frameGenerationPass.Readback is not Buffer readback)
-        {
-            return outputIndices;
-        }
-
-        completion.Wait();
-
-        unsafe
-        {
-            byte* flags = (byte*)readback.Map();
-            int count = 0;
-
-            try
-            {
-                for (int i = 0; i < frameGenerationPass.Colors.Length; i++)
-                {
-                    if (flags[i * sizeof(uint)] is 0)
-                    {
-                        outputIndices[count++] = i;
-                    }
-                }
-            }
-            finally
-            {
-                readback.Unmap();
-            }
-
-            outputIndices[count++] = frameGenerationPass.Colors.Length;
-
-            return outputIndices.AsSpan(0, count);
-        }
-    }
-
     public void Resize(uint width, uint height)
     {
         RenderDesc desc = new()
@@ -146,23 +118,37 @@ internal class Renderer : DisposableObject
             InputHeight = height,
             OutputWidth = width,
             OutputHeight = height,
-            DenoisingUpscaling = DenoisingUpscaling,
+            Upscaler = Upscaler,
+            UpscalerMode = UpscalerMode,
             FrameGeneration = FrameGeneration
         };
-        if (App.Technology is not RenderingTechnology.DLSS)
+
+        ReconstructionCapabilities capabilities = App.Context.ReconstructionCapabilities;
+        bool isUpscalerSupported = desc.Upscaler switch
         {
-            desc.DenoisingUpscaling = DenoisingUpscalingMode.Off;
+            UpscalerKind.Temporal => capabilities.TemporalUpscalerSupported,
+            UpscalerKind.Denoising => capabilities.DenoisingUpscalerSupported,
+            _ => true
+        };
+
+        if (!isUpscalerSupported)
+        {
+            desc.Upscaler = UpscalerKind.Off;
+        }
+
+        if (!capabilities.FrameGeneratorSupported)
+        {
             desc.FrameGeneration = FrameGenerationMode.X1;
         }
 
-        if (outputPass.Color.Desc.Width == width && outputPass.Color.Desc.Height == height && denoisingUpscalingPass.Desc.DenoisingUpscaling == desc.DenoisingUpscaling && frameGenerationPass.Colors.Length == (int)desc.FrameGeneration)
+        if (outputPass.Color.Desc.Width == width && outputPass.Color.Desc.Height == height && upscalingPass.Desc.Upscaler == desc.Upscaler && upscalingPass.Desc.UpscalerMode == desc.UpscalerMode && frameGenerationPass.Colors.Length == (int)desc.FrameGeneration)
         {
             return;
         }
 
-        denoisingUpscalingPass.Resize(desc);
-        desc.InputWidth = denoisingUpscalingPass.Desc.InputWidth;
-        desc.InputHeight = denoisingUpscalingPass.Desc.InputHeight;
+        upscalingPass.Resize(desc);
+        desc.InputWidth = upscalingPass.Desc.InputWidth;
+        desc.InputHeight = upscalingPass.Desc.InputHeight;
 
         pathTracingPass.Resize(desc);
         outputPass.Resize(desc);
@@ -171,7 +157,7 @@ internal class Renderer : DisposableObject
 
         if (outputIndices.Length != Colors.Length)
         {
-            outputIndices = new int[Colors.Length];
+            outputIndices = [.. Enumerable.Range(0, Colors.Length)];
         }
 
         frameIndex = 0;
@@ -183,7 +169,7 @@ internal class Renderer : DisposableObject
         frameGenerationPass?.Dispose();
         outputPass?.Dispose();
         pathTracingPass?.Dispose();
-        denoisingUpscalingPass?.Dispose();
+        upscalingPass?.Dispose();
         scene?.Dispose();
     }
 

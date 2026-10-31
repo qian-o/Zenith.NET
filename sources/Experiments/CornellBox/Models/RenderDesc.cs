@@ -1,4 +1,6 @@
-﻿namespace CornellBox.Models;
+﻿using Zenith.NET.Extensions.Reconstruction;
+
+namespace CornellBox.Models;
 
 internal struct RenderDesc
 {
@@ -10,7 +12,9 @@ internal struct RenderDesc
 
     public uint OutputHeight;
 
-    public DenoisingUpscalingMode DenoisingUpscaling;
+    public UpscalerKind Upscaler;
+
+    public UpscalerMode UpscalerMode;
 
     public FrameGenerationMode FrameGeneration;
 }

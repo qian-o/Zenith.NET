@@ -102,7 +102,7 @@ public enum ReconstructionFlags
 ```csharp
 public abstract class TemporalUpscaler : DisposableObject
 {
-    public TemporalUpscalerDesc Desc { get; }
+    public ref readonly TemporalUpscalerDesc Desc { get; }
 
     public void Dispatch(CommandBuffer commandBuffer, TemporalUpscalerArgs args);
 
@@ -110,7 +110,7 @@ public abstract class TemporalUpscaler : DisposableObject
 }
 ```
 
-`DenoisingUpscaler`、`FrameGenerator` 结构相同，使用各自的 Desc / Args。构造器均为 internal，`Dispatch` 转调 `DispatchImpl`。
+`DenoisingUpscaler`、`FrameGenerator` 结构相同，使用各自的 Desc / Args。构造器均为 internal，`Dispatch` 转调 `DispatchImpl`。`Desc` 与 RHI 一致，以 `ref readonly` 返回内部保存的描述。
 
 生命周期：
 
@@ -130,15 +130,15 @@ public abstract class TemporalUpscaler : DisposableObject
 | 尺寸 | 创建时固定，逐帧使用整幅图像。超分的 Output 为输出尺寸、Exposure 为 1×1，其余输入为输入尺寸，时域超分设置 `OutputResolutionMotionVectors` 时 MotionVectors 为输出尺寸；帧生成见 4.3。固定配置改变时重建对象并 Reset |
 | 填写 | Desc / Args 为可变结构体，零值不代表有效参数；`MotionVectorScale`、`PreExposure`、矩阵与 `DeltaTimeInSeconds` 必须显式填写。可空格式为 null 时不启用对应输入，Args 中对应纹理为 null；非 null 时必须提供该纹理。Exposure 由 `AutoExposure` 决定（见 4.1） |
 | 深度 | `[0, 1]` 硬件深度，方向由 `DepthReversed` 标志指定 |
-| 运动矢量 | `MotionVectorScale × 纹理值` 为 Color 网格中的像素位移，与运动矢量纹理的分辨率无关：从当前位置指向上一帧位置，X 向右、Y 向下；包含相机与物体运动，不含抖动（时域超分设置 `JitteredMotionVectors` 时包含抖动） |
-| 抖动 | `JitterOffset` 为 Color 网格中回到参考帧的像素偏移，X 向右、Y 向下，等于采样位置偏移取负（r = −s）；后端不再取负 |
+| 运动矢量 | `MotionVectorScale × 纹理值` 为运动矢量纹理自身网格中的像素位移：从当前位置指向上一帧位置，X 向右、Y 向下；包含相机与物体运动，不含抖动（时域超分设置 `JitteredMotionVectors` 时包含抖动） |
+| 抖动 | `JitterOffset` 为输入网格中回到参考帧的像素偏移，X 向右、Y 向下，等于采样位置偏移取负（r = −s）；后端不再取负 |
 | 矩阵 | System.Numerics 行向量约定，不含抖动 |
 | 预曝光 | `PreExposure` 为线性输入已乘的正数，未使用时填 1；输出保持该尺度 |
-| 颜色 | Color 与 Output 只约定 RGB，alpha 未定义；TransparencyOverlay 与 UI 为预乘 alpha 的 RGBA（见 4.2、4.3） |
+| 颜色 | Color 与 Output 只约定 RGB，alpha 未定义；TransparencyOverlay 为预乘 alpha 的 RGBA（见 4.2） |
 | 历史 | 由原生维护，扩展不持有历史图像。首次执行、重建、镜头切换、世界坐标基准改变、放弃提交或执行失败后，由调用方设置 `Reset = true`；同一实例按真实帧顺序录制和提交，不并发录制，不跨相机复用 |
 | 命令 | CommandBuffer 处于录制状态、在渲染通道外、来自非 Transfer 队列；Dispatch 只录制，不提交、不呈现、不等待。跨队列可见性由调用方负责；Dispatch 后需重新设置管线与绑定 |
 
-Color 网格指 Color 纹理的像素网格：超分为输入尺寸，帧生成为输出尺寸。
+输入网格指输入尺寸的像素网格。两项均为两端原生采用的单位，后端原样传入；运动矢量纹理为输入尺寸时（时域超分设置 `OutputResolutionMotionVectors` 除外），超分与帧生成填写相同的值。
 
 ## 4. 功能
 
@@ -195,7 +195,7 @@ public struct TemporalUpscalerArgs
 - Color 为线性颜色（可为 HDR），Output 保持同一线性尺度。
 - 设置 `AutoExposure` 时 `Exposure` 为 null；未设置时必须提供 1×1 `R16Float` 曝光纹理，单位曝光传值为 1 的纹理。
 - 设置 `JitteredMotionVectors` 时，运动矢量包含抖动，由原生按 `JitterOffset` 扣除；未设置时运动矢量不得含抖动。
-- 设置 `OutputResolutionMotionVectors` 时，运动矢量须已膨胀（dilated），数值仍按 Color（输入）网格解释：纹理值为输出网格像素时，`MotionVectorScale` 取 I / O。
+- 设置 `OutputResolutionMotionVectors` 时，运动矢量须已膨胀（dilated），`MotionVectorScale × 纹理值` 为输出网格像素；`JitterOffset` 仍为输入网格像素。
 - `ReactiveMaskFormat` 非 null 时必须提供 ReactiveMask：输入尺寸，只读 R 通道，每像素取 0 或 1（DLSS 只定义二值）；1 表示该像素的历史不可靠（如 alpha 混合、运动信息不准），偏向当前帧。只用于有问题的内容，可能增加遮罩边缘的锯齿。
 
 ### 4.2 降噪超分
@@ -343,8 +343,8 @@ public struct FrameGeneratorArgs
 - 正常历史下，Output 是 Fₙ₋₁ 与 Fₙ 之间的单张插帧，目标时刻为 tₙ₋₁ + Δt/2；呈现顺序为 Fₙ₋₁ → Output → Fₙ，节奏由应用控制。原生可能自行放弃插值（如 DLSS 输出当前帧），两端不要求逐帧一致。
 - Reset 帧只重建历史，Output 不可呈现，应用呈现 Color。
 - Color 为已色调映射、sRGB 显示编码（SDR，数值范围 [0, 1]）的当前帧；Output 与之同格式、同编码。不支持 HDR 显示输出：RHI 没有 HDR 交换链与 10-bit 格式，MetalFX 插帧器也没有对应选项。
-- `UIFormat` 为 null 时，Color 不含 UI，UI 由应用分别合成到真实帧与插帧上。非 null 时，Color 已含 UI；`UI` 为输出尺寸、与 Color 同编码的预乘 RGBA UI 层，满足 Color = UI + (1 − α) · 无 UI 画面，非 UI 像素为 0；Output 同样含 UI，应用直接呈现 Color 与 Output。
-- Color、Output 为输出尺寸，Depth、MotionVectors 为输入尺寸，覆盖同一视野。运动矢量与抖动按 Color（输出）网格填写：源渲染的采样偏移为 sᵢ（输入像素）时，`JitterOffset = −sᵢ × O / I`；源帧无抖动时填 0。Flags 只使用 `DepthReversed`。
+- `UIFormat` 为 null 时，Color 不含 UI，UI 由应用分别合成到真实帧与插帧上。非 null 时，Color 为不含 UI 的当前帧，`UI` 为同一帧合成 UI 后的最终画面（与 Color 同尺寸、同格式、同编码，`UIFormat` 等于 `ColorFormat`），两者在非 UI 像素上相同；Output 含 UI，应用依次呈现 Output 与 `UI`。
+- Color、Output 为输出尺寸，Depth、MotionVectors 为输入尺寸，覆盖同一视野。运动矢量与抖动均为输入网格像素（第 3 节）：源渲染的采样偏移为 sᵢ 时 `JitterOffset = −sᵢ`，源帧无抖动时填 0。Flags 只使用 `DepthReversed`。
 - `DeltaTimeInSeconds` 必填，为 Fₙ₋₁ 到 Fₙ 的场景时间间隔（Reset 帧填当前帧步长），不是 GPU 耗时或显示间隔；MetalFX 使用，DLSS 无对应输入。
 - `WorldToView` 为可逆刚体变换，相邻帧使用同一世界坐标基准；`ViewToClip` 为不含抖动、居中对称、近远平面有限、深度 [0, 1] 且方向与 `DepthReversed` 一致的透视投影，手性由矩阵决定。
 
@@ -369,17 +369,17 @@ public struct FrameGeneratorArgs
 | 项 | MetalFX | DLSS |
 | --- | --- | --- |
 | 能力 | 系统 27 及以上（tvOS 为 27.1），且各描述符的 `supportsMetal4FX` | `SuperSampling`、`SuperSamplingDenoising`、`FrameGeneration` 的 `Available` |
-| 超分通用 | 抖动、运动倍率、预曝光直接写入；Reset 写入 `reset`（时域）或 `shouldResetHistory`（降噪） | 同左（含 Reset）；创建标志固定含 `IsHdr`，`ExposureScale = 1`，`RenderSubrectDimensions` 为输入尺寸 |
-| 时域 | `inputContentPropertiesEnabled = false`；`autoExposureEnabled`、`jitteredMotionVectorsEnabled`、`outputResolutionMotionVectorsEnabled` 取对应标志；未设置 `AutoExposure` 时绑定 Exposure | `AutoExposure`、`JitteredMotionVectors` 分别加 `AutoExposure`、`MvJittered` 创建标志；未设置 `OutputResolutionMotionVectors` 时加 `MvLowRes`，设置时运动倍率乘 O / I；未设置 `AutoExposure` 时绑定 Exposure 并固定预设 K |
+| 运动与抖动 | 三个效果均直接写入抖动与运动倍率 | 同左；帧生成不再乘 2 或翻转 Y |
+| 超分通用 | 预曝光直接写入；Reset 写入 `reset`（时域）或 `shouldResetHistory`（降噪） | 同左（含 Reset）；创建标志固定含 `IsHdr`，`ExposureScale = 1`，`RenderSubrectDimensions` 为输入尺寸 |
+| 时域 | `inputContentPropertiesEnabled = false`；`autoExposureEnabled`、`jitteredMotionVectorsEnabled`、`outputResolutionMotionVectorsEnabled` 取对应标志；未设置 `AutoExposure` 时绑定 Exposure | `AutoExposure`、`JitteredMotionVectors` 分别加 `AutoExposure`、`MvJittered` 创建标志；未设置 `OutputResolutionMotionVectors` 时加 `MvLowRes`；未设置 `AutoExposure` 时绑定 Exposure 并固定预设 K |
 | 降噪 | 启用 SpecularHitDistance；`autoExposureEnabled = true`，不绑定曝光纹理；矩阵经 `Unsafe.BitCast<Matrix4x4, SimdFloat4x4>` 传入 | 加 `MvLowRes`；`DLUnified`、硬件深度、`Unpacked` 粗糙度，默认曝光路径；矩阵按行主序直接传入 |
 | 深度方向 | 每次写入 `depthReversed` | 超分写入 `DepthInverted` 创建标志；帧生成每次写入 `DepthInverted` |
-| 帧生成运动与抖动 | 直接写入（Color 网格像素） | 均乘 I / O（输入网格像素），不再乘 2 或翻转 Y |
 | 帧生成相机 | `worldToViewMatrix`、`viewToClipMatrix` 经 `Unsafe.BitCast` 写入；另由 ViewToClip 推导 near、far、垂直 FOV（度）与 aspect 一并写入 | 当前姿态、ViewToClip 及其逆、前后帧 clip 变换；FOV 为弧度 |
 | 帧生成颜色 | Color、Output 按 ColorFormat 原样传入 | `ColorBuffersHDR = false` |
 | 帧生成历史 | `requiresPrevColorTexture = false`，上一帧颜色由原生保存；Reset 写入 `shouldResetHistory` | 原生历史；Reset 写入 `Reset` |
 | 反应遮罩 | `ReactiveMaskFormat` 非 null 时启用 `reactiveMaskTextureEnabled` 并写入格式；绑定 `reactiveMaskTexture` | SR、RR 绑定 `BiasCurrentColorMask` |
 | 透明叠加层 | `TransparencyOverlayFormat` 非 null 时启用 `transparencyOverlayTextureEnabled` 并写入格式；绑定 `transparencyOverlayTexture` | RR 绑定四通道 `TransparencyLayer` |
-| 帧生成 UI | `UIFormat` 非 null 时写入 `uiTextureFormat`，`isUITextureComposited = true`；绑定 `uiTexture` | Backbuffer 为 Color，绑定 `UI`，不绑定 Hudless |
+| 帧生成 UI | `UIFormat` 非 null 时写入 `uiTextureFormat`，`isUITextureComposited = true`；`colorTexture` 绑定 Color（不含 UI），`uiTexture` 绑定 UI（含 UI） | Backbuffer 绑定 UI，Hudless 绑定 Color，不绑定 UI 纹理 |
 | 帧间隔 | 写入 `deltaTime` | 无对应输入 |
 
 DLSS 帧生成的相机推导：令 V、P 为当前矩阵，V′、P′ 为上一真实帧矩阵，`ClipToPrevClip = (V·P)⁻¹ · (V′·P′)`，`PrevClipToClip` 为其逆，Reset 帧为单位矩阵；相机位置、Right、Up 取 V⁻¹ 的第 4、1、2 行，Forward 取第 3 行（右手投影取负）。
@@ -389,7 +389,7 @@ DLSS 帧生成的相机推导：令 V、P 为当前矩阵，V′、P′ 为上�
 DLSS 帧生成：
 
 - 创建：`Width` / `Height` 为输出尺寸，`NativeBackbufferFormat` 为 ColorFormat 对应的原生格式，`RenderWidth` / `RenderHeight` 为输入尺寸，`DynamicResolutionScaling = false`。Vulkan helper 不转发后三项，需直接在参数块写入 `DLSSG.InternalWidth`、`DLSSG.InternalHeight` 和 `DLSSG.DynamicResolution = 0`。
-- 求值：Depth、MVecs 子矩形为输入尺寸，Backbuffer、UI、Output 子矩形为输出尺寸，基点为 0；`MultiFrameCount = MultiFrameIndex = 1`；`CameraMotionIncluded = true`；`MvecJittered = false`（经参数键写入）；`ClipToLensClip` 为单位矩阵；`CameraPinholeOffset = 0`；`OrthoProjection`、`MotionVectorsDilated`、`MenuDetectionEnabled`、`AutomodeOverrideReset`、`NotRenderingGameFrames` 均为 false；`MinRelativeLinearDepthObjectSeparation = 40`；`MotionVectorsInvalidValue = 0`；不绑定插值状态缓冲。
+- 求值：Depth、MVecs 子矩形为输入尺寸，Backbuffer、Hudless、Output 子矩形为输出尺寸，基点为 0；`MultiFrameCount = MultiFrameIndex = 1`；`CameraMotionIncluded = true`；`MvecJittered = false`（经参数键写入）；`ClipToLensClip` 为单位矩阵；`CameraPinholeOffset = 0`；`OrthoProjection`、`MotionVectorsDilated`、`MenuDetectionEnabled`、`AutomodeOverrideReset`、`NotRenderingGameFrames` 均为 false；`MinRelativeLinearDepthObjectSeparation = 40`；`MotionVectorsInvalidValue = 0`；不绑定插值状态缓冲。
 - 单位以 FG 指南正文（运动纹理分辨率的像素）和 NVIDIA RTX Remix 的接入为准，不采用头文件结构注释中的 normalized / clip 描述。
 
 MetalFX：
@@ -473,8 +473,6 @@ TemporalUpscalerArgs args = new()
 
 upscaler.Dispatch(commandBuffer, args);
 
-Vector2 inputToOutput = new((float)OutputWidth / inputSize.Width, (float)OutputHeight / inputSize.Height);
-
 FrameGeneratorArgs frameArgs = new()
 {
     Color = displayColor,
@@ -482,8 +480,8 @@ FrameGeneratorArgs frameArgs = new()
     MotionVectors = motionVectors,
     Output = generatedColor,
     DeltaTimeInSeconds = deltaTimeInSeconds,
-    JitterOffset = args.JitterOffset * inputToOutput,
-    MotionVectorScale = args.MotionVectorScale * inputToOutput,
+    JitterOffset = args.JitterOffset,
+    MotionVectorScale = args.MotionVectorScale,
     WorldToView = worldToView,
     ViewToClip = viewToClip,
     Reset = firstFrame || cameraCut
@@ -533,23 +531,29 @@ Zenith.NET.Extensions.Reconstruction/
 
 - 公开类型位于根目录，命名空间为 `Zenith.NET.Extensions.Reconstruction`；`DLSS/`、`MetalFX/` 下的内部类型分别使用 `Zenith.NET.Extensions.Reconstruction.DLSS`、`Zenith.NET.Extensions.Reconstruction.MetalFX`，保持仓库已启用的 IDE0130。
 - 命名：后端入口为 `ReconstructionBackend`，与其他扩展一致（`SkiaBackend`、`ImGuiBackend`）；后端内部实现为 `DLSSContext`、`MetalFXContext`。效果实现为“后端前缀 + 公共基类名”（如 `DLSSTemporalUpscaler`），格式映射为 `DLSSFormats`、`MetalFXFormats`（同 RHI 的 `MTLFormats`）；能力属性为“功能 + Supported”（同 `RayTracingSupported`）；可选输入用可空类型（同 `AttachmentFormats.DepthStencilFormat`）；单位写入名称（同 `SizeInBytes`）。
-- `Extensions.cs`：公共入口，按 GraphicsContext 缓存 `ReconstructionBackend`，随 GraphicsContext 的 `Disposing` 释放；另以 internal 扩展成员提供 `.Success()` 与从 ViewToClip 推导 near、far、FOV、aspect（两端帧生成共用）。
+- `Extensions.cs`：公共入口，按 GraphicsContext 缓存 `ReconstructionBackend`，随 GraphicsContext 的 `Disposing` 释放；另以 internal 扩展成员提供 `.Success()`、CommandBuffer 与 Texture 到 Metal.NET 对象的 `Metal()` 转换，以及从 ViewToClip 推导 near、far、FOV、aspect（两端帧生成共用）。
 - `ReconstructionBackend.cs`：internal 抽象类，声明能力、两个尺寸查询与三个 Create，由 `DLSSContext`、`MetalFXContext` 实现；按图形 API 只创建其一。
 - `DLSSContext*.cs`：NGX 会话、能力、尺寸查询、创建时的模式反查及参数块与特性的释放，DirectX 12 与 Vulkan 为同一类的 partial；`DLSSFeature.cs` 持有特性句柄与参数块。DLSS 帧生成的前后帧 clip 变换与相机基向量在 `DLSSFrameGenerator` 内推导。
 - `MetalFXContext.cs`：设备、编译器、能力、尺寸计算与三个效果共用的同步收尾。
 - `*Formats.cs`：格式、标志与原生值映射；六个提供方实现分别继承对应的公共类型。
 - 依赖：Zenith.NET、NGX.NET 310.9.16、Metal.NET 2.7.0；不含 shader 或原生桥。
 
-## 8. 待验证
+## 8. 验证
 
-以下映射来自文档，留待对接时逐平台实测确认：
+MetalFX 已在 Apple M4、macOS 27.0.1、Metal.NET 2.7.0 上以合成场景与 CornellBox 实测（开启 Metal API 校验，无报错）：
 
-- MetalFX 帧生成在 `requiresPrevColorTexture = false`、`prevColorTexture = null` 下的正常帧与 Reset 帧行为。
-- MetalFX 帧生成同时写入矩阵与 near、far、FOV、aspect 时的结果；Apple 未说明后者在提供矩阵后是否仍被使用。
-- `OutputResolutionMotionVectors` 的单位：按 Apple 文档，MetalFX 的运动倍率换算到 Color 纹理像素，故直接写入；DLSS 去掉 `MvLowRes` 后按显示分辨率像素解释，故乘 O / I。两端都需实测确认。
-- `JitteredMotionVectors` 在两端的扣除结果一致。
-- TransparencyOverlay 与 UI 在 MetalFX 端是否按预乘 alpha 解释（Apple 未说明），以及 TransparencyOverlay 在 MetalFX 端的分辨率。
-- DLSS 创建时的模式反查，以及 MetalFX 帧生成去掉消费者屏障后的同步（与超分相同）。
+- 抖动 r = −s、运动矢量方向、`JitteredMotionVectors`（运动矢量含 s 当前 − s 上一帧，由原生扣除）、反应遮罩全 0 时等同未启用，均符合契约。
+- 原生按运动矢量纹理网格解释运动倍率，与第 3 节一致：输出尺寸运动矢量取 `MotionVectorScale = 1` 时与输入尺寸基线误差相同；帧生成取 1 时插帧落在中点，×0.5、×2 均偏离；Apple 的 MetalFX 插帧接入示例同样以渲染分辨率像素填写运动倍率。
+- 帧生成以 `requiresPrevColorTexture = false` 正常插帧，插帧落在两真实帧中点；Reset 后第一帧输出当前帧。插帧器默认 `contentWidth` / `contentHeight` 即输入尺寸。
+- UI 合成模式下 `colorTexture` 为不含 UI 的画面、`uiTexture` 为含 UI 的画面；TransparencyOverlay 按预乘 alpha 合成。
+- 同一命令缓冲在 Dispatch 之后录制的拷贝读到完整结果，5.4 的生产者屏障生效；效果要求的纹理用途与第 3 节一致。
+
+以下仍待在 DLSS（DirectX 12、Vulkan）上实测：
+
+- 创建时的模式反查、手动曝光固定预设 K。
+- 帧生成的运动与抖动单位、相机推导、`DLSSG.MvecJittered` 与 Vulkan 直接写入的参数键。
+- `OutputResolutionMotionVectors`、`JitteredMotionVectors` 与 MetalFX 结果一致。
+- UI 以 Backbuffer + Hudless 接入后的插帧与 UI 保真；帧生成抖动单位在 MetalFX 上按输入网格推断，尚无可测场景。
 
 ## 参考
 

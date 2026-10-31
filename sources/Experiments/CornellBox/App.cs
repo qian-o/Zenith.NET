@@ -7,8 +7,8 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
-using Zenith.NET.Extensions.DLSS;
 using Zenith.NET.Extensions.ImGui;
+using Zenith.NET.Extensions.Reconstruction;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -45,24 +45,11 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        switch (Technology)
+        Context.InitializeReconstruction(Path.Combine(AppContext.BaseDirectory, "Reconstruction"));
+
+        if (Context.ReconstructionCapabilities.FrameGeneratorSupported)
         {
-            case RenderingTechnology.DLSS:
-                {
-                    Context.InitializeDLSS(Path.Combine(AppContext.BaseDirectory, "DLSS"));
-
-                    frameGenerationItems = string.Concat(Enumerable.Range(1, (int)Context.DLSSCapabilities.MaxGeneratedFrameCount + 1).Select(static count => $"{count}x\0"));
-                }
-                break;
-
-            case RenderingTechnology.MetalFX:
-                {
-                    // 后续新增 MetalFX 扩展后以便使用超分降噪、帧生成技术。
-                    // Context.InitializeMetalFX();
-
-                    frameGenerationItems = string.Concat(Enumerable.Range(1, 2).Select(static count => $"{count}x\0"));
-                }
-                break;
+            frameGenerationItems = "1x\02x\0";
         }
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
@@ -123,8 +110,6 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
-    public static RenderingTechnology Technology { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsLinux() ? RenderingTechnology.DLSS : RenderingTechnology.MetalFX;
-
     public static uint Width => presenter.Width;
 
     public static uint Height => presenter.Height;
@@ -176,7 +161,7 @@ internal static class App
     {
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        renderer.Render(commandBuffer, camera);
+        renderer.Render(commandBuffer, camera, deltaSeconds);
 
         commandBuffer.Transition(renderer.Overlay, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(renderer.Overlay, Vector4.Zero));
@@ -184,7 +169,9 @@ internal static class App
 
         renderer.Composite(commandBuffer);
 
-        foreach (int index in renderer.ReadOutputIndices(commandBuffer.Submit()))
+        commandBuffer.Submit();
+
+        foreach (int index in renderer.OutputIndices)
         {
             presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment, index, renderer.Colors.Length);
         }
@@ -220,10 +207,16 @@ internal static class App
             renderer.IsPaused = isPaused;
         }
 
-        int denoisingUpscaling = (int)renderer.DenoisingUpscaling;
-        if (ImGui.Combo("Denoising Upscaling", ref denoisingUpscaling, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        int upscaler = (int)renderer.Upscaler;
+        if (ImGui.Combo("Upscaler", ref upscaler, "Off\0Temporal\0Denoising\0"))
         {
-            renderer.DenoisingUpscaling = (DenoisingUpscalingMode)denoisingUpscaling;
+            renderer.Upscaler = (UpscalerKind)upscaler;
+        }
+
+        int upscalerMode = (int)renderer.UpscalerMode;
+        if (ImGui.Combo("Upscaler Mode", ref upscalerMode, "Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        {
+            renderer.UpscalerMode = (UpscalerMode)upscalerMode;
         }
 
         int frameGeneration = (int)renderer.FrameGeneration;

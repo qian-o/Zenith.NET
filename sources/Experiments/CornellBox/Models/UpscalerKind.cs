@@ -1,16 +1,10 @@
 ﻿namespace CornellBox.Models;
 
-internal enum DenoisingUpscalingMode
+internal enum UpscalerKind
 {
     Off,
 
-    Native,
+    Temporal,
 
-    Quality,
-
-    Balanced,
-
-    Performance,
-
-    UltraPerformance
+    Denoising
 }
