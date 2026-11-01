@@ -1,13 +1,19 @@
-﻿using Zenith.NET.Extensions.Reconstruction.DLSS;
-using Zenith.NET.Extensions.Reconstruction.MetalFX;
+﻿namespace Zenith.NET.Extensions.Reconstruction;
 
-namespace Zenith.NET.Extensions.Reconstruction;
-
-internal abstract class ReconstructionBackend(GraphicsContext context) : DisposableObject
+internal abstract class ReconstructionBackend : DisposableObject
 {
-    public GraphicsContext Context { get; } = context;
+    protected ReconstructionBackend(GraphicsContext context, string dataPath)
+    {
+        Context = context;
 
-    public abstract ReconstructionCapabilities Capabilities { get; }
+        Initialize(dataPath, out ReconstructionCapabilities capabilities);
+
+        Capabilities = capabilities;
+    }
+
+    public GraphicsContext Context { get; }
+
+    public ReconstructionCapabilities Capabilities { get; }
 
     public UpscalerInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
     {
@@ -34,6 +40,8 @@ internal abstract class ReconstructionBackend(GraphicsContext context) : Disposa
         return CreateFrameGeneratorImpl(desc);
     }
 
+    protected abstract void Initialize(string dataPath, out ReconstructionCapabilities capabilities);
+
     protected abstract UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode);
 
     protected abstract UpscalerInputSize GetDenoisingUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode);
@@ -43,9 +51,4 @@ internal abstract class ReconstructionBackend(GraphicsContext context) : Disposa
     protected abstract DenoisingUpscaler CreateDenoisingUpscalerImpl(DenoisingUpscalerDesc desc);
 
     protected abstract FrameGenerator CreateFrameGeneratorImpl(FrameGeneratorDesc desc);
-
-    public static ReconstructionBackend Create(GraphicsContext context, string dataPath)
-    {
-        return context.GraphicsApi is GraphicsApi.Metal ? new MetalFXContext(context) : new DLSSContext(context, dataPath);
-    }
 }

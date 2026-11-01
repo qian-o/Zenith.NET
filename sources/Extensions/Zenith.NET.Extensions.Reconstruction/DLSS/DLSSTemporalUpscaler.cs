@@ -4,14 +4,14 @@ namespace Zenith.NET.Extensions.Reconstruction.DLSS;
 
 internal class DLSSTemporalUpscaler : TemporalUpscaler
 {
-    private readonly DLSSContext context;
+    private readonly DLSSBackend backend;
     private readonly DLSSFeature feature;
 
-    public DLSSTemporalUpscaler(DLSSContext context, TemporalUpscalerDesc desc) : base(desc)
+    public DLSSTemporalUpscaler(DLSSBackend backend, TemporalUpscalerDesc desc) : base(desc)
     {
-        this.context = context;
+        this.backend = backend;
 
-        feature = new(context);
+        feature = new(backend);
 
         if (!desc.Flags.HasFlag(ReconstructionFlags.AutoExposure))
         {
@@ -30,17 +30,17 @@ internal class DLSSTemporalUpscaler : TemporalUpscaler
                 Height = desc.InputHeight,
                 TargetWidth = desc.OutputWidth,
                 TargetHeight = desc.OutputHeight,
-                PerfQualityValue = context.FindPerfQualityValue(NGXFeature.SuperSampling, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight)
+                PerfQualityValue = backend.FindPerfQualityValue(NGXFeature.SuperSampling, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight)
             },
             FeatureCreateFlags = (int)DLSSFormats.NGX(desc.Flags)
         };
 
-        context.Create(feature, createParams);
+        backend.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, TemporalUpscalerArgs args)
     {
-        context.Evaluate(commandBuffer, feature, args);
+        backend.Evaluate(commandBuffer, feature, args);
     }
 
     protected override void Destroy()

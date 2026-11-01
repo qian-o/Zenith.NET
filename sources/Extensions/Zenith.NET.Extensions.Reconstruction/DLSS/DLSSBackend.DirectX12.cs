@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Reconstruction.DLSS;
 
-internal unsafe partial class DLSSContext
+internal unsafe partial class DLSSBackend
 {
     private NGXResult InitializeDirectX12(byte* projectId, byte* engineVersion, void* dataPath, NGXFeatureCommonInfo* featureInfo)
     {

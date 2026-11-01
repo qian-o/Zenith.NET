@@ -2,70 +2,18 @@
 
 namespace Zenith.NET.Extensions.Reconstruction.DLSS;
 
-internal unsafe partial class DLSSContext : ReconstructionBackend
+internal unsafe partial class DLSSBackend(GraphicsContext context, string dataPath) : ReconstructionBackend(context, dataPath)
 {
     private readonly NGXParameter parameters;
-    private readonly bool isInitialized;
 
-    public DLSSContext(GraphicsContext context, string dataPath) : base(context)
+    public readonly nint Device = context.GraphicsApi switch
     {
-        Device = context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => context.GetNativeObject(NativeObjectType.D3D12Device),
-            GraphicsApi.Vulkan => context.GetNativeObject(NativeObjectType.VulkanDevice),
-            _ => default
-        };
+        GraphicsApi.DirectX12 => context.GetNativeObject(NativeObjectType.D3D12Device),
+        GraphicsApi.Vulkan => context.GetNativeObject(NativeObjectType.VulkanDevice),
+        _ => default
+    };
 
-        using NGXStrings strings = new();
-
-        void* path = strings.AllocWide(Ngx.RuntimeDirectory);
-
-        NGXFeatureCommonInfo featureInfo = new()
-        {
-            PathListInfo = new()
-            {
-                Path = &path,
-                Length = 1
-            }
-        };
-
-        byte* projectId = strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString());
-        byte* engineVersion = strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString());
-        void* applicationDataPath = strings.AllocWide(dataPath);
-
-        NGXResult result = context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => InitializeDirectX12(projectId, engineVersion, applicationDataPath, &featureInfo),
-            GraphicsApi.Vulkan => InitializeVulkan(projectId, engineVersion, applicationDataPath, &featureInfo),
-            _ => default
-        };
-        result.Success();
-
-        isInitialized = result.IsSuccess();
-
-        if (isInitialized)
-        {
-            fixed (NGXParameter* pParameters = &parameters)
-            {
-                switch (context.GraphicsApi)
-                {
-                    case GraphicsApi.DirectX12:
-                        Ngx.D3D12.GetCapabilityParameters(pParameters).Success();
-                        break;
-
-                    case GraphicsApi.Vulkan:
-                        Ngx.Vulkan.GetCapabilityParameters(pParameters).Success();
-                        break;
-                }
-            }
-        }
-
-        Capabilities = new(IsAvailable(Ngx.ParameterSuperSamplingAvailable), IsAvailable(Ngx.ParameterSuperSamplingDenoisingAvailable), IsAvailable(Ngx.ParameterFrameGenerationAvailable));
-    }
-
-    public nint Device { get; }
-
-    public override ReconstructionCapabilities Capabilities { get; }
+    private bool isInitialized;
 
     public NGXParameter AllocateParameters()
     {
@@ -228,6 +176,71 @@ internal unsafe partial class DLSSContext : ReconstructionBackend
         }
     }
 
+    public bool IsAvailable(ReadOnlySpan<byte> name)
+    {
+        if (!isInitialized)
+        {
+            return false;
+        }
+
+        fixed (byte* pointer = name)
+        {
+            int value = 0;
+            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
+
+            return value is not 0;
+        }
+    }
+
+    protected override void Initialize(string dataPath, out ReconstructionCapabilities capabilities)
+    {
+        using NGXStrings strings = new();
+
+        void* path = strings.AllocWide(Ngx.RuntimeDirectory);
+
+        NGXFeatureCommonInfo featureInfo = new()
+        {
+            PathListInfo = new()
+            {
+                Path = &path,
+                Length = 1
+            }
+        };
+
+        byte* projectId = strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString());
+        byte* engineVersion = strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString());
+        void* applicationDataPath = strings.AllocWide(dataPath);
+
+        NGXResult result = Context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => InitializeDirectX12(projectId, engineVersion, applicationDataPath, &featureInfo),
+            GraphicsApi.Vulkan => InitializeVulkan(projectId, engineVersion, applicationDataPath, &featureInfo),
+            _ => default
+        };
+        result.Success();
+
+        isInitialized = result.IsSuccess();
+
+        if (isInitialized)
+        {
+            fixed (NGXParameter* pParameters = &parameters)
+            {
+                switch (Context.GraphicsApi)
+                {
+                    case GraphicsApi.DirectX12:
+                        Ngx.D3D12.GetCapabilityParameters(pParameters).Success();
+                        break;
+
+                    case GraphicsApi.Vulkan:
+                        Ngx.Vulkan.GetCapabilityParameters(pParameters).Success();
+                        break;
+                }
+            }
+        }
+
+        capabilities = new DLSSCapabilities(this);
+    }
+
     protected override UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
     {
         return GetOptimalInputSize(NGXFeature.SuperSampling, outputWidth, outputHeight, DLSSFormats.NGX(mode));
@@ -271,22 +284,6 @@ internal unsafe partial class DLSSContext : ReconstructionBackend
             case GraphicsApi.Vulkan:
                 ShutdownVulkan();
                 break;
-        }
-    }
-
-    private bool IsAvailable(ReadOnlySpan<byte> name)
-    {
-        if (!isInitialized)
-        {
-            return false;
-        }
-
-        fixed (byte* pointer = name)
-        {
-            int value = 0;
-            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
-
-            return value is not 0;
         }
     }
 

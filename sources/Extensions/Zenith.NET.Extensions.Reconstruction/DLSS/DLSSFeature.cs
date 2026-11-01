@@ -2,11 +2,11 @@
 
 namespace Zenith.NET.Extensions.Reconstruction.DLSS;
 
-internal unsafe class DLSSFeature(DLSSContext context) : DisposableObject
+internal unsafe class DLSSFeature(DLSSBackend backend) : DisposableObject
 {
-    public readonly DLSSContext Context = context;
+    public readonly DLSSBackend Backend = backend;
 
-    public readonly NGXParameter Parameters = context.AllocateParameters();
+    public readonly NGXParameter Parameters = backend.AllocateParameters();
 
     public NGXHandle Handle;
 
@@ -20,7 +20,7 @@ internal unsafe class DLSSFeature(DLSSContext context) : DisposableObject
 
     protected override void Destroy()
     {
-        Context.ReleaseFeature(Handle);
-        Context.DestroyParameters(Parameters);
+        Backend.ReleaseFeature(Handle);
+        Backend.DestroyParameters(Parameters);
     }
 }

@@ -1,13 +1,8 @@
 ﻿namespace Zenith.NET.Extensions.Reconstruction;
 
-public abstract class FrameGenerator : DisposableObject
+public abstract class FrameGenerator(FrameGeneratorDesc desc) : DisposableObject
 {
-    private readonly FrameGeneratorDesc desc;
-
-    internal FrameGenerator(FrameGeneratorDesc desc)
-    {
-        this.desc = desc;
-    }
+    private readonly FrameGeneratorDesc desc = desc;
 
     public ref readonly FrameGeneratorDesc Desc => ref desc;
 

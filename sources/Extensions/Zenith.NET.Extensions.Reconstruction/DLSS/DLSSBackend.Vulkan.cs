@@ -3,7 +3,7 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Reconstruction.DLSS;
 
-internal unsafe partial class DLSSContext
+internal unsafe partial class DLSSBackend
 {
     private const uint ImageViewCreateInfoType = 15;
     private const uint PipelineLayoutCreateInfoType = 30;

@@ -1,13 +1,8 @@
 ﻿namespace Zenith.NET.Extensions.Reconstruction;
 
-public abstract class TemporalUpscaler : DisposableObject
+public abstract class TemporalUpscaler(TemporalUpscalerDesc desc) : DisposableObject
 {
-    private readonly TemporalUpscalerDesc desc;
-
-    internal TemporalUpscaler(TemporalUpscalerDesc desc)
-    {
-        this.desc = desc;
-    }
+    private readonly TemporalUpscalerDesc desc = desc;
 
     public ref readonly TemporalUpscalerDesc Desc => ref desc;
 

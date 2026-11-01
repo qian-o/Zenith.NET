@@ -1,13 +1,8 @@
 ﻿namespace Zenith.NET.Extensions.Reconstruction;
 
-public abstract class DenoisingUpscaler : DisposableObject
+public abstract class DenoisingUpscaler(DenoisingUpscalerDesc desc) : DisposableObject
 {
-    private readonly DenoisingUpscalerDesc desc;
-
-    internal DenoisingUpscaler(DenoisingUpscalerDesc desc)
-    {
-        this.desc = desc;
-    }
+    private readonly DenoisingUpscalerDesc desc = desc;
 
     public ref readonly DenoisingUpscalerDesc Desc => ref desc;
 

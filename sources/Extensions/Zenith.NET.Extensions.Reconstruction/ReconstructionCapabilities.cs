@@ -1,17 +1,10 @@
 ﻿namespace Zenith.NET.Extensions.Reconstruction;
 
-public class ReconstructionCapabilities
+public abstract class ReconstructionCapabilities
 {
-    internal ReconstructionCapabilities(bool temporalUpscalerSupported, bool denoisingUpscalerSupported, bool frameGeneratorSupported)
-    {
-        TemporalUpscalerSupported = temporalUpscalerSupported;
-        DenoisingUpscalerSupported = denoisingUpscalerSupported;
-        FrameGeneratorSupported = frameGeneratorSupported;
-    }
+    public abstract bool TemporalUpscalerSupported { get; }
 
-    public bool TemporalUpscalerSupported { get; }
+    public abstract bool DenoisingUpscalerSupported { get; }
 
-    public bool DenoisingUpscalerSupported { get; }
-
-    public bool FrameGeneratorSupported { get; }
+    public abstract bool FrameGeneratorSupported { get; }
 }

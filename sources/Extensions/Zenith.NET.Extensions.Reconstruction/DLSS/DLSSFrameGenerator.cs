@@ -5,29 +5,29 @@ namespace Zenith.NET.Extensions.Reconstruction.DLSS;
 
 internal unsafe class DLSSFrameGenerator : FrameGenerator
 {
-    private readonly DLSSContext context;
+    private readonly DLSSBackend backend;
     private readonly DLSSFeature feature;
 
     private Matrix4x4 previousWorldToView;
     private Matrix4x4 previousViewToClip;
 
-    public DLSSFrameGenerator(DLSSContext context, FrameGeneratorDesc desc) : base(desc)
+    public DLSSFrameGenerator(DLSSBackend backend, FrameGeneratorDesc desc) : base(desc)
     {
-        this.context = context;
+        this.backend = backend;
 
-        feature = new(context);
+        feature = new(backend);
         feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
         {
             Width = desc.OutputWidth,
             Height = desc.OutputHeight,
-            NativeBackbufferFormat = context.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
+            NativeBackbufferFormat = backend.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
             RenderWidth = desc.InputWidth,
             RenderHeight = desc.InputHeight
         };
 
-        context.Create(feature, createParams);
+        backend.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args)
@@ -111,7 +111,7 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
             }
         };
 
-        context.Evaluate(commandBuffer, feature, args, &optEvalParams);
+        backend.Evaluate(commandBuffer, feature, args, &optEvalParams);
 
         previousWorldToView = args.WorldToView;
         previousViewToClip = args.ViewToClip;

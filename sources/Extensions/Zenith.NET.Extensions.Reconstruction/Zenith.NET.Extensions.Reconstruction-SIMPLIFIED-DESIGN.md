@@ -44,13 +44,13 @@ public static class Extensions
 ```
 
 ```csharp
-public class ReconstructionCapabilities
+public abstract class ReconstructionCapabilities
 {
-    public bool TemporalUpscalerSupported { get; }
+    public abstract bool TemporalUpscalerSupported { get; }
 
-    public bool DenoisingUpscalerSupported { get; }
+    public abstract bool DenoisingUpscalerSupported { get; }
 
-    public bool FrameGeneratorSupported { get; }
+    public abstract bool FrameGeneratorSupported { get; }
 }
 
 public enum UpscalerMode
@@ -100,7 +100,7 @@ public enum ReconstructionFlags
 标志只表示行为开关。可选输入（反应遮罩、透明叠加层、UI）由 Desc 中对应的可空格式表示，为 null 时不启用，与 RHI 的 `AttachmentFormats.DepthStencilFormat` 一致。
 
 ```csharp
-public abstract class TemporalUpscaler : DisposableObject
+public abstract class TemporalUpscaler(TemporalUpscalerDesc desc) : DisposableObject
 {
     public ref readonly TemporalUpscalerDesc Desc { get; }
 
@@ -110,7 +110,7 @@ public abstract class TemporalUpscaler : DisposableObject
 }
 ```
 
-`DenoisingUpscaler`、`FrameGenerator` 结构相同，使用各自的 Desc / Args。构造器均为 internal，`Dispatch` 转调 `DispatchImpl`。`Desc` 与 RHI 一致，以 `ref readonly` 返回内部保存的描述。
+`DenoisingUpscaler`、`FrameGenerator` 结构相同，使用各自的 Desc / Args。写法与 RHI 的资源类型（如 `Texture`、`SwapChain`）一致：主构造函数接收 Desc，`Desc` 以 `ref readonly` 返回内部保存的描述，`Dispatch` 转调 `DispatchImpl`。
 
 生命周期：
 
@@ -401,18 +401,15 @@ MetalFX：
 ### 5.4 状态与命令
 
 - 原生命令在 RHI 的 `BeginExternalCommands` / `EndExternalCommands` 区间内录制；Metal 通过 `GetNativeObject(NativeObjectType.MTL4CommandBuffer)` 取得命令缓冲。调试事件放在区间内：Metal 的调试组属于当前编码器，而进入区间会结束该编码器，放在区间外会跨编码器失衡；区间内在 Metal 上为空操作。
-- DLSS：NGX 初始化成功后才获取能力参数。Create 在 GraphicsQueue 录制、提交并等待，Evaluate 录入调用方的命令缓冲。D3D12 要求非 Copy 队列与匹配的节点；Vulkan 的 image view 缓存与空描述符集从现有 DLSS 扩展移植（该扩展将被删除）。每个效果对象持有一个 NGXParameter（`FreeMemOnReleaseFeature = 1`），Create 与 Evaluate 复用且不 Reset；先释放特性句柄再释放参数块，效果对象先于 `DLSSContext` 释放。
-- MetalFX：`MetalFXContext` 借用设备，自建并持有 `MTL4Compiler`。三个效果都不持有额外纹理：帧生成以 `requiresPrevColorTexture = false` 创建，上一帧颜色由 MetalFX 内部保存，与 DLSS 一致，两端都不复制。应用纹理由 RHI 在 GraphicsContext 上维护的 residency set 保证驻留，MetalFX 内部资源由其自行管理。
+- DLSS：NGX 初始化成功后才获取能力参数。Create 在 GraphicsQueue 录制、提交并等待，Evaluate 录入调用方的命令缓冲。D3D12 要求非 Copy 队列与匹配的节点；Vulkan 的 image view 缓存与空描述符集从现有 DLSS 扩展移植（该扩展将被删除）。每个效果对象持有一个 NGXParameter（`FreeMemOnReleaseFeature = 1`），Create 与 Evaluate 复用且不 Reset；先释放特性句柄再释放参数块，效果对象先于 `DLSSBackend` 释放。
+- MetalFX：`MetalFXBackend` 借用设备，自建并持有 `MTL4Compiler`。三个效果都不持有额外纹理：帧生成以 `requiresPrevColorTexture = false` 创建，上一帧颜色由 MetalFX 内部保存，与 DLSS 一致，两端都不复制。应用纹理由 RHI 在 GraphicsContext 上维护的 residency set 保证驻留，MetalFX 内部资源由其自行管理。
 
-MetalFX 的同步：Metal 4 不做冒险跟踪。进入外部命令区间时，RHI 结束当前编码器并以生产者屏障收尾，MetalFX 因此等待之前的全部工作；但 MetalFX 在 `Encode` 内自行结束其编码器，不为后续编码器建立依赖，RHI 在 Metal 上结束外部命令区间时也不等待之前的工作。因此三个 MetalFX 效果在 `Encode` 之后、`EndExternalCommands` 之前，都在同一命令缓冲编码一个同步计算编码器，以生产者屏障结束（与 RHI 编码器的收尾方式相同），使之后的全部工作等待 MetalFX 完成；区间结束后不再录制任何命令，与 DLSS 一致。这段收尾由 `MetalFXContext` 提供，三个效果共用：
+MetalFX 的同步：Metal 4 不做冒险跟踪。进入外部命令区间时，RHI 结束当前编码器并以生产者屏障收尾，MetalFX 因此等待之前的全部工作；但 MetalFX 在 `Encode` 内自行结束其编码器，不为后续编码器建立依赖，RHI 在 Metal 上结束外部命令区间时也不等待之前的工作。因此三个 MetalFX 效果在 `Encode` 之后、`EndExternalCommands` 之前，都在同一命令缓冲编码一个同步计算编码器，以生产者屏障结束（与 RHI 编码器的收尾方式相同），使之后的全部工作等待 MetalFX 完成；区间结束后不再录制任何命令，与 DLSS 一致。这段收尾由 `MetalFXBackend` 提供，三个效果共用：
 
 ```csharp
-effect.Encode(commandBuffer);
-
-using (NSAutoreleasePool _ = new())
+public static void EncodeBarrier(MTL4CommandBuffer commandBuffer)
 {
     MTL4ComputeCommandEncoder encoder = commandBuffer.MakeComputeCommandEncoder();
-
     encoder.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
     encoder.EndEncoding();
 }
@@ -500,42 +497,56 @@ Zenith.NET.Extensions.Reconstruction/
 ├── Extensions.cs
 ├── ReconstructionBackend.cs
 ├── ReconstructionCapabilities.cs
-├── ReconstructionFlags.cs
-├── UpscalerMode.cs
-├── UpscalerInputSize.cs
 ├── TemporalUpscaler.cs
-├── TemporalUpscalerDesc.cs
-├── TemporalUpscalerArgs.cs
 ├── DenoisingUpscaler.cs
-├── DenoisingUpscalerDesc.cs
-├── DenoisingUpscalerArgs.cs
 ├── FrameGenerator.cs
-├── FrameGeneratorDesc.cs
-├── FrameGeneratorArgs.cs
+├── Enums/
+│   ├── ReconstructionFlags.cs
+│   └── UpscalerMode.cs
+├── Structs/
+│   ├── UpscalerInputSize.cs
+│   ├── TemporalUpscalerDesc.cs
+│   ├── TemporalUpscalerArgs.cs
+│   ├── DenoisingUpscalerDesc.cs
+│   ├── DenoisingUpscalerArgs.cs
+│   ├── FrameGeneratorDesc.cs
+│   └── FrameGeneratorArgs.cs
 ├── DLSS/
-│   ├── DLSSContext.cs
-│   ├── DLSSContext.DirectX12.cs
-│   ├── DLSSContext.Vulkan.cs
+│   ├── DLSSBackend.cs
+│   ├── DLSSBackend.DirectX12.cs
+│   ├── DLSSBackend.Vulkan.cs
+│   ├── DLSSCapabilities.cs
 │   ├── DLSSFeature.cs
 │   ├── DLSSFormats.cs
 │   ├── DLSSTemporalUpscaler.cs
 │   ├── DLSSDenoisingUpscaler.cs
 │   └── DLSSFrameGenerator.cs
 └── MetalFX/
-    ├── MetalFXContext.cs
+    ├── MetalFXBackend.cs
+    ├── MetalFXCapabilities.cs
     ├── MetalFXFormats.cs
     ├── MetalFXTemporalUpscaler.cs
     ├── MetalFXDenoisingUpscaler.cs
     └── MetalFXFrameGenerator.cs
 ```
 
-- 公开类型位于根目录，命名空间为 `Zenith.NET.Extensions.Reconstruction`；`DLSS/`、`MetalFX/` 下的内部类型分别使用 `Zenith.NET.Extensions.Reconstruction.DLSS`、`Zenith.NET.Extensions.Reconstruction.MetalFX`，保持仓库已启用的 IDE0130。
-- 命名：后端入口为 `ReconstructionBackend`，与其他扩展一致（`SkiaBackend`、`ImGuiBackend`）；后端内部实现为 `DLSSContext`、`MetalFXContext`。效果实现为“后端前缀 + 公共基类名”（如 `DLSSTemporalUpscaler`），格式映射为 `DLSSFormats`、`MetalFXFormats`（同 RHI 的 `MTLFormats`）；能力属性为“功能 + Supported”（同 `RayTracingSupported`）；可选输入用可空类型（同 `AttachmentFormats.DepthStencilFormat`）；单位写入名称（同 `SizeInBytes`）。
-- `Extensions.cs`：公共入口，按 GraphicsContext 缓存 `ReconstructionBackend`，随 GraphicsContext 的 `Disposing` 释放；另以 internal 扩展成员提供 `.Success()`、CommandBuffer 与 Texture 到 Metal.NET 对象的 `Metal()` 转换，以及从 ViewToClip 推导 near、far、FOV、aspect（两端帧生成共用）。
-- `ReconstructionBackend.cs`：internal 抽象类，声明能力、两个尺寸查询与三个 Create，由 `DLSSContext`、`MetalFXContext` 实现；按图形 API 只创建其一。
-- `DLSSContext*.cs`：NGX 会话、能力、尺寸查询、创建时的模式反查及参数块与特性的释放，DirectX 12 与 Vulkan 为同一类的 partial；`DLSSFeature.cs` 持有特性句柄与参数块。DLSS 帧生成的前后帧 clip 变换与相机基向量在 `DLSSFrameGenerator` 内推导。
-- `MetalFXContext.cs`：设备、编译器、能力、尺寸计算与三个效果共用的同步收尾。
-- `*Formats.cs`：格式、标志与原生值映射；六个提供方实现分别继承对应的公共类型。
+架构与 RHI 一一对应：根目录是契约（对应 Zenith.NET），`DLSS/`、`MetalFX/` 是两套实现（对应 Zenith.NET.DirectX12 / Vulkan / Metal），实现只继承契约类型，不互相引用。
+
+| 重建扩展 | RHI | 职责 |
+| --- | --- | --- |
+| `ReconstructionBackend` | `GraphicsContext` | 抽象类；构造函数调用 `Initialize(dataPath, out capabilities)`；尺寸查询与 `CreateXxx` 转调 `XxxImpl` |
+| `DLSSBackend`、`MetalFXBackend` | `DXGraphicsContext`、`MTLGraphicsContext` | 主构造函数 `(GraphicsContext, string dataPath)`；重写 `Initialize` 与各 `XxxImpl`，`CreateXxxImpl` 以 `new` 创建本实现的效果 |
+| `ReconstructionCapabilities` | `Capabilities` | 抽象属性 |
+| `DLSSCapabilities`、`MetalFXCapabilities` | `DXCapabilities`、`MTLCapabilities` | 由 backend 在 `Initialize` 中创建 |
+| `TemporalUpscaler` 等三个效果 | `Texture`、`SwapChain` | 主构造函数接收 Desc；`Dispatch` 转调 `DispatchImpl` |
+| `DLSSTemporalUpscaler`、`MetalFXTemporalUpscaler` 等 | `MTLTexture` | 构造函数接收本实现的 backend 并创建原生对象；重写 `DispatchImpl` |
+| `DLSSFormats`、`MetalFXFormats` | `MTLFormats` | 格式、标志与原生值映射 |
+
+- 命名空间：公开类型使用 `Zenith.NET.Extensions.Reconstruction`；与 RHI 核心和 DLSS 扩展一致，枚举放在 `Enums/`、结构体放在 `Structs/`，命名空间不随目录变化（项目禁用 IDE0130）。`DLSS/`、`MetalFX/` 下的实现分别使用 `Zenith.NET.Extensions.Reconstruction.DLSS`、`Zenith.NET.Extensions.Reconstruction.MetalFX`，相当于 RHI 中各图形 API 的实现程序集。
+- 命名：后端契约为 `ReconstructionBackend`，与其他扩展一致（`SkiaBackend`、`ImGuiBackend`）。实现类型统一为“实现前缀 + 契约名”，契约名中的扩展前缀 `Reconstruction` 由实现前缀取代：`DLSSBackend`、`MetalFXBackend`，`DLSSCapabilities`、`MetalFXCapabilities`，`DLSSTemporalUpscaler` 等（同 RHI 的 `MTLGraphicsContext`、`MTLCapabilities`、`MTLTexture`）；辅助类型同样带实现前缀（`DLSSFeature`、`DLSSFormats`、`MetalFXFormats`，同 `MTLFormats`）；能力属性为“功能 + Supported”（同 `RayTracingSupported`）；可选输入用可空类型（同 `AttachmentFormats.DepthStencilFormat`）；单位写入名称（同 `SizeInBytes`）。
+- `Extensions.cs`：公共入口。`InitializeReconstruction` 按图形 API 以构造函数创建 `MetalFXBackend`（Metal）或 `DLSSBackend`（DirectX 12、Vulkan），按 GraphicsContext 缓存，随 GraphicsContext 的 `Disposing` 释放；其余成员转给缓存的 `ReconstructionBackend`。另以 internal 扩展成员提供 `.Success()`、CommandBuffer 与 Texture 到 Metal.NET 对象的 `Metal()` 转换，以及从 ViewToClip 推导 near、far、FOV、aspect（两端帧生成共用）。
+- `DLSSBackend*.cs`：NGX 会话、尺寸查询、创建时的模式反查及参数块与特性的释放，DirectX 12 与 Vulkan 为同一类的 partial；`DLSSFeature.cs` 持有特性句柄与参数块。DLSS 帧生成的前后帧 clip 变换与相机基向量在 `DLSSFrameGenerator` 内推导。
+- `MetalFXBackend.cs`：借用设备，在 `Initialize` 中创建编译器；尺寸计算与三个效果共用的同步收尾。
 - 依赖：Zenith.NET、NGX.NET 310.9.16、Metal.NET 2.7.0；不含 shader 或原生桥。
 
 ## 8. 验证
@@ -548,11 +559,10 @@ MetalFX 已在 Apple M4、macOS 27.0.1、Metal.NET 2.7.0 上以合成场景与 C
 - UI 合成模式下 `colorTexture` 为不含 UI 的画面、`uiTexture` 为含 UI 的画面；TransparencyOverlay 按预乘 alpha 合成。
 - 同一命令缓冲在 Dispatch 之后录制的拷贝读到完整结果，5.4 的生产者屏障生效；效果要求的纹理用途与第 3 节一致。
 
-以下仍待在 DLSS（DirectX 12、Vulkan）上实测：
+DLSS 已在 Windows（DirectX 12）上以 CornellBox 实测：时域超分、降噪超分与帧生成工作正常，插帧位置正确。以下仍待实测：
 
-- 创建时的模式反查、手动曝光固定预设 K。
-- 帧生成的运动与抖动单位、相机推导、`DLSSG.MvecJittered` 与 Vulkan 直接写入的参数键。
-- `OutputResolutionMotionVectors`、`JitteredMotionVectors` 与 MetalFX 结果一致。
+- Vulkan 路径，含直接写入的 `DLSSG` 参数键。
+- 手动曝光（固定预设 K）、`OutputResolutionMotionVectors`、`JitteredMotionVectors`：CornellBox 未使用，需与 MetalFX 结果对照。
 - UI 以 Backbuffer + Hudless 接入后的插帧与 UI 保真；帧生成抖动单位在 MetalFX 上按输入网格推断，尚无可测场景。
 
 ## 参考

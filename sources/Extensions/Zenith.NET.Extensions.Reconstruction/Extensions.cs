@@ -2,6 +2,8 @@
 using System.Numerics;
 using Metal.NET;
 using NGX.NET;
+using Zenith.NET.Extensions.Reconstruction.DLSS;
+using Zenith.NET.Extensions.Reconstruction.MetalFX;
 
 namespace Zenith.NET.Extensions.Reconstruction;
 
@@ -18,7 +20,7 @@ public static class Extensions
 
             if (!backends.ContainsKey(context))
             {
-                backends[context] = ReconstructionBackend.Create(context, dataPath);
+                backends[context] = context.GraphicsApi is GraphicsApi.Metal ? new MetalFXBackend(context, dataPath) : new DLSSBackend(context, dataPath);
 
                 context.Disposing += static (sender, _) =>
                 {

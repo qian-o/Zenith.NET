@@ -2,25 +2,19 @@
 
 namespace Zenith.NET.Extensions.Reconstruction.MetalFX;
 
-internal class MetalFXContext : ReconstructionBackend
+internal class MetalFXBackend(GraphicsContext context, string dataPath) : ReconstructionBackend(context, dataPath)
 {
-    public MetalFXContext(GraphicsContext context) : base(context)
-    {
-        Device = new(context.GetNativeObject(NativeObjectType.MTLDevice), NativeObjectOwnership.Borrowed);
+    public readonly MTLDevice Device = new(context.GetNativeObject(NativeObjectType.MTLDevice), NativeObjectOwnership.Borrowed);
 
+    public MTL4Compiler Compiler = MTL4Compiler.Null;
+
+    protected override void Initialize(string dataPath, out ReconstructionCapabilities capabilities)
+    {
         Compiler = Device.MakeCompiler(new(), out NSError error);
         error.Success();
 
-        bool isSystemSupported = OperatingSystem.IsMacOSVersionAtLeast(27) || OperatingSystem.IsIOSVersionAtLeast(27) || OperatingSystem.IsTvOSVersionAtLeast(27, 1);
-
-        Capabilities = new(isSystemSupported && MTLFXTemporalScalerDescriptor.SupportsMetal4FX(Device), isSystemSupported && MTLFXTemporalDenoisedScalerDescriptor.SupportsMetal4FX(Device), isSystemSupported && MTLFXFrameInterpolatorDescriptor.SupportsMetal4FX(Device));
+        capabilities = new MetalFXCapabilities(this);
     }
-
-    public MTLDevice Device { get; }
-
-    public MTL4Compiler Compiler { get; }
-
-    public override ReconstructionCapabilities Capabilities { get; }
 
     protected override UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
     {
