@@ -132,10 +132,6 @@ public static class ZenithHelper
 
             PixelFormat.R11G11B10Float => 4,
 
-            PixelFormat.R32G32B32UInt or
-            PixelFormat.R32G32B32SInt or
-            PixelFormat.R32G32B32Float => 12,
-
             PixelFormat.R8G8B8A8UNorm or
             PixelFormat.R8G8B8A8SNorm or
             PixelFormat.R8G8B8A8UInt or

@@ -413,10 +413,6 @@ internal static class DXFormats
 
             PixelFormat.R11G11B10Float => Format.FormatR11G11B10Float,
 
-            PixelFormat.R32G32B32UInt => Format.FormatR32G32B32Uint,
-            PixelFormat.R32G32B32SInt => Format.FormatR32G32B32Sint,
-            PixelFormat.R32G32B32Float => Format.FormatR32G32B32Float,
-
             PixelFormat.R8G8B8A8UNorm => Format.FormatR8G8B8A8Unorm,
             PixelFormat.R8G8B8A8SNorm => Format.FormatR8G8B8A8SNorm,
             PixelFormat.R8G8B8A8UInt => Format.FormatR8G8B8A8Uint,

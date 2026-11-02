@@ -444,10 +444,6 @@ internal static class VKFormats
 
             PixelFormat.R11G11B10Float => Format.B10G11R11UfloatPack32,
 
-            PixelFormat.R32G32B32UInt => Format.R32G32B32Uint,
-            PixelFormat.R32G32B32SInt => Format.R32G32B32Sint,
-            PixelFormat.R32G32B32Float => Format.R32G32B32Sfloat,
-
             PixelFormat.R8G8B8A8UNorm => Format.R8G8B8A8Unorm,
             PixelFormat.R8G8B8A8SNorm => Format.R8G8B8A8SNorm,
             PixelFormat.R8G8B8A8UInt => Format.R8G8B8A8Uint,

@@ -44,10 +44,6 @@ internal static class DLSSFormats
 
             PixelFormat.R11G11B10Float => 26,
 
-            PixelFormat.R32G32B32UInt => 7,
-            PixelFormat.R32G32B32SInt => 8,
-            PixelFormat.R32G32B32Float => 6,
-
             PixelFormat.R8G8B8A8UNorm => 28,
             PixelFormat.R8G8B8A8SNorm => 31,
             PixelFormat.R8G8B8A8UInt => 30,
@@ -117,10 +113,6 @@ internal static class DLSSFormats
             PixelFormat.R9G9B9E5Float => 123,
 
             PixelFormat.R11G11B10Float => 122,
-
-            PixelFormat.R32G32B32UInt => 104,
-            PixelFormat.R32G32B32SInt => 105,
-            PixelFormat.R32G32B32Float => 106,
 
             PixelFormat.R8G8B8A8UNorm => 37,
             PixelFormat.R8G8B8A8SNorm => 38,

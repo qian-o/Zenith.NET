@@ -6,8 +6,6 @@ public struct RayTracingTriangleGeometry
 {
     public Buffer VertexBuffer;
 
-    public PixelFormat VertexFormat;
-
     public uint VertexCount;
 
     public uint VertexStrideInBytes;

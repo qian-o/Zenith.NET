@@ -139,11 +139,11 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
                     triangles: geometry.Type is RayTracingGeometryType.Triangle ? new()
                     {
                         SType = StructureType.AccelerationStructureGeometryTrianglesDataKhr,
-                        VertexFormat = VKFormats.Vulkan(geometry.TriangleGeometry.VertexFormat).Format,
+                        VertexFormat = Format.R32G32B32Sfloat,
                         VertexData = new() { DeviceAddress = geometry.TriangleGeometry.VertexBuffer.Vulkan().DeviceAddress + geometry.TriangleGeometry.VertexOffsetInBytes },
                         VertexStride = geometry.TriangleGeometry.VertexStrideInBytes,
                         MaxVertex = geometry.TriangleGeometry.VertexCount,
-                        IndexType = VKFormats.Vulkan(geometry.TriangleGeometry.IndexFormat),
+                        IndexType = geometry.TriangleGeometry.IndexBuffer is not null ? VKFormats.Vulkan(geometry.TriangleGeometry.IndexFormat) : IndexType.NoneKhr,
                         IndexData = geometry.TriangleGeometry.IndexBuffer is not null ? new() { DeviceAddress = geometry.TriangleGeometry.IndexBuffer.Vulkan().DeviceAddress + geometry.TriangleGeometry.IndexOffsetInBytes } : default,
                         TransformData = new() { DeviceAddress = Transform.DeviceAddress + (ulong)(sizeof(TransformMatrixKHR) * i) }
                     } : null,

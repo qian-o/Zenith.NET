@@ -58,12 +58,6 @@ public enum PixelFormat
 
     R11G11B10Float,
 
-    R32G32B32UInt,
-
-    R32G32B32SInt,
-
-    R32G32B32Float,
-
     R8G8B8A8UNorm,
 
     R8G8B8A8SNorm,

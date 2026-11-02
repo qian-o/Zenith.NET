@@ -57,7 +57,6 @@ internal unsafe class SceneResources : DisposableObject
                     RayTracingGeometry.Triangles(new()
                     {
                         VertexBuffer = vertexBuffer,
-                        VertexFormat = PixelFormat.R32G32B32Float,
                         VertexCount = (uint)geometry.Vertices.Length,
                         VertexStrideInBytes = (uint)sizeof(Vertex),
                         IndexBuffer = indexBuffer,

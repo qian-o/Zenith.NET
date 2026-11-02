@@ -49,7 +49,6 @@ internal unsafe class SceneResources : DisposableObject
                         TriangleGeometry = new()
                         {
                             VertexBuffer = Vertices,
-                            VertexFormat = PixelFormat.R32G32B32Float,
                             VertexCount = (uint)sceneVertices.Length,
                             VertexStrideInBytes = (uint)sizeof(SceneVertex),
                             IndexBuffer = Indices,

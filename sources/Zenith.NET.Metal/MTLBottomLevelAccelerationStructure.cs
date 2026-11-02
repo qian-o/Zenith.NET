@@ -91,7 +91,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
                             BufferAddress = geometry.TriangleGeometry.VertexBuffer.Metal().Buffer.GpuAddress + geometry.TriangleGeometry.VertexOffsetInBytes,
                             Length = geometry.TriangleGeometry.VertexStrideInBytes * geometry.TriangleGeometry.VertexCount
                         },
-                        VertexFormat = MTLFormats.Metal(geometry.TriangleGeometry.VertexFormat).AttributeFormat,
+                        VertexFormat = MTLAttributeFormat.Float3,
                         VertexStride = geometry.TriangleGeometry.VertexStrideInBytes,
                         IndexBuffer = geometry.TriangleGeometry.IndexBuffer is not null ? new()
                         {

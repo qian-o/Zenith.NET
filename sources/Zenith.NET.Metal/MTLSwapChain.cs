@@ -94,7 +94,7 @@ internal class MTLSwapChain : SwapChain
         MetalLayer = new(Desc.Surface.Handles[0], NativeObjectOwnership.Borrowed)
         {
             Device = Context.Device,
-            PixelFormat = MTLFormats.Metal(Desc.Format).PixelFormat,
+            PixelFormat = MTLFormats.Metal(Desc.Format),
             FramebufferOnly = false,
             DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height)
         };
