@@ -36,7 +36,6 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
             Format = Desc.Format switch
             {
                 PixelFormat.D16UNorm => Format.FormatR16Unorm,
-                PixelFormat.D24UNormS8UInt => Format.FormatR24UnormX8Typeless,
                 PixelFormat.D32Float => Format.FormatR32Float,
                 PixelFormat.D32FloatS8UInt => Format.FormatR32FloatX8X24Typeless,
                 _ => DXFormats.DirectX12(Desc.Format)

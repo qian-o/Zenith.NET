@@ -62,7 +62,6 @@ internal static class DLSSFormats
             PixelFormat.B8G8R8A8SRgb => 91,
 
             PixelFormat.D16UNorm => 55,
-            PixelFormat.D24UNormS8UInt => 45,
             PixelFormat.D32Float => 40,
             PixelFormat.D32FloatS8UInt => 20,
 
@@ -128,7 +127,6 @@ internal static class DLSSFormats
             PixelFormat.B8G8R8A8SRgb => 50,
 
             PixelFormat.D16UNorm => 124,
-            PixelFormat.D24UNormS8UInt => 129,
             PixelFormat.D32Float => 126,
             PixelFormat.D32FloatS8UInt => 130,
 

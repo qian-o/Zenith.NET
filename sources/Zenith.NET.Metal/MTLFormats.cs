@@ -359,7 +359,6 @@ internal static class MTLFormats
                 PixelFormat.B8G8R8A8SRgb => MTLPixelFormat.BGRA8Unorm_sRGB,
 
                 PixelFormat.D16UNorm => MTLPixelFormat.Depth16Unorm,
-                PixelFormat.D24UNormS8UInt => MTLPixelFormat.Depth24Unorm_Stencil8,
                 PixelFormat.D32Float => MTLPixelFormat.Depth32Float,
                 PixelFormat.D32FloatS8UInt => MTLPixelFormat.Depth32Float_Stencil8,
 

@@ -90,8 +90,6 @@ public enum PixelFormat
 
     D16UNorm,
 
-    D24UNormS8UInt,
-
     D32Float,
 
     D32FloatS8UInt,

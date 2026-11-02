@@ -431,7 +431,6 @@ internal static class DXFormats
             PixelFormat.B8G8R8A8SRgb => Format.FormatB8G8R8A8UnormSrgb,
 
             PixelFormat.D16UNorm => Format.FormatD16Unorm,
-            PixelFormat.D24UNormS8UInt => Format.FormatD24UnormS8Uint,
             PixelFormat.D32Float => Format.FormatD32Float,
             PixelFormat.D32FloatS8UInt => Format.FormatD32FloatS8X24Uint,
 

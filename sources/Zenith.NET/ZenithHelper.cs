@@ -23,12 +23,12 @@ public static class ZenithHelper
 
     public static bool HasDepth(PixelFormat pixelFormat)
     {
-        return pixelFormat is PixelFormat.D16UNorm or PixelFormat.D24UNormS8UInt or PixelFormat.D32Float or PixelFormat.D32FloatS8UInt;
+        return pixelFormat is PixelFormat.D16UNorm or PixelFormat.D32Float or PixelFormat.D32FloatS8UInt;
     }
 
     public static bool HasStencil(PixelFormat pixelFormat)
     {
-        return pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
+        return pixelFormat is PixelFormat.D32FloatS8UInt;
     }
 
     public static (uint BlockWidth, uint BlockHeight, uint BlocksWide, uint BlocksHigh) BlockLayout(PixelFormat pixelFormat, uint width, uint height)
@@ -140,7 +140,6 @@ public static class ZenithHelper
 
             PixelFormat.D16UNorm => 2,
 
-            PixelFormat.D24UNormS8UInt or
             PixelFormat.D32Float => 4,
 
             PixelFormat.D32FloatS8UInt => 8,
