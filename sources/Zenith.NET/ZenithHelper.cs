@@ -35,6 +35,12 @@ public static class ZenithHelper
     {
         (uint blockWidth, uint blockHeight) = pixelFormat switch
         {
+            PixelFormat.BC1UNorm or
+            PixelFormat.BC1SRgb or
+            PixelFormat.BC2UNorm or
+            PixelFormat.BC2SRgb or
+            PixelFormat.BC3UNorm or
+            PixelFormat.BC3SRgb or
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm or
             PixelFormat.BC5UNorm or
@@ -43,6 +49,11 @@ public static class ZenithHelper
             PixelFormat.BC6HSFloat or
             PixelFormat.BC7UNorm or
             PixelFormat.BC7SRgb => (4u, 4u),
+
+            PixelFormat.EACR11UNorm or
+            PixelFormat.EACR11SNorm or
+            PixelFormat.EACR11G11UNorm or
+            PixelFormat.EACR11G11SNorm => (4u, 4u),
 
             PixelFormat.ETC2UNorm or
             PixelFormat.ETC2SRgb or
@@ -85,6 +96,8 @@ public static class ZenithHelper
     {
         return pixelFormat switch
         {
+            PixelFormat.A8UNorm => 1,
+
             PixelFormat.R8UNorm or
             PixelFormat.R8SNorm or
             PixelFormat.R8UInt or
@@ -115,6 +128,10 @@ public static class ZenithHelper
             PixelFormat.R32G32SInt or
             PixelFormat.R32G32Float => 8,
 
+            PixelFormat.R9G9B9E5Float => 4,
+
+            PixelFormat.R11G11B10Float => 4,
+
             PixelFormat.R32G32B32UInt or
             PixelFormat.R32G32B32SInt or
             PixelFormat.R32G32B32Float => 12,
@@ -124,6 +141,9 @@ public static class ZenithHelper
             PixelFormat.R8G8B8A8UInt or
             PixelFormat.R8G8B8A8SInt or
             PixelFormat.R8G8B8A8SRgb => 4,
+
+            PixelFormat.R10G10B10A2UNorm or
+            PixelFormat.R10G10B10A2UInt => 4,
 
             PixelFormat.R16G16B16A16UNorm or
             PixelFormat.R16G16B16A16SNorm or
@@ -144,6 +164,14 @@ public static class ZenithHelper
 
             PixelFormat.D32FloatS8UInt => 8,
 
+            PixelFormat.BC1UNorm or
+            PixelFormat.BC1SRgb => 8,
+
+            PixelFormat.BC2UNorm or
+            PixelFormat.BC2SRgb or
+            PixelFormat.BC3UNorm or
+            PixelFormat.BC3SRgb => 16,
+
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm => 8,
 
@@ -153,6 +181,12 @@ public static class ZenithHelper
             PixelFormat.BC6HSFloat or
             PixelFormat.BC7UNorm or
             PixelFormat.BC7SRgb => 16,
+
+            PixelFormat.EACR11UNorm or
+            PixelFormat.EACR11SNorm => 8,
+
+            PixelFormat.EACR11G11UNorm or
+            PixelFormat.EACR11G11SNorm => 16,
 
             PixelFormat.ETC2UNorm or
             PixelFormat.ETC2SRgb or

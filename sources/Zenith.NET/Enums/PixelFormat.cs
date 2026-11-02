@@ -4,6 +4,8 @@ public enum PixelFormat
 {
     Unknown,
 
+    A8UNorm,
+
     R8UNorm,
 
     R8SNorm,
@@ -52,6 +54,10 @@ public enum PixelFormat
 
     R32G32Float,
 
+    R9G9B9E5Float,
+
+    R11G11B10Float,
+
     R32G32B32UInt,
 
     R32G32B32SInt,
@@ -67,6 +73,10 @@ public enum PixelFormat
     R8G8B8A8SInt,
 
     R8G8B8A8SRgb,
+
+    R10G10B10A2UNorm,
+
+    R10G10B10A2UInt,
 
     R16G16B16A16UNorm,
 
@@ -94,6 +104,18 @@ public enum PixelFormat
 
     D32FloatS8UInt,
 
+    BC1UNorm,
+
+    BC1SRgb,
+
+    BC2UNorm,
+
+    BC2SRgb,
+
+    BC3UNorm,
+
+    BC3SRgb,
+
     BC4UNorm,
 
     BC4SNorm,
@@ -109,6 +131,14 @@ public enum PixelFormat
     BC7UNorm,
 
     BC7SRgb,
+
+    EACR11UNorm,
+
+    EACR11SNorm,
+
+    EACR11G11UNorm,
+
+    EACR11G11SNorm,
 
     ETC2UNorm,
 

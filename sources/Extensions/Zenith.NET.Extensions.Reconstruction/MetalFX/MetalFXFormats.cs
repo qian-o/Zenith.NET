@@ -8,6 +8,8 @@ internal static class MetalFXFormats
     {
         return pixelFormat switch
         {
+            PixelFormat.A8UNorm => MTLPixelFormat.A8Unorm,
+
             PixelFormat.R8UNorm => MTLPixelFormat.R8Unorm,
             PixelFormat.R8SNorm => MTLPixelFormat.R8Snorm,
             PixelFormat.R8UInt => MTLPixelFormat.R8Uint,
@@ -38,11 +40,18 @@ internal static class MetalFXFormats
             PixelFormat.R32G32SInt => MTLPixelFormat.RG32Sint,
             PixelFormat.R32G32Float => MTLPixelFormat.RG32Float,
 
+            PixelFormat.R9G9B9E5Float => MTLPixelFormat.RGB9E5Float,
+
+            PixelFormat.R11G11B10Float => MTLPixelFormat.RG11B10Float,
+
             PixelFormat.R8G8B8A8UNorm => MTLPixelFormat.RGBA8Unorm,
             PixelFormat.R8G8B8A8SNorm => MTLPixelFormat.RGBA8Snorm,
             PixelFormat.R8G8B8A8UInt => MTLPixelFormat.RGBA8Uint,
             PixelFormat.R8G8B8A8SInt => MTLPixelFormat.RGBA8Sint,
             PixelFormat.R8G8B8A8SRgb => MTLPixelFormat.RGBA8Unorm_sRGB,
+
+            PixelFormat.R10G10B10A2UNorm => MTLPixelFormat.RGB10A2Unorm,
+            PixelFormat.R10G10B10A2UInt => MTLPixelFormat.RGB10A2Uint,
 
             PixelFormat.R16G16B16A16UNorm => MTLPixelFormat.RGBA16Unorm,
             PixelFormat.R16G16B16A16SNorm => MTLPixelFormat.RGBA16Snorm,

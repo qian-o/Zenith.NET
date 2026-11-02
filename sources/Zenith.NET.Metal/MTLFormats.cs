@@ -309,6 +309,8 @@ internal static class MTLFormats
         (
             pixelFormat switch
             {
+                PixelFormat.A8UNorm => MTLPixelFormat.A8Unorm,
+
                 PixelFormat.R8UNorm => MTLPixelFormat.R8Unorm,
                 PixelFormat.R8SNorm => MTLPixelFormat.R8Snorm,
                 PixelFormat.R8UInt => MTLPixelFormat.R8Uint,
@@ -339,11 +341,18 @@ internal static class MTLFormats
                 PixelFormat.R32G32SInt => MTLPixelFormat.RG32Sint,
                 PixelFormat.R32G32Float => MTLPixelFormat.RG32Float,
 
+                PixelFormat.R9G9B9E5Float => MTLPixelFormat.RGB9E5Float,
+
+                PixelFormat.R11G11B10Float => MTLPixelFormat.RG11B10Float,
+
                 PixelFormat.R8G8B8A8UNorm => MTLPixelFormat.RGBA8Unorm,
                 PixelFormat.R8G8B8A8SNorm => MTLPixelFormat.RGBA8Snorm,
                 PixelFormat.R8G8B8A8UInt => MTLPixelFormat.RGBA8Uint,
                 PixelFormat.R8G8B8A8SInt => MTLPixelFormat.RGBA8Sint,
                 PixelFormat.R8G8B8A8SRgb => MTLPixelFormat.RGBA8Unorm_sRGB,
+
+                PixelFormat.R10G10B10A2UNorm => MTLPixelFormat.RGB10A2Unorm,
+                PixelFormat.R10G10B10A2UInt => MTLPixelFormat.RGB10A2Uint,
 
                 PixelFormat.R16G16B16A16UNorm => MTLPixelFormat.RGBA16Unorm,
                 PixelFormat.R16G16B16A16SNorm => MTLPixelFormat.RGBA16Snorm,
@@ -362,6 +371,15 @@ internal static class MTLFormats
                 PixelFormat.D32Float => MTLPixelFormat.Depth32Float,
                 PixelFormat.D32FloatS8UInt => MTLPixelFormat.Depth32Float_Stencil8,
 
+                PixelFormat.BC1UNorm => MTLPixelFormat.BC1_RGBA,
+                PixelFormat.BC1SRgb => MTLPixelFormat.BC1_RGBA_sRGB,
+
+                PixelFormat.BC2UNorm => MTLPixelFormat.BC2_RGBA,
+                PixelFormat.BC2SRgb => MTLPixelFormat.BC2_RGBA_sRGB,
+
+                PixelFormat.BC3UNorm => MTLPixelFormat.BC3_RGBA,
+                PixelFormat.BC3SRgb => MTLPixelFormat.BC3_RGBA_sRGB,
+
                 PixelFormat.BC4UNorm => MTLPixelFormat.BC4_RUnorm,
                 PixelFormat.BC4SNorm => MTLPixelFormat.BC4_RSnorm,
 
@@ -373,6 +391,12 @@ internal static class MTLFormats
 
                 PixelFormat.BC7UNorm => MTLPixelFormat.BC7_RGBAUnorm,
                 PixelFormat.BC7SRgb => MTLPixelFormat.BC7_RGBAUnorm_sRGB,
+
+                PixelFormat.EACR11UNorm => MTLPixelFormat.EAC_R11Unorm,
+                PixelFormat.EACR11SNorm => MTLPixelFormat.EAC_R11Snorm,
+
+                PixelFormat.EACR11G11UNorm => MTLPixelFormat.EAC_RG11Unorm,
+                PixelFormat.EACR11G11SNorm => MTLPixelFormat.EAC_RG11Snorm,
 
                 PixelFormat.ETC2UNorm => MTLPixelFormat.ETC2_RGB8,
                 PixelFormat.ETC2SRgb => MTLPixelFormat.ETC2_RGB8_sRGB,
@@ -439,6 +463,10 @@ internal static class MTLFormats
                 PixelFormat.R32G32SInt => MTLAttributeFormat.Int2,
                 PixelFormat.R32G32Float => MTLAttributeFormat.Float2,
 
+                PixelFormat.R9G9B9E5Float => MTLAttributeFormat.FloatRGB9E5,
+
+                PixelFormat.R11G11B10Float => MTLAttributeFormat.FloatRG11B10,
+
                 PixelFormat.R32G32B32UInt => MTLAttributeFormat.UInt3,
                 PixelFormat.R32G32B32SInt => MTLAttributeFormat.Int3,
                 PixelFormat.R32G32B32Float => MTLAttributeFormat.Float3,
@@ -447,6 +475,8 @@ internal static class MTLFormats
                 PixelFormat.R8G8B8A8SNorm => MTLAttributeFormat.Char4Normalized,
                 PixelFormat.R8G8B8A8UInt => MTLAttributeFormat.UChar4,
                 PixelFormat.R8G8B8A8SInt => MTLAttributeFormat.Char4,
+
+                PixelFormat.R10G10B10A2UNorm => MTLAttributeFormat.UInt1010102Normalized,
 
                 PixelFormat.R16G16B16A16UNorm => MTLAttributeFormat.UShort4Normalized,
                 PixelFormat.R16G16B16A16SNorm => MTLAttributeFormat.Short4Normalized,

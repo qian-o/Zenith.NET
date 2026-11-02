@@ -408,6 +408,8 @@ internal static class VKFormats
     {
         Format format = pixelFormat switch
         {
+            PixelFormat.A8UNorm => Format.A8Unorm,
+
             PixelFormat.R8UNorm => Format.R8Unorm,
             PixelFormat.R8SNorm => Format.R8SNorm,
             PixelFormat.R8UInt => Format.R8Uint,
@@ -438,6 +440,10 @@ internal static class VKFormats
             PixelFormat.R32G32SInt => Format.R32G32Sint,
             PixelFormat.R32G32Float => Format.R32G32Sfloat,
 
+            PixelFormat.R9G9B9E5Float => Format.E5B9G9R9UfloatPack32,
+
+            PixelFormat.R11G11B10Float => Format.B10G11R11UfloatPack32,
+
             PixelFormat.R32G32B32UInt => Format.R32G32B32Uint,
             PixelFormat.R32G32B32SInt => Format.R32G32B32Sint,
             PixelFormat.R32G32B32Float => Format.R32G32B32Sfloat,
@@ -447,6 +453,9 @@ internal static class VKFormats
             PixelFormat.R8G8B8A8UInt => Format.R8G8B8A8Uint,
             PixelFormat.R8G8B8A8SInt => Format.R8G8B8A8Sint,
             PixelFormat.R8G8B8A8SRgb => Format.R8G8B8A8Srgb,
+
+            PixelFormat.R10G10B10A2UNorm => Format.A2B10G10R10UnormPack32,
+            PixelFormat.R10G10B10A2UInt => Format.A2B10G10R10UintPack32,
 
             PixelFormat.R16G16B16A16UNorm => Format.R16G16B16A16Unorm,
             PixelFormat.R16G16B16A16SNorm => Format.R16G16B16A16SNorm,
@@ -465,6 +474,12 @@ internal static class VKFormats
             PixelFormat.D32Float => Format.D32Sfloat,
             PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
 
+            PixelFormat.BC1UNorm => Format.BC1RgbaUnormBlock,
+            PixelFormat.BC1SRgb => Format.BC1RgbaSrgbBlock,
+            PixelFormat.BC2UNorm => Format.BC2UnormBlock,
+            PixelFormat.BC2SRgb => Format.BC2SrgbBlock,
+            PixelFormat.BC3UNorm => Format.BC3UnormBlock,
+            PixelFormat.BC3SRgb => Format.BC3SrgbBlock,
             PixelFormat.BC4UNorm => Format.BC4UnormBlock,
             PixelFormat.BC4SNorm => Format.BC4SNormBlock,
             PixelFormat.BC5UNorm => Format.BC5UnormBlock,
@@ -473,6 +488,11 @@ internal static class VKFormats
             PixelFormat.BC6HSFloat => Format.BC6HSfloatBlock,
             PixelFormat.BC7UNorm => Format.BC7UnormBlock,
             PixelFormat.BC7SRgb => Format.BC7SrgbBlock,
+
+            PixelFormat.EACR11UNorm => Format.EacR11UnormBlock,
+            PixelFormat.EACR11SNorm => Format.EacR11SNormBlock,
+            PixelFormat.EACR11G11UNorm => Format.EacR11G11UnormBlock,
+            PixelFormat.EACR11G11SNorm => Format.EacR11G11SNormBlock,
 
             PixelFormat.ETC2UNorm => Format.Etc2R8G8B8UnormBlock,
             PixelFormat.ETC2SRgb => Format.Etc2R8G8B8SrgbBlock,

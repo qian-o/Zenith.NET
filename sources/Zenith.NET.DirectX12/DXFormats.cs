@@ -377,6 +377,8 @@ internal static class DXFormats
     {
         return pixelFormat switch
         {
+            PixelFormat.A8UNorm => Format.FormatA8Unorm,
+
             PixelFormat.R8UNorm => Format.FormatR8Unorm,
             PixelFormat.R8SNorm => Format.FormatR8SNorm,
             PixelFormat.R8UInt => Format.FormatR8Uint,
@@ -407,6 +409,10 @@ internal static class DXFormats
             PixelFormat.R32G32SInt => Format.FormatR32G32Sint,
             PixelFormat.R32G32Float => Format.FormatR32G32Float,
 
+            PixelFormat.R9G9B9E5Float => Format.FormatR9G9B9E5Sharedexp,
+
+            PixelFormat.R11G11B10Float => Format.FormatR11G11B10Float,
+
             PixelFormat.R32G32B32UInt => Format.FormatR32G32B32Uint,
             PixelFormat.R32G32B32SInt => Format.FormatR32G32B32Sint,
             PixelFormat.R32G32B32Float => Format.FormatR32G32B32Float,
@@ -416,6 +422,9 @@ internal static class DXFormats
             PixelFormat.R8G8B8A8UInt => Format.FormatR8G8B8A8Uint,
             PixelFormat.R8G8B8A8SInt => Format.FormatR8G8B8A8Sint,
             PixelFormat.R8G8B8A8SRgb => Format.FormatR8G8B8A8UnormSrgb,
+
+            PixelFormat.R10G10B10A2UNorm => Format.FormatR10G10B10A2Unorm,
+            PixelFormat.R10G10B10A2UInt => Format.FormatR10G10B10A2Uint,
 
             PixelFormat.R16G16B16A16UNorm => Format.FormatR16G16B16A16Unorm,
             PixelFormat.R16G16B16A16SNorm => Format.FormatR16G16B16A16SNorm,
@@ -433,6 +442,15 @@ internal static class DXFormats
             PixelFormat.D16UNorm => Format.FormatD16Unorm,
             PixelFormat.D32Float => Format.FormatD32Float,
             PixelFormat.D32FloatS8UInt => Format.FormatD32FloatS8X24Uint,
+
+            PixelFormat.BC1UNorm => Format.FormatBC1Unorm,
+            PixelFormat.BC1SRgb => Format.FormatBC1UnormSrgb,
+
+            PixelFormat.BC2UNorm => Format.FormatBC2Unorm,
+            PixelFormat.BC2SRgb => Format.FormatBC2UnormSrgb,
+
+            PixelFormat.BC3UNorm => Format.FormatBC3Unorm,
+            PixelFormat.BC3SRgb => Format.FormatBC3UnormSrgb,
 
             PixelFormat.BC4UNorm => Format.FormatBC4Unorm,
             PixelFormat.BC4SNorm => Format.FormatBC4SNorm,

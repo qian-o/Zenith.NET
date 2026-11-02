@@ -8,6 +8,8 @@ internal static class DLSSFormats
     {
         return pixelFormat switch
         {
+            PixelFormat.A8UNorm => 65,
+
             PixelFormat.R8UNorm => 61,
             PixelFormat.R8SNorm => 63,
             PixelFormat.R8UInt => 62,
@@ -38,6 +40,10 @@ internal static class DLSSFormats
             PixelFormat.R32G32SInt => 18,
             PixelFormat.R32G32Float => 16,
 
+            PixelFormat.R9G9B9E5Float => 67,
+
+            PixelFormat.R11G11B10Float => 26,
+
             PixelFormat.R32G32B32UInt => 7,
             PixelFormat.R32G32B32SInt => 8,
             PixelFormat.R32G32B32Float => 6,
@@ -47,6 +53,9 @@ internal static class DLSSFormats
             PixelFormat.R8G8B8A8UInt => 30,
             PixelFormat.R8G8B8A8SInt => 32,
             PixelFormat.R8G8B8A8SRgb => 29,
+
+            PixelFormat.R10G10B10A2UNorm => 24,
+            PixelFormat.R10G10B10A2UInt => 25,
 
             PixelFormat.R16G16B16A16UNorm => 11,
             PixelFormat.R16G16B16A16SNorm => 13,
@@ -73,6 +82,8 @@ internal static class DLSSFormats
     {
         uint format = pixelFormat switch
         {
+            PixelFormat.A8UNorm => 1000470001,
+
             PixelFormat.R8UNorm => 9,
             PixelFormat.R8SNorm => 10,
             PixelFormat.R8UInt => 13,
@@ -103,6 +114,10 @@ internal static class DLSSFormats
             PixelFormat.R32G32SInt => 102,
             PixelFormat.R32G32Float => 103,
 
+            PixelFormat.R9G9B9E5Float => 123,
+
+            PixelFormat.R11G11B10Float => 122,
+
             PixelFormat.R32G32B32UInt => 104,
             PixelFormat.R32G32B32SInt => 105,
             PixelFormat.R32G32B32Float => 106,
@@ -112,6 +127,9 @@ internal static class DLSSFormats
             PixelFormat.R8G8B8A8UInt => 41,
             PixelFormat.R8G8B8A8SInt => 42,
             PixelFormat.R8G8B8A8SRgb => 43,
+
+            PixelFormat.R10G10B10A2UNorm => 64,
+            PixelFormat.R10G10B10A2UInt => 68,
 
             PixelFormat.R16G16B16A16UNorm => 91,
             PixelFormat.R16G16B16A16SNorm => 92,
