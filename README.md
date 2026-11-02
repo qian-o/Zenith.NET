@@ -55,7 +55,7 @@ Continue with [Learn](https://qian-o.github.io/Zenith.NET/learn/index.html) for 
 | --- | --- |
 | [Zenith.NET.Extensions.ImageSharp](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp) | Loads images into GPU textures using ImageSharp. |
 | [Zenith.NET.Extensions.ImGui](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui) | Dear ImGui rendering and input integration. |
-| [Zenith.NET.Extensions.Reconstruction](https://www.nuget.org/packages/Zenith.NET.Extensions.Reconstruction) | Temporal upscaling, denoising upscaling, and frame generation through DLSS or MetalFX. |
+| [Zenith.NET.Extensions.Reconstruction](https://www.nuget.org/packages/Zenith.NET.Extensions.Reconstruction) | Temporal upscaling, denoising upscaling, and frame generation. |
 | [Zenith.NET.Extensions.Skia](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia) | SkiaSharp drawing on GPU textures. |
 
 ### UI integrations
