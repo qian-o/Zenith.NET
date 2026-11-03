@@ -21,8 +21,6 @@ internal static class App
     private static readonly FramePresenter presenter;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-    private static readonly UpscalerKind[] upscalers;
-    private static readonly string upscalerItems;
 
     static App()
     {
@@ -45,14 +43,6 @@ internal static class App
         }
 
         Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.MetalFX]);
-
-        upscalers = [.. Enum.GetValues<UpscalerKind>().Where(static upscaler => upscaler switch
-        {
-            UpscalerKind.Temporal => Context.UpscalingCapabilities.TemporalUpscalerSupported,
-            UpscalerKind.Denoising => Context.UpscalingCapabilities.DenoisingUpscalerSupported,
-            _ => true
-        })];
-        upscalerItems = string.Concat(upscalers.Select(static upscaler => $"{upscaler}\0"));
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
@@ -193,17 +183,25 @@ internal static class App
             renderer.IsPaused = isPaused;
         }
 
-        int upscaler = Array.IndexOf(upscalers, renderer.Upscaler);
-        if (ImGui.Combo("Upscaler", ref upscaler, upscalerItems))
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.TemporalUpscalerSupported);
+
+        int upscalingMode = renderer.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
+        if (ImGui.Combo("Upscaling Mode", ref upscalingMode, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
         {
-            renderer.Upscaler = upscalers[upscaler];
+            renderer.UpscalingMode = upscalingMode is 0 ? null : (UpscalingMode)(upscalingMode - 1);
         }
 
-        int upscalingMode = (int)renderer.UpscalingMode;
-        if (ImGui.Combo("Upscaling Mode", ref upscalingMode, "Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        ImGui.EndDisabled();
+
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.DenoisingUpscalerSupported || renderer.UpscalingMode is null);
+
+        bool isDenoisingEnabled = renderer.IsDenoisingEnabled;
+        if (ImGui.Checkbox("Denoising", ref isDenoisingEnabled))
         {
-            renderer.UpscalingMode = (UpscalingMode)upscalingMode;
+            renderer.IsDenoisingEnabled = isDenoisingEnabled;
         }
+
+        ImGui.EndDisabled();
 
         ImGui.BeginDisabled(!Context.UpscalingCapabilities.FrameGeneratorSupported);
 

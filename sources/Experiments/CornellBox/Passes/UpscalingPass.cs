@@ -11,25 +11,9 @@ internal class UpscalingPass : DisposableObject
     private readonly TemporalUpscaler? temporalUpscaler;
     private readonly DenoisingUpscaler? denoisingUpscaler;
 
-    public UpscalingPass(UpscalerKind upscaler, UpscalingMode mode, uint width, uint height)
+    public UpscalingPass(UpscalingMode mode, bool isDenoisingEnabled, uint width, uint height)
     {
-        if (upscaler is UpscalerKind.Temporal)
-        {
-            InputSize = App.Context.GetTemporalUpscalerInputSize(width, height, mode);
-            temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
-            {
-                ColorFormat = PixelFormat.R16G16B16A16Float,
-                DepthFormat = PixelFormat.R32Float,
-                MotionVectorsFormat = PixelFormat.R32G32Float,
-                OutputFormat = PixelFormat.R16G16B16A16Float,
-                InputWidth = InputSize.Width,
-                InputHeight = InputSize.Height,
-                OutputWidth = width,
-                OutputHeight = height,
-                Flags = UpscalingInputFlags.AutoExposure
-            });
-        }
-        else
+        if (isDenoisingEnabled)
         {
             InputSize = App.Context.GetDenoisingUpscalerInputSize(width, height, mode);
             denoisingUpscaler = App.Context.CreateDenoisingUpscaler(new()
@@ -47,6 +31,22 @@ internal class UpscalingPass : DisposableObject
                 InputHeight = InputSize.Height,
                 OutputWidth = width,
                 OutputHeight = height
+            });
+        }
+        else
+        {
+            InputSize = App.Context.GetTemporalUpscalerInputSize(width, height, mode);
+            temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
+            {
+                ColorFormat = PixelFormat.R16G16B16A16Float,
+                DepthFormat = PixelFormat.R32Float,
+                MotionVectorsFormat = PixelFormat.R32G32Float,
+                OutputFormat = PixelFormat.R16G16B16A16Float,
+                InputWidth = InputSize.Width,
+                InputHeight = InputSize.Height,
+                OutputWidth = width,
+                OutputHeight = height,
+                Flags = UpscalingInputFlags.AutoExposure
             });
         }
 

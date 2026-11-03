@@ -29,7 +29,7 @@ internal class Renderer : DisposableObject
 
     public bool IsPaused { get; set; }
 
-    public UpscalerKind Upscaler
+    public UpscalingMode? UpscalingMode
     {
         get;
         set
@@ -41,9 +41,9 @@ internal class Renderer : DisposableObject
                 Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
             }
         }
-    }
+    } = App.Context.UpscalingCapabilities.TemporalUpscalerSupported ? Zenith.NET.Extensions.Upscaling.UpscalingMode.Quality : null;
 
-    public UpscalingMode UpscalingMode
+    public bool IsDenoisingEnabled
     {
         get;
         set
@@ -55,7 +55,7 @@ internal class Renderer : DisposableObject
                 Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
             }
         }
-    } = UpscalingMode.Quality;
+    } = App.Context.UpscalingCapabilities.DenoisingUpscalerSupported;
 
     public bool IsFrameGenerationEnabled
     {
@@ -69,7 +69,7 @@ internal class Renderer : DisposableObject
                 Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
             }
         }
-    }
+    } = App.Context.UpscalingCapabilities.FrameGeneratorSupported;
 
     public Texture Overlay => outputPass.Overlay;
 
@@ -110,7 +110,7 @@ internal class Renderer : DisposableObject
     public void Resize(uint width, uint height)
     {
         upscalingPass?.Dispose();
-        upscalingPass = Upscaler is UpscalerKind.Off ? null : new(Upscaler, UpscalingMode, width, height);
+        upscalingPass = UpscalingMode is UpscalingMode mode ? new(mode, IsDenoisingEnabled, width, height) : null;
 
         UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(width, height);
 
