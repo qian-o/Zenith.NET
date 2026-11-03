@@ -11,164 +11,124 @@ internal class Renderer : DisposableObject
 {
     private readonly SceneResources scene;
     private readonly PathTracingPass pathTracingPass;
-    private readonly UpscalingPass upscalingPass;
     private readonly OutputPass outputPass;
-    private readonly FrameGenerationPass frameGenerationPass;
-    private readonly CompositePass compositePass;
 
-    private Matrix4x4 previousView;
-    private Matrix4x4 previousProjection;
-    private int[] outputIndices = [0];
-    private int firstOutputIndex;
+    private UpscalingPass? upscalingPass;
+    private FrameGenerationPass? frameGenerationPass;
     private double elapsedSeconds;
     private uint frameIndex;
 
-    public Renderer()
+    public Renderer(uint width, uint height)
     {
-        RenderDesc desc = new()
-        {
-            InputWidth = App.Width,
-            InputHeight = App.Height,
-            OutputWidth = App.Width,
-            OutputHeight = App.Height
-        };
-
         scene = new();
-        upscalingPass = new(desc);
-        pathTracingPass = new(desc);
-        outputPass = new(desc);
-        frameGenerationPass = new(desc);
-        compositePass = new(desc);
+        pathTracingPass = new();
+        outputPass = new();
+
+        Resize(width, height);
     }
 
     public bool IsPaused { get; set; }
 
-    public UpscalerKind Upscaler { get; set; }
+    public UpscalerKind Upscaler
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
 
-    public UpscalingMode UpscalingMode { get; set; } = UpscalingMode.Quality;
+                Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
+            }
+        }
+    }
 
-    public FrameGenerationMode FrameGeneration { get; set; }
+    public UpscalingMode UpscalingMode
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
 
-    public Texture Overlay => compositePass.Overlay;
+                Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
+            }
+        }
+    } = UpscalingMode.Quality;
 
-    public ReadOnlySpan<Texture> Colors => compositePass.Colors;
+    public bool IsFrameGenerationEnabled
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
 
-    public ReadOnlySpan<int> OutputIndices => outputIndices.AsSpan(firstOutputIndex);
+                Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
+            }
+        }
+    }
 
-    public void Update(double deltaSeconds)
+    public Texture Overlay => outputPass.Overlay;
+
+    public ReadOnlySpan<Texture> Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
         if (!IsPaused)
         {
             elapsedSeconds += deltaSeconds;
         }
-    }
 
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
-    {
-        Resize(App.Width, App.Height);
-
-        Matrix4x4 view = camera.View;
-        Matrix4x4 projection = camera.Projection;
         uint sample = frameIndex + 1u;
-        RenderArgs args = new()
-        {
-            Scene = scene,
-            Camera = camera,
-            Input = pathTracingPass.Output,
-            View = view,
-            Projection = projection,
-            PreviousView = frameIndex is 0 ? view : previousView,
-            PreviousProjection = frameIndex is 0 ? projection : previousProjection,
-            JitterOffset = upscalingPass.Color is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f),
-            DeltaSeconds = deltaSeconds,
-            FrameIndex = frameIndex
-        };
+        Vector2 jitterOffset = upscalingPass is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f);
+        bool reset = frameIndex is 0;
 
         scene.Update(commandBuffer, elapsedSeconds);
+        pathTracingPass.Record(commandBuffer, scene, camera, jitterOffset, frameIndex);
 
-        pathTracingPass.Record(commandBuffer, args);
-        upscalingPass.Record(commandBuffer, args);
-
-        args = args with { Color = upscalingPass.Color ?? args.Input.Color };
-        outputPass.Record(commandBuffer, args);
-
-        args = args with { Color = outputPass.Color };
-        frameGenerationPass.Record(commandBuffer, args);
-
-        firstOutputIndex = args.Reset ? outputIndices.Length - 1 : 0;
-        previousView = view;
-        previousProjection = projection;
-        frameIndex++;
-    }
-
-    public void Composite(CommandBuffer commandBuffer)
-    {
-        compositePass.Record(commandBuffer, new()
+        Texture color = pathTracingPass.Output.Color;
+        if (upscalingPass is not null)
         {
-            Color = outputPass.Color,
-            Generated = frameGenerationPass.Colors
-        });
+            upscalingPass.Record(commandBuffer, pathTracingPass.Output, camera, jitterOffset, reset);
+            color = upscalingPass.Color;
+        }
+
+        outputPass.Record(commandBuffer, color, frameIndex);
+        frameGenerationPass?.Record(commandBuffer, outputPass.Color, pathTracingPass.Output, camera, jitterOffset, deltaSeconds, reset);
+
+        frameIndex++;
+
+        if (frameGenerationPass is null || reset)
+        {
+            return outputPass.Composite(commandBuffer, [outputPass.Color]);
+        }
+
+        return outputPass.Composite(commandBuffer, [frameGenerationPass.Color, outputPass.Color]);
     }
 
     public void Resize(uint width, uint height)
     {
-        RenderDesc desc = new()
-        {
-            InputWidth = width,
-            InputHeight = height,
-            OutputWidth = width,
-            OutputHeight = height,
-            Upscaler = Upscaler,
-            UpscalingMode = UpscalingMode,
-            FrameGeneration = FrameGeneration
-        };
+        upscalingPass?.Dispose();
+        upscalingPass = Upscaler is UpscalerKind.Off ? null : new(Upscaler, UpscalingMode, width, height);
 
-        bool isUpscalerSupported = desc.Upscaler switch
-        {
-            UpscalerKind.Temporal => App.Context.UpscalingCapabilities.TemporalUpscalerSupported,
-            UpscalerKind.Denoising => App.Context.UpscalingCapabilities.DenoisingUpscalerSupported,
-            _ => true
-        };
+        UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(width, height);
 
-        if (!isUpscalerSupported)
-        {
-            desc.Upscaler = UpscalerKind.Off;
-        }
+        pathTracingPass.Resize(inputSize.Width, inputSize.Height);
+        outputPass.Resize(width, height, IsFrameGenerationEnabled ? 2 : 1);
 
-        if (!App.Context.UpscalingCapabilities.FrameGeneratorSupported)
-        {
-            desc.FrameGeneration = FrameGenerationMode.X1;
-        }
-
-        if (outputPass.Color.Desc.Width == width && outputPass.Color.Desc.Height == height && upscalingPass.Desc.Upscaler == desc.Upscaler && upscalingPass.Desc.UpscalingMode == desc.UpscalingMode && frameGenerationPass.Colors.Length == (int)desc.FrameGeneration)
-        {
-            return;
-        }
-
-        upscalingPass.Resize(desc);
-        desc.InputWidth = upscalingPass.Desc.InputWidth;
-        desc.InputHeight = upscalingPass.Desc.InputHeight;
-
-        pathTracingPass.Resize(desc);
-        outputPass.Resize(desc);
-        frameGenerationPass.Resize(desc);
-        compositePass.Resize(desc);
-
-        if (outputIndices.Length != Colors.Length)
-        {
-            outputIndices = [.. Enumerable.Range(0, Colors.Length)];
-        }
+        frameGenerationPass?.Dispose();
+        frameGenerationPass = IsFrameGenerationEnabled ? new(inputSize.Width, inputSize.Height, width, height) : null;
 
         frameIndex = 0;
     }
 
     protected override void Destroy()
     {
-        compositePass?.Dispose();
         frameGenerationPass?.Dispose();
+        upscalingPass?.Dispose();
         outputPass?.Dispose();
         pathTracingPass?.Dispose();
-        upscalingPass?.Dispose();
         scene?.Dispose();
     }
 

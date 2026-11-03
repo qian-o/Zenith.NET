@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -11,7 +12,9 @@ internal unsafe class PathTracingPass : DisposableObject
     private readonly Buffer buffer;
     private readonly ComputePipeline pipeline;
 
-    public PathTracingPass(RenderDesc desc)
+    private Matrix4x4 previousViewProjection;
+
+    public PathTracingPass()
     {
         buffer = App.Context.CreateBuffer(new()
         {
@@ -23,32 +26,33 @@ internal unsafe class PathTracingPass : DisposableObject
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "PathTracingCS"));
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-
-        Resize(desc);
     }
 
     public PathTracingOutput Output { get; private set; } = null!;
 
-    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Vector2 jitterOffset, uint frameIndex)
     {
-        Matrix4x4.Invert(args.View, out Matrix4x4 inverseView);
-        Matrix4x4.Invert(args.Projection, out Matrix4x4 inverseProjection);
+        Matrix4x4 view = camera.View;
+        Matrix4x4 projection = camera.Projection;
+        Matrix4x4 viewProjection = view * projection;
+        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
         PathTracingConstants constants = new()
         {
             InverseView = inverseView,
             InverseProjection = inverseProjection,
-            ViewProjection = args.View * args.Projection,
-            PreviousViewProjection = args.PreviousView * args.PreviousProjection,
-            Position = new(args.Camera.Position, 1.0f),
+            ViewProjection = viewProjection,
+            PreviousViewProjection = frameIndex is 0 ? viewProjection : previousViewProjection,
+            Position = new(camera.Position, 1.0f),
             RenderSize = new(Output.Width, Output.Height),
-            JitterOffset = args.JitterOffset,
-            FrameIndex = args.FrameIndex,
-            Scene = args.Scene.AccelerationStructure,
-            Vertices = args.Scene.Vertices,
-            Indices = args.Scene.Indices,
-            Materials = args.Scene.Materials,
-            Instances = args.Scene.Instances,
+            JitterOffset = jitterOffset,
+            FrameIndex = frameIndex,
+            Scene = scene.AccelerationStructure,
+            Vertices = scene.Vertices,
+            Indices = scene.Indices,
+            Materials = scene.Materials,
+            Instances = scene.Instances,
             Color = Output.Color.StorageHandle,
             Depth = Output.Depth.StorageHandle,
             MotionVectors = Output.MotionVectors.StorageHandle,
@@ -80,18 +84,14 @@ internal unsafe class PathTracingPass : DisposableObject
         {
             commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
+
+        previousViewProjection = viewProjection;
     }
 
-    public void Resize(RenderDesc desc)
+    public void Resize(uint width, uint height)
     {
-        if (Output is not null && Output.Width == desc.InputWidth && Output.Height == desc.InputHeight)
-        {
-            return;
-        }
-
         Output?.Dispose();
-        Output = null!;
-        Output = new(desc.InputWidth, desc.InputHeight);
+        Output = new(width, height);
     }
 
     protected override void Destroy()

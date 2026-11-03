@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Upscaling;
@@ -7,94 +8,51 @@ namespace CornellBox.Passes;
 
 internal class FrameGenerationPass : DisposableObject
 {
-    private FrameGenerator? frameGenerator;
-    private Texture[] colors = [];
+    private readonly FrameGenerator frameGenerator;
 
-    public FrameGenerationPass(RenderDesc desc)
+    public FrameGenerationPass(uint inputWidth, uint inputHeight, uint outputWidth, uint outputHeight)
     {
-        Resize(desc);
-    }
-
-    public ReadOnlySpan<Texture> Colors => colors;
-
-    public void Record(CommandBuffer commandBuffer, in RenderArgs args)
-    {
-        if (frameGenerator is null)
-        {
-            return;
-        }
-
-        commandBuffer.Transition(colors[0], default, TextureLayout.Undefined, TextureLayout.Storage);
-        frameGenerator.Dispatch(commandBuffer, new()
-        {
-            Color = args.Color,
-            Depth = args.Input.Depth,
-            MotionVectors = args.Input.MotionVectors,
-            Output = colors[0],
-            DeltaTimeInSeconds = (float)args.DeltaSeconds,
-            JitterOffset = -args.JitterOffset,
-            MotionVectorScale = Vector2.One,
-            WorldToView = args.View,
-            ViewToClip = args.Projection,
-            Reset = args.Reset
-        });
-        commandBuffer.Transition(colors[0], default, TextureLayout.Storage, TextureLayout.Sampled);
-    }
-
-    public void Resize(RenderDesc desc)
-    {
-        if (colors.Length == (int)desc.FrameGeneration && (frameGenerator is null || IsSameSize(frameGenerator.Desc, desc)))
-        {
-            return;
-        }
-
-        DestroyResources();
-        CreateResources(desc);
-    }
-
-    protected override void Destroy()
-    {
-        DestroyResources();
-    }
-
-    private void CreateResources(RenderDesc desc)
-    {
-        if (desc.FrameGeneration is FrameGenerationMode.X1)
-        {
-            return;
-        }
-
         frameGenerator = App.Context.CreateFrameGenerator(new()
         {
             ColorFormat = PixelFormat.R8G8B8A8UNorm,
             DepthFormat = PixelFormat.R32Float,
             MotionVectorsFormat = PixelFormat.R32G32Float,
-            InputWidth = desc.InputWidth,
-            InputHeight = desc.InputHeight,
-            OutputWidth = desc.OutputWidth,
-            OutputHeight = desc.OutputHeight
+            InputWidth = inputWidth,
+            InputHeight = inputHeight,
+            OutputWidth = outputWidth,
+            OutputHeight = outputHeight
         });
 
-        colors = [App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, desc.OutputWidth, desc.OutputHeight, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, outputWidth, outputHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
-        })];
+        });
     }
 
-    private void DestroyResources()
+    public Texture Color { get; }
+
+    public void Record(CommandBuffer commandBuffer, Texture color, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffset, double deltaSeconds, bool reset)
     {
-        for (int i = colors.Length - 1; i >= 0; i--)
+        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
+        frameGenerator.Dispatch(commandBuffer, new()
         {
-            colors[i]?.Dispose();
-        }
-        colors = [];
-
-        frameGenerator?.Dispose();
-        frameGenerator = null;
+            Color = color,
+            Depth = input.Depth,
+            MotionVectors = input.MotionVectors,
+            Output = Color,
+            DeltaTimeInSeconds = (float)deltaSeconds,
+            JitterOffset = -jitterOffset,
+            MotionVectorScale = Vector2.One,
+            WorldToView = camera.View,
+            ViewToClip = camera.Projection,
+            Reset = reset
+        });
+        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    private static bool IsSameSize(FrameGeneratorDesc frameGeneratorDesc, RenderDesc desc)
+    protected override void Destroy()
     {
-        return frameGeneratorDesc.InputWidth == desc.InputWidth && frameGeneratorDesc.InputHeight == desc.InputHeight && frameGeneratorDesc.OutputWidth == desc.OutputWidth && frameGeneratorDesc.OutputHeight == desc.OutputHeight;
+        Color?.Dispose();
+        frameGenerator?.Dispose();
     }
 }

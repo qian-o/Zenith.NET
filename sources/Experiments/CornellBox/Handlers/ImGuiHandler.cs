@@ -1,17 +1,42 @@
-﻿using CornellBox.Models;
-using Hexa.NET.ImGui;
+﻿using Hexa.NET.ImGui;
 using Silk.NET.Input;
+using Silk.NET.Windowing;
+using Zenith.NET;
 using Zenith.NET.Extensions.ImGui;
 
 namespace CornellBox.Handlers;
 
-internal class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
+internal class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
+    private readonly IInputContext input;
+    private readonly IKeyboard keyboard;
+    private readonly Lock @lock = new();
+    private readonly List<ImGuiInputArgs> inputs = [];
+
+    private volatile StandardCursor cursor;
+
+    public ImGuiHandler(IWindow window)
+    {
+        input = window.CreateInput();
+        keyboard = input.Keyboards[0];
+
+        IMouse mouse = input.Mice[0];
+        mouse.MouseDown += (_, button) => AddMouseButton(ImGuiInput.MouseDown, button);
+        mouse.MouseUp += (_, button) => AddMouseButton(ImGuiInput.MouseUp, button);
+        mouse.MouseMove += (_, position) => AddInput(new(ImGuiInput.MouseMove) { Position = position });
+        mouse.Scroll += (_, wheel) => AddInput(new(ImGuiInput.MouseWheel) { Offset = new(wheel.X, wheel.Y) });
+        keyboard.KeyDown += (_, key, _) => AddKey(ImGuiInput.KeyDown, key);
+        keyboard.KeyUp += (_, key, _) => AddKey(ImGuiInput.KeyUp, key);
+        keyboard.KeyChar += (_, character) => AddInput(new(ImGuiInput.TextInput) { Character = character });
+
+        window.Update += _ => mouse.Cursor.StandardCursor = cursor;
+    }
+
     public event EventHandler<ImGuiInputArgs>? Input;
 
     public void Initialize(ImGuiIOPtr io)
     {
-        io.DisplayFramebufferScale = platform.DpiScale;
+        io.DisplayFramebufferScale = App.DpiScale;
 
         unsafe
         {
@@ -22,7 +47,7 @@ internal class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
 
     public void SetCursor(ImGuiMouseCursor cursor)
     {
-        platform.Cursor = cursor switch
+        this.cursor = cursor switch
         {
             ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
             ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
@@ -39,55 +64,53 @@ internal class ImGuiHandler(PlatformHandler platform) : IImGuiPlatform
 
     public string GetClipboardText()
     {
-        return platform.ClipboardText;
+        return keyboard.ClipboardText;
     }
 
     public void SetClipboardText(string text)
     {
-        platform.ClipboardText = text;
+        keyboard.ClipboardText = text;
     }
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
     }
 
-    public void Update(ReadOnlySpan<Input> inputs)
+    public void Update()
     {
-        foreach (Input input in inputs)
+        using Lock.Scope _ = @lock.EnterScope();
+
+        foreach (ImGuiInputArgs args in inputs)
         {
-            switch (input.Type)
-            {
-                case InputType.MouseDown when input.Button <= MouseButton.Button5:
-                    Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)input.Button });
-                    break;
-
-                case InputType.MouseUp when input.Button <= MouseButton.Button5:
-                    Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)input.Button });
-                    break;
-
-                case InputType.MouseMove:
-                    Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = input.Position });
-                    break;
-
-                case InputType.MouseWheel:
-                    Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = input.Offset });
-                    break;
-
-                case InputType.KeyDown:
-                    Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(input.Key) });
-                    Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
-                    break;
-
-                case InputType.KeyUp:
-                    Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(input.Key) });
-                    Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(input.Key) });
-                    break;
-
-                case InputType.TextInput:
-                    Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = input.Character });
-                    break;
-            }
+            Input?.Invoke(this, args);
         }
+        inputs.Clear();
+    }
+
+    protected override void Destroy()
+    {
+        input?.Dispose();
+    }
+
+    private void AddInput(ImGuiInputArgs args)
+    {
+        using Lock.Scope _ = @lock.EnterScope();
+
+        inputs.Add(args);
+    }
+
+    private void AddMouseButton(ImGuiInput type, MouseButton button)
+    {
+        if (button <= MouseButton.Button5)
+        {
+            AddInput(new(type) { MouseButton = (ImGuiMouseButton)button });
+        }
+    }
+
+    private void AddKey(ImGuiInput type, Key key)
+    {
+        AddInput(new(type) { Key = TranslateInputKeyToImGuiKey(key) });
+        AddInput(new(type) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)

@@ -17,13 +17,12 @@ namespace CornellBox;
 internal static class App
 {
     private static readonly IWindow window;
-    private static readonly PlatformHandler platform;
     private static readonly ImGuiHandler imGui;
     private static readonly FramePresenter presenter;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-
-    private static readonly string frameGenerationItems = "1x\0";
+    private static readonly UpscalerKind[] upscalers;
+    private static readonly string upscalerItems;
 
     static App()
     {
@@ -47,10 +46,13 @@ internal static class App
 
         Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.MetalFX]);
 
-        if (Context.UpscalingCapabilities.FrameGeneratorSupported)
+        upscalers = [.. Enum.GetValues<UpscalerKind>().Where(static upscaler => upscaler switch
         {
-            frameGenerationItems = "1x\02x\0";
-        }
+            UpscalerKind.Temporal => Context.UpscalingCapabilities.TemporalUpscalerSupported,
+            UpscalerKind.Denoising => Context.UpscalingCapabilities.DenoisingUpscalerSupported,
+            _ => true
+        })];
+        upscalerItems = string.Concat(upscalers.Select(static upscaler => $"{upscaler}\0"));
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
@@ -65,8 +67,9 @@ internal static class App
         window.Initialize();
         window.Center();
 
-        platform = new(window);
-        imGui = new(platform);
+        DpiScale = (Vector2)window.FramebufferSize / (Vector2)window.Size;
+
+        imGui = new(window);
 
         Context.InitializeImGui(imGui, new()
         {
@@ -105,18 +108,15 @@ internal static class App
             Speed = 240.0f
         };
 
-        renderer = new();
+        renderer = new(presenter.Width, presenter.Height);
     }
 
     public static GraphicsContext Context { get; }
 
-    public static uint Width => presenter.Width;
-
-    public static uint Height => presenter.Height;
+    public static Vector2 DpiScale { get; }
 
     public static void Run()
     {
-        presenter.Update += OnUpdate;
         presenter.Render += OnRender;
         presenter.Resize += OnResize;
 
@@ -131,49 +131,35 @@ internal static class App
 
         presenter.Resize -= OnResize;
         presenter.Render -= OnRender;
-        presenter.Update -= OnUpdate;
 
         renderer.Dispose();
         presenter.Dispose();
-        platform.Dispose();
+        imGui.Dispose();
         window.Dispose();
 
         Context.Dispose();
     }
 
-    private static void OnUpdate(double deltaSeconds)
+    private static void OnRender(CommandBuffer commandBuffer, double deltaSeconds)
     {
-        uint width = (uint)(Width / platform.DpiScale.X);
-        uint height = (uint)(Height / platform.DpiScale.Y);
-        ReadOnlySpan<Input> inputs = platform.CollectInput();
+        uint width = (uint)(presenter.Width / DpiScale.X);
+        uint height = (uint)(presenter.Height / DpiScale.Y);
 
-        camera.Update(deltaSeconds, width, height, inputs);
-        imGui.Update(inputs);
-        renderer.Update(deltaSeconds);
-
+        imGui.Update();
         Context.BeginImGuiFrame(deltaSeconds, width, height);
+
+        camera.Update(deltaSeconds, width, height);
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
-    }
-
-    private static void OnRender(double deltaSeconds)
-    {
-        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-
-        renderer.Render(commandBuffer, camera, deltaSeconds);
 
         commandBuffer.Transition(renderer.Overlay, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(renderer.Overlay, Vector4.Zero));
         commandBuffer.Transition(renderer.Overlay, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 
-        renderer.Composite(commandBuffer);
-
-        commandBuffer.Submit();
-
-        foreach (int index in renderer.OutputIndices)
+        foreach (Texture frame in renderer.Render(commandBuffer, camera, deltaSeconds))
         {
-            presenter.Submit(renderer.Colors[index], TextureLayout.ColorAttachment, index, renderer.Colors.Length);
+            presenter.Submit(commandBuffer, frame);
         }
     }
 
@@ -207,10 +193,10 @@ internal static class App
             renderer.IsPaused = isPaused;
         }
 
-        int upscaler = (int)renderer.Upscaler;
-        if (ImGui.Combo("Upscaler", ref upscaler, "Off\0Temporal\0Denoising\0"))
+        int upscaler = Array.IndexOf(upscalers, renderer.Upscaler);
+        if (ImGui.Combo("Upscaler", ref upscaler, upscalerItems))
         {
-            renderer.Upscaler = (UpscalerKind)upscaler;
+            renderer.Upscaler = upscalers[upscaler];
         }
 
         int upscalingMode = (int)renderer.UpscalingMode;
@@ -219,10 +205,14 @@ internal static class App
             renderer.UpscalingMode = (UpscalingMode)upscalingMode;
         }
 
-        int frameGeneration = (int)renderer.FrameGeneration;
-        if (ImGui.Combo("Frame Generation", ref frameGeneration, frameGenerationItems))
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.FrameGeneratorSupported);
+
+        bool isFrameGenerationEnabled = renderer.IsFrameGenerationEnabled;
+        if (ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled))
         {
-            renderer.FrameGeneration = (FrameGenerationMode)frameGeneration;
+            renderer.IsFrameGenerationEnabled = isFrameGenerationEnabled;
         }
+
+        ImGui.EndDisabled();
     }
 }
