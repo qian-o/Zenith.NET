@@ -123,11 +123,10 @@ internal class Renderer : DisposableObject
             FrameGeneration = FrameGeneration
         };
 
-        UpscalingCapabilities? capabilities = App.UpscalingCapabilities;
         bool isUpscalerSupported = desc.Upscaler switch
         {
-            UpscalerKind.Temporal => capabilities?.TemporalUpscalerSupported is true,
-            UpscalerKind.Denoising => capabilities?.DenoisingUpscalerSupported is true,
+            UpscalerKind.Temporal => App.Context.UpscalingCapabilities.TemporalUpscalerSupported,
+            UpscalerKind.Denoising => App.Context.UpscalingCapabilities.DenoisingUpscalerSupported,
             _ => true
         };
 
@@ -136,7 +135,7 @@ internal class Renderer : DisposableObject
             desc.Upscaler = UpscalerKind.Off;
         }
 
-        if (capabilities?.FrameGeneratorSupported is not true)
+        if (!App.Context.UpscalingCapabilities.FrameGeneratorSupported)
         {
             desc.FrameGeneration = FrameGenerationMode.X1;
         }

@@ -45,18 +45,9 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        try
-        {
-            Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.MetalFX]);
+        Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.MetalFX]);
 
-            UpscalingCapabilities = Context.UpscalingCapabilities;
-        }
-        catch (NotSupportedException)
-        {
-            // Upscaling is optional; the sample keeps rendering at native resolution without it.
-        }
-
-        if (UpscalingCapabilities?.FrameGeneratorSupported is true)
+        if (Context.UpscalingCapabilities.FrameGeneratorSupported)
         {
             frameGenerationItems = "1x\02x\0";
         }
@@ -118,8 +109,6 @@ internal static class App
     }
 
     public static GraphicsContext Context { get; }
-
-    public static UpscalingCapabilities? UpscalingCapabilities { get; }
 
     public static uint Width => presenter.Width;
 
