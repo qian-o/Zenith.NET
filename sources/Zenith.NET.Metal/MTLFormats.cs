@@ -371,28 +371,21 @@ internal static class MTLFormats
 
             PixelFormat.BC1UNorm => MTLPixelFormat.BC1_RGBA,
             PixelFormat.BC1SRgb => MTLPixelFormat.BC1_RGBA_sRGB,
-
             PixelFormat.BC2UNorm => MTLPixelFormat.BC2_RGBA,
             PixelFormat.BC2SRgb => MTLPixelFormat.BC2_RGBA_sRGB,
-
             PixelFormat.BC3UNorm => MTLPixelFormat.BC3_RGBA,
             PixelFormat.BC3SRgb => MTLPixelFormat.BC3_RGBA_sRGB,
-
             PixelFormat.BC4UNorm => MTLPixelFormat.BC4_RUnorm,
             PixelFormat.BC4SNorm => MTLPixelFormat.BC4_RSnorm,
-
             PixelFormat.BC5UNorm => MTLPixelFormat.BC5_RGUnorm,
             PixelFormat.BC5SNorm => MTLPixelFormat.BC5_RGSnorm,
-
             PixelFormat.BC6HUFloat => MTLPixelFormat.BC6H_RGBUfloat,
             PixelFormat.BC6HSFloat => MTLPixelFormat.BC6H_RGBFloat,
-
             PixelFormat.BC7UNorm => MTLPixelFormat.BC7_RGBAUnorm,
             PixelFormat.BC7SRgb => MTLPixelFormat.BC7_RGBAUnorm_sRGB,
 
             PixelFormat.EACR11UNorm => MTLPixelFormat.EAC_R11Unorm,
             PixelFormat.EACR11SNorm => MTLPixelFormat.EAC_R11Snorm,
-
             PixelFormat.EACR11G11UNorm => MTLPixelFormat.EAC_RG11Unorm,
             PixelFormat.EACR11G11SNorm => MTLPixelFormat.EAC_RG11Snorm,
 
@@ -406,23 +399,18 @@ internal static class MTLFormats
             PixelFormat.ASTC4x4UNorm => MTLPixelFormat.ASTC_4x4_LDR,
             PixelFormat.ASTC4x4SRgb => MTLPixelFormat.ASTC_4x4_sRGB,
             PixelFormat.ASTC4x4Float => MTLPixelFormat.ASTC_4x4_HDR,
-
             PixelFormat.ASTC5x5UNorm => MTLPixelFormat.ASTC_5x5_LDR,
             PixelFormat.ASTC5x5SRgb => MTLPixelFormat.ASTC_5x5_sRGB,
             PixelFormat.ASTC5x5Float => MTLPixelFormat.ASTC_5x5_HDR,
-
             PixelFormat.ASTC6x6UNorm => MTLPixelFormat.ASTC_6x6_LDR,
             PixelFormat.ASTC6x6SRgb => MTLPixelFormat.ASTC_6x6_sRGB,
             PixelFormat.ASTC6x6Float => MTLPixelFormat.ASTC_6x6_HDR,
-
             PixelFormat.ASTC8x8UNorm => MTLPixelFormat.ASTC_8x8_LDR,
             PixelFormat.ASTC8x8SRgb => MTLPixelFormat.ASTC_8x8_sRGB,
             PixelFormat.ASTC8x8Float => MTLPixelFormat.ASTC_8x8_HDR,
-
             PixelFormat.ASTC10x10UNorm => MTLPixelFormat.ASTC_10x10_LDR,
             PixelFormat.ASTC10x10SRgb => MTLPixelFormat.ASTC_10x10_sRGB,
             PixelFormat.ASTC10x10Float => MTLPixelFormat.ASTC_10x10_HDR,
-
             PixelFormat.ASTC12x12UNorm => MTLPixelFormat.ASTC_12x12_LDR,
             PixelFormat.ASTC12x12SRgb => MTLPixelFormat.ASTC_12x12_sRGB,
             PixelFormat.ASTC12x12Float => MTLPixelFormat.ASTC_12x12_HDR,

@@ -441,22 +441,16 @@ internal static class DXFormats
 
             PixelFormat.BC1UNorm => Format.FormatBC1Unorm,
             PixelFormat.BC1SRgb => Format.FormatBC1UnormSrgb,
-
             PixelFormat.BC2UNorm => Format.FormatBC2Unorm,
             PixelFormat.BC2SRgb => Format.FormatBC2UnormSrgb,
-
             PixelFormat.BC3UNorm => Format.FormatBC3Unorm,
             PixelFormat.BC3SRgb => Format.FormatBC3UnormSrgb,
-
             PixelFormat.BC4UNorm => Format.FormatBC4Unorm,
             PixelFormat.BC4SNorm => Format.FormatBC4SNorm,
-
             PixelFormat.BC5UNorm => Format.FormatBC5Unorm,
             PixelFormat.BC5SNorm => Format.FormatBC5SNorm,
-
             PixelFormat.BC6HUFloat => Format.FormatBC6HUF16,
             PixelFormat.BC6HSFloat => Format.FormatBC6HSF16,
-
             PixelFormat.BC7UNorm => Format.FormatBC7Unorm,
             PixelFormat.BC7SRgb => Format.FormatBC7UnormSrgb,
 
