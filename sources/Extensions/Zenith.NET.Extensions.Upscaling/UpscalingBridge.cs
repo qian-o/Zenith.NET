@@ -5,100 +5,100 @@ namespace Zenith.NET.Extensions.Upscaling;
 
 internal class UpscalingBridge : DisposableObject
 {
-    private readonly List<Backend> backends = [];
-    private readonly Backend? temporalUpscalerBackend;
-    private readonly Backend? denoisingUpscalerBackend;
-    private readonly Backend? frameGeneratorBackend;
+    private readonly List<Vendor> vendors = [];
+    private readonly Vendor? temporalUpscalerVendor;
+    private readonly Vendor? denoisingUpscalerVendor;
+    private readonly Vendor? frameGeneratorVendor;
 
     public UpscalingBridge(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
     {
         foreach (UpscalingApi api in apis.ToArray().Distinct())
         {
-            if (temporalUpscalerBackend is not null && denoisingUpscalerBackend is not null && frameGeneratorBackend is not null)
+            if (temporalUpscalerVendor is not null && denoisingUpscalerVendor is not null && frameGeneratorVendor is not null)
             {
                 break;
             }
 
-            if (CreateBackend(context, api) is not Backend backend)
+            if (CreateVendor(context, api) is not Vendor vendor)
             {
                 continue;
             }
 
-            UpscalingCapabilities capabilities = backend.Capabilities;
-            temporalUpscalerBackend ??= capabilities.TemporalUpscalerSupported ? backend : null;
-            denoisingUpscalerBackend ??= capabilities.DenoisingUpscalerSupported ? backend : null;
-            frameGeneratorBackend ??= capabilities.FrameGeneratorSupported ? backend : null;
+            UpscalingCapabilities capabilities = vendor.Capabilities;
+            temporalUpscalerVendor ??= capabilities.TemporalUpscalerSupported ? vendor : null;
+            denoisingUpscalerVendor ??= capabilities.DenoisingUpscalerSupported ? vendor : null;
+            frameGeneratorVendor ??= capabilities.FrameGeneratorSupported ? vendor : null;
 
-            if (backend == temporalUpscalerBackend || backend == denoisingUpscalerBackend || backend == frameGeneratorBackend)
+            if (vendor == temporalUpscalerVendor || vendor == denoisingUpscalerVendor || vendor == frameGeneratorVendor)
             {
-                backends.Add(backend);
+                vendors.Add(vendor);
             }
             else
             {
-                backend.Dispose();
+                vendor.Dispose();
             }
         }
 
-        if (backends.Count is 0)
+        if (vendors.Count is 0)
         {
             throw new NotSupportedException("This device does not support any of the specified upscaling APIs.");
         }
 
-        Capabilities = new(temporalUpscalerBackend is not null, denoisingUpscalerBackend is not null, frameGeneratorBackend is not null);
+        Capabilities = new(temporalUpscalerVendor is not null, denoisingUpscalerVendor is not null, frameGeneratorVendor is not null);
     }
 
     public UpscalingCapabilities Capabilities { get; }
 
     public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return GetBackend(temporalUpscalerBackend, "temporal upscaler").GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode);
+        return GetVendor(temporalUpscalerVendor, "temporal upscaler").GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode);
     }
 
     public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return GetBackend(denoisingUpscalerBackend, "denoising upscaler").GetDenoisingUpscalerInputSize(outputWidth, outputHeight, mode);
+        return GetVendor(denoisingUpscalerVendor, "denoising upscaler").GetDenoisingUpscalerInputSize(outputWidth, outputHeight, mode);
     }
 
     public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
     {
-        return GetBackend(temporalUpscalerBackend, "temporal upscaler").CreateTemporalUpscaler(desc);
+        return GetVendor(temporalUpscalerVendor, "temporal upscaler").CreateTemporalUpscaler(desc);
     }
 
     public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
     {
-        return GetBackend(denoisingUpscalerBackend, "denoising upscaler").CreateDenoisingUpscaler(desc);
+        return GetVendor(denoisingUpscalerVendor, "denoising upscaler").CreateDenoisingUpscaler(desc);
     }
 
     public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
     {
-        return GetBackend(frameGeneratorBackend, "frame generator").CreateFrameGenerator(desc);
+        return GetVendor(frameGeneratorVendor, "frame generator").CreateFrameGenerator(desc);
     }
 
     protected override void Destroy()
     {
-        for (int i = backends.Count - 1; i >= 0; i--)
+        for (int i = vendors.Count - 1; i >= 0; i--)
         {
-            backends[i].Dispose();
+            vendors[i].Dispose();
         }
     }
 
-    private static Backend? CreateBackend(GraphicsContext context, UpscalingApi api)
+    private static Vendor? CreateVendor(GraphicsContext context, UpscalingApi api)
     {
         return api switch
         {
-            UpscalingApi.DLSS when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => DLSSBackend.TryCreate(context, out DLSSBackend? dlssBackend) ? dlssBackend : null,
-            UpscalingApi.MetalFX when context.GraphicsApi is GraphicsApi.Metal => MetalFXBackend.TryCreate(context, out MetalFXBackend? metalFXBackend) ? metalFXBackend : null,
+            UpscalingApi.DLSS when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => DLSSVendor.TryCreate(context, out DLSSVendor? dlssVendor) ? dlssVendor : null,
+            UpscalingApi.MetalFX when context.GraphicsApi is GraphicsApi.Metal => MetalFXVendor.TryCreate(context, out MetalFXVendor? metalFXVendor) ? metalFXVendor : null,
             _ => default
         };
     }
 
-    private static Backend GetBackend(Backend? backend, string feature)
+    private static Vendor GetVendor(Vendor? vendor, string feature)
     {
-        return backend ?? throw new NotSupportedException($"This device does not support the {feature} with any of the specified upscaling APIs.");
+        return vendor ?? throw new NotSupportedException($"This device does not support the {feature} with any of the specified upscaling APIs.");
     }
 }
 
-internal abstract class Backend : DisposableObject
+internal abstract class Vendor : DisposableObject
 {
     public abstract UpscalingCapabilities Capabilities { get; }
 

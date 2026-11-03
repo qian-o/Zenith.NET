@@ -8,7 +8,7 @@ internal class MetalFXFrameGenerator : FrameGenerator
 {
     private readonly MTL4FXFrameInterpolator interpolator;
 
-    public MetalFXFrameGenerator(MetalFXBackend backend, FrameGeneratorDesc desc) : base(desc)
+    public MetalFXFrameGenerator(MetalFXVendor vendor, FrameGeneratorDesc desc) : base(desc)
     {
         MTLFXFrameInterpolatorDescriptor descriptor = new()
         {
@@ -24,7 +24,7 @@ internal class MetalFXFrameGenerator : FrameGenerator
             RequiresPrevColorTexture = false
         };
 
-        interpolator = descriptor.MakeFrameInterpolator(backend.Device, backend.Compiler);
+        interpolator = descriptor.MakeFrameInterpolator(vendor.Device, vendor.Compiler);
 
         if (interpolator.IsNull)
         {
@@ -63,7 +63,7 @@ internal class MetalFXFrameGenerator : FrameGenerator
         interpolator.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         interpolator.Encode(mtlCommandBuffer);
 
-        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
+        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()

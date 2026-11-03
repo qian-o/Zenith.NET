@@ -6,9 +6,9 @@ internal class DLSSDenoisingUpscaler : DenoisingUpscaler
 {
     private readonly DLSSFeature feature;
 
-    public DLSSDenoisingUpscaler(DLSSBackend backend, DenoisingUpscalerDesc desc) : base(desc)
+    public DLSSDenoisingUpscaler(DLSSVendor vendor, DenoisingUpscalerDesc desc) : base(desc)
     {
-        feature = new(backend);
+        feature = new(vendor);
 
         NGXDLSSDCreateParams createParams = new()
         {
@@ -19,16 +19,16 @@ internal class DLSSDenoisingUpscaler : DenoisingUpscaler
             Height = desc.InputHeight,
             TargetWidth = desc.OutputWidth,
             TargetHeight = desc.OutputHeight,
-            PerfQualityValue = backend.FindPerfQualityValue(NGXFeature.RayReconstruction, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight),
+            PerfQualityValue = vendor.FindPerfQualityValue(NGXFeature.RayReconstruction, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight),
             FeatureCreateFlags = (int)DLSSFormats.NGX(desc.Flags & UpscalingInputFlags.DepthReversed)
         };
 
-        backend.Create(feature, createParams);
+        vendor.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, DenoisingUpscalerArgs args)
     {
-        feature.Backend.Evaluate(commandBuffer, feature, args);
+        feature.Vendor.Evaluate(commandBuffer, feature, args);
     }
 
     protected override void Destroy()

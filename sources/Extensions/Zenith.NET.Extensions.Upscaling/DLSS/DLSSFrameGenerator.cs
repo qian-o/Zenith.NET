@@ -10,21 +10,21 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
     private Matrix4x4 previousWorldToView;
     private Matrix4x4 previousViewToClip;
 
-    public DLSSFrameGenerator(DLSSBackend backend, FrameGeneratorDesc desc) : base(desc)
+    public DLSSFrameGenerator(DLSSVendor vendor, FrameGeneratorDesc desc) : base(desc)
     {
-        feature = new(backend);
+        feature = new(vendor);
         feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
         {
             Width = desc.OutputWidth,
             Height = desc.OutputHeight,
-            NativeBackbufferFormat = backend.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
+            NativeBackbufferFormat = vendor.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
             RenderWidth = desc.InputWidth,
             RenderHeight = desc.InputHeight
         };
 
-        backend.Create(feature, createParams);
+        vendor.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args)
@@ -108,7 +108,7 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
             }
         };
 
-        feature.Backend.Evaluate(commandBuffer, feature, args, &optEvalParams);
+        feature.Vendor.Evaluate(commandBuffer, feature, args, &optEvalParams);
 
         previousWorldToView = args.WorldToView;
         previousViewToClip = args.ViewToClip;

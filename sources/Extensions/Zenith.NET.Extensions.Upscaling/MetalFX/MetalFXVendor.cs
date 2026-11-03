@@ -4,7 +4,7 @@ using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXBackend : Backend
+internal class MetalFXVendor : Vendor
 {
     private readonly (float Min, float Max) temporalScale;
     private readonly (float Min, float Max) denoisingScale;
@@ -13,7 +13,7 @@ internal class MetalFXBackend : Backend
 
     public readonly MTL4Compiler Compiler;
 
-    private MetalFXBackend(MTLDevice device, UpscalingCapabilities capabilities)
+    private MetalFXVendor(MTLDevice device, UpscalingCapabilities capabilities)
     {
         Device = device;
         Capabilities = capabilities;
@@ -64,9 +64,9 @@ internal class MetalFXBackend : Backend
         Compiler?.Dispose();
     }
 
-    public static bool TryCreate(GraphicsContext context, [NotNullWhen(true)] out MetalFXBackend? backend)
+    public static bool TryCreate(GraphicsContext context, [NotNullWhen(true)] out MetalFXVendor? vendor)
     {
-        backend = null;
+        vendor = null;
 
         if (!OperatingSystem.IsMacOSVersionAtLeast(27) && !OperatingSystem.IsIOSVersionAtLeast(27) && !OperatingSystem.IsTvOSVersionAtLeast(27, 1))
         {
@@ -80,7 +80,7 @@ internal class MetalFXBackend : Backend
             return false;
         }
 
-        MetalFXBackend candidate = new(device, capabilities);
+        MetalFXVendor candidate = new(device, capabilities);
         if (candidate.Compiler.IsNull)
         {
             Debug.WriteLine("MetalFX compiler creation failed.");
@@ -90,7 +90,7 @@ internal class MetalFXBackend : Backend
             return false;
         }
 
-        backend = candidate;
+        vendor = candidate;
 
         return true;
     }

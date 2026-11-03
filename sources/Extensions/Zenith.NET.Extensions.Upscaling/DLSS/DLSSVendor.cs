@@ -3,13 +3,13 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSBackend : Backend
+internal unsafe partial class DLSSVendor : Vendor
 {
     private readonly NGXParameter parameters;
 
     public readonly nint Device;
 
-    private DLSSBackend(GraphicsContext context)
+    private DLSSVendor(GraphicsContext context)
     {
         Context = context;
 
@@ -241,11 +241,11 @@ internal unsafe partial class DLSSBackend : Backend
         return result.IsSuccess() ? new(inputWidth, inputHeight) : default;
     }
 
-    public static bool TryCreate(GraphicsContext context, [NotNullWhen(true)] out DLSSBackend? backend)
+    public static bool TryCreate(GraphicsContext context, [NotNullWhen(true)] out DLSSVendor? vendor)
     {
-        backend = null;
+        vendor = null;
 
-        DLSSBackend candidate = new(context);
+        DLSSVendor candidate = new(context);
         UpscalingCapabilities capabilities = candidate.Capabilities;
         if (!capabilities.TemporalUpscalerSupported && !capabilities.DenoisingUpscalerSupported && !capabilities.FrameGeneratorSupported)
         {
@@ -254,7 +254,7 @@ internal unsafe partial class DLSSBackend : Backend
             return false;
         }
 
-        backend = candidate;
+        vendor = candidate;
 
         return true;
     }

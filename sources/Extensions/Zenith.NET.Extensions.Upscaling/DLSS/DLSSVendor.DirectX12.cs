@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSBackend
+internal unsafe partial class DLSSVendor
 {
     private static NGXResult CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSCreateParams* createParams)
     {

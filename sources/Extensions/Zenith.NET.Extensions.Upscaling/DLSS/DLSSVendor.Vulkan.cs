@@ -3,7 +3,7 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSBackend
+internal unsafe partial class DLSSVendor
 {
     private const uint ImageViewCreateInfoType = 15;
     private const uint PipelineLayoutCreateInfoType = 30;

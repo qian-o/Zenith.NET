@@ -6,9 +6,9 @@ internal class DLSSTemporalUpscaler : TemporalUpscaler
 {
     private readonly DLSSFeature feature;
 
-    public DLSSTemporalUpscaler(DLSSBackend backend, TemporalUpscalerDesc desc) : base(desc)
+    public DLSSTemporalUpscaler(DLSSVendor vendor, TemporalUpscalerDesc desc) : base(desc)
     {
-        feature = new(backend);
+        feature = new(vendor);
 
         if (!desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure))
         {
@@ -27,17 +27,17 @@ internal class DLSSTemporalUpscaler : TemporalUpscaler
                 Height = desc.InputHeight,
                 TargetWidth = desc.OutputWidth,
                 TargetHeight = desc.OutputHeight,
-                PerfQualityValue = backend.FindPerfQualityValue(NGXFeature.SuperSampling, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight)
+                PerfQualityValue = vendor.FindPerfQualityValue(NGXFeature.SuperSampling, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight)
             },
             FeatureCreateFlags = (int)DLSSFormats.NGX(desc.Flags)
         };
 
-        backend.Create(feature, createParams);
+        vendor.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, TemporalUpscalerArgs args)
     {
-        feature.Backend.Evaluate(commandBuffer, feature, args);
+        feature.Vendor.Evaluate(commandBuffer, feature, args);
     }
 
     protected override void Destroy()

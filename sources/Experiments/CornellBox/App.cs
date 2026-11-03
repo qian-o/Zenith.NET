@@ -53,6 +53,7 @@ internal static class App
         }
         catch (NotSupportedException)
         {
+            // Upscaling is optional; the sample keeps rendering at native resolution without it.
         }
 
         if (UpscalingCapabilities?.FrameGeneratorSupported is true)
