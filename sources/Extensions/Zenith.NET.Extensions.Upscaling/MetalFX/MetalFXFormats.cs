@@ -1,6 +1,6 @@
 ﻿using Metal.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.MetalFX;
+namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal static class MetalFXFormats
 {

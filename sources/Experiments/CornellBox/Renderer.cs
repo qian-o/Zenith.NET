@@ -3,7 +3,7 @@ using CornellBox.Handlers;
 using CornellBox.Models;
 using CornellBox.Passes;
 using Zenith.NET;
-using Zenith.NET.Extensions.Reconstruction;
+using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox;
 
@@ -123,11 +123,11 @@ internal class Renderer : DisposableObject
             FrameGeneration = FrameGeneration
         };
 
-        ReconstructionCapabilities capabilities = App.Context.ReconstructionCapabilities;
+        UpscalingCapabilities? capabilities = App.UpscalingCapabilities;
         bool isUpscalerSupported = desc.Upscaler switch
         {
-            UpscalerKind.Temporal => capabilities.TemporalUpscalerSupported,
-            UpscalerKind.Denoising => capabilities.DenoisingUpscalerSupported,
+            UpscalerKind.Temporal => capabilities?.TemporalUpscalerSupported is true,
+            UpscalerKind.Denoising => capabilities?.DenoisingUpscalerSupported is true,
             _ => true
         };
 
@@ -136,7 +136,7 @@ internal class Renderer : DisposableObject
             desc.Upscaler = UpscalerKind.Off;
         }
 
-        if (!capabilities.FrameGeneratorSupported)
+        if (capabilities?.FrameGeneratorSupported is not true)
         {
             desc.FrameGeneration = FrameGenerationMode.X1;
         }

@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Zenith.NET.Extensions.Reconstruction;
+namespace Zenith.NET.Extensions.Upscaling;
 
 public struct TemporalUpscalerArgs
 {

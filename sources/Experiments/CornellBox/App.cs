@@ -8,7 +8,7 @@ using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
-using Zenith.NET.Extensions.Reconstruction;
+using Zenith.NET.Extensions.Upscaling;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -45,9 +45,17 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.InitializeReconstruction(Path.Combine(AppContext.BaseDirectory, "Reconstruction"));
+        try
+        {
+            Context.InitializeUpscaling([UpscalingProvider.DLSS, UpscalingProvider.MetalFX]);
 
-        if (Context.ReconstructionCapabilities.FrameGeneratorSupported)
+            UpscalingCapabilities = Context.UpscalingCapabilities;
+        }
+        catch (NotSupportedException)
+        {
+        }
+
+        if (UpscalingCapabilities?.FrameGeneratorSupported is true)
         {
             frameGenerationItems = "1x\02x\0";
         }
@@ -109,6 +117,8 @@ internal static class App
     }
 
     public static GraphicsContext Context { get; }
+
+    public static UpscalingCapabilities? UpscalingCapabilities { get; }
 
     public static uint Width => presenter.Width;
 

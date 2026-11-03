@@ -1,6 +1,6 @@
 ﻿using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal static class DLSSFormats
 {
@@ -159,26 +159,26 @@ internal static class DLSSFormats
         };
     }
 
-    public static NGXDLSSFeatureFlags NGX(ReconstructionFlags flags)
+    public static NGXDLSSFeatureFlags NGX(UpscalingInputFlags flags)
     {
         NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.IsHdr;
 
-        if (!flags.HasFlag(ReconstructionFlags.OutputResolutionMotionVectors))
+        if (!flags.HasFlag(UpscalingInputFlags.OutputResolutionMotionVectors))
         {
             result |= NGXDLSSFeatureFlags.MvLowRes;
         }
 
-        if (flags.HasFlag(ReconstructionFlags.JitteredMotionVectors))
+        if (flags.HasFlag(UpscalingInputFlags.JitteredMotionVectors))
         {
             result |= NGXDLSSFeatureFlags.MvJittered;
         }
 
-        if (flags.HasFlag(ReconstructionFlags.DepthReversed))
+        if (flags.HasFlag(UpscalingInputFlags.DepthReversed))
         {
             result |= NGXDLSSFeatureFlags.DepthInverted;
         }
 
-        if (flags.HasFlag(ReconstructionFlags.AutoExposure))
+        if (flags.HasFlag(UpscalingInputFlags.AutoExposure))
         {
             result |= NGXDLSSFeatureFlags.AutoExposure;
         }

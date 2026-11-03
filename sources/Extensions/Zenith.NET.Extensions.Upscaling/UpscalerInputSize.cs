@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Extensions.Reconstruction;
+﻿namespace Zenith.NET.Extensions.Upscaling;
 
 public readonly struct UpscalerInputSize(uint width, uint height)
 {

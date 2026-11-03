@@ -1,12 +1,12 @@
 ﻿using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe class DLSSFeature(DLSSBackend backend) : DisposableObject
+internal unsafe class DLSSFeature(DLSSProvider provider) : DisposableObject
 {
-    public readonly DLSSBackend Backend = backend;
+    public readonly DLSSProvider Provider = provider;
 
-    public readonly NGXParameter Parameters = backend.AllocateParameters();
+    public readonly NGXParameter Parameters = provider.AllocateParameters();
 
     public NGXHandle Handle;
 
@@ -20,7 +20,7 @@ internal unsafe class DLSSFeature(DLSSBackend backend) : DisposableObject
 
     protected override void Destroy()
     {
-        Backend.ReleaseFeature(Handle);
-        Backend.DestroyParameters(Parameters);
+        Provider.ReleaseFeature(Handle);
+        Provider.DestroyParameters(Parameters);
     }
 }

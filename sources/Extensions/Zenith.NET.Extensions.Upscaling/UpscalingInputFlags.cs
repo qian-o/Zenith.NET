@@ -1,7 +1,7 @@
-﻿namespace Zenith.NET.Extensions.Reconstruction;
+﻿namespace Zenith.NET.Extensions.Upscaling;
 
 [Flags]
-public enum ReconstructionFlags
+public enum UpscalingInputFlags
 {
     None = 0,
 

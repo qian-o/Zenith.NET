@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSBackend
+internal unsafe partial class DLSSProvider
 {
     private const uint ImageViewCreateInfoType = 15;
     private const uint PipelineLayoutCreateInfoType = 30;

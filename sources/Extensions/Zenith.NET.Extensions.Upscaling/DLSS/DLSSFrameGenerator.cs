@@ -1,33 +1,33 @@
 ﻿using System.Numerics;
 using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe class DLSSFrameGenerator : FrameGenerator
 {
-    private readonly DLSSBackend backend;
+    private readonly DLSSProvider provider;
     private readonly DLSSFeature feature;
 
     private Matrix4x4 previousWorldToView;
     private Matrix4x4 previousViewToClip;
 
-    public DLSSFrameGenerator(DLSSBackend backend, FrameGeneratorDesc desc) : base(desc)
+    public DLSSFrameGenerator(DLSSProvider provider, FrameGeneratorDesc desc) : base(desc)
     {
-        this.backend = backend;
+        this.provider = provider;
 
-        feature = new(backend);
+        feature = new(provider);
         feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
         {
             Width = desc.OutputWidth,
             Height = desc.OutputHeight,
-            NativeBackbufferFormat = backend.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
+            NativeBackbufferFormat = provider.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
             RenderWidth = desc.InputWidth,
             RenderHeight = desc.InputHeight
         };
 
-        backend.Create(feature, createParams);
+        provider.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args)
@@ -80,7 +80,7 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
             CameraFar = farPlane,
             CameraFOV = verticalFieldOfViewInRadians,
             CameraAspectRatio = aspectRatio,
-            DepthInverted = Desc.Flags.HasFlag(ReconstructionFlags.DepthReversed),
+            DepthInverted = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed),
             CameraMotionIncluded = true,
             Reset = args.Reset,
             MvecsSubrectSize = new()
@@ -111,7 +111,7 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
             }
         };
 
-        backend.Evaluate(commandBuffer, feature, args, &optEvalParams);
+        provider.Evaluate(commandBuffer, feature, args, &optEvalParams);
 
         previousWorldToView = args.WorldToView;
         previousViewToClip = args.ViewToClip;

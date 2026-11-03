@@ -1,8 +1,8 @@
 ﻿using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSBackend(GraphicsContext context, string dataPath) : ReconstructionBackend(context, dataPath)
+internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(context)
 {
     private readonly NGXParameter parameters;
 
@@ -192,7 +192,7 @@ internal unsafe partial class DLSSBackend(GraphicsContext context, string dataPa
         }
     }
 
-    protected override void Initialize(string dataPath, out ReconstructionCapabilities capabilities)
+    protected override void Initialize(out UpscalingCapabilities capabilities)
     {
         using NGXStrings strings = new();
 
@@ -209,7 +209,7 @@ internal unsafe partial class DLSSBackend(GraphicsContext context, string dataPa
 
         byte* projectId = strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString());
         byte* engineVersion = strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString());
-        void* applicationDataPath = strings.AllocWide(dataPath);
+        void* applicationDataPath = strings.AllocWide(Path.GetTempPath());
 
         NGXResult result = Context.GraphicsApi switch
         {
@@ -289,11 +289,6 @@ internal unsafe partial class DLSSBackend(GraphicsContext context, string dataPa
 
     private UpscalerInputSize GetOptimalInputSize(NGXFeature feature, uint outputWidth, uint outputHeight, NGXPerfQualityValue perfQualityValue)
     {
-        if (!isInitialized)
-        {
-            return default;
-        }
-
         uint inputWidth = 0;
         uint inputHeight = 0;
         uint maxInputWidth = 0;

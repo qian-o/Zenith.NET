@@ -1,6 +1,6 @@
-﻿namespace Zenith.NET.Extensions.Reconstruction;
+﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public abstract class ReconstructionCapabilities
+public abstract class UpscalingCapabilities
 {
     public abstract bool TemporalUpscalerSupported { get; }
 

@@ -1,4 +1,4 @@
-﻿using Zenith.NET.Extensions.Reconstruction;
+﻿using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Models;
 

@@ -1,19 +1,19 @@
 ﻿using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSTemporalUpscaler : TemporalUpscaler
 {
-    private readonly DLSSBackend backend;
+    private readonly DLSSProvider provider;
     private readonly DLSSFeature feature;
 
-    public DLSSTemporalUpscaler(DLSSBackend backend, TemporalUpscalerDesc desc) : base(desc)
+    public DLSSTemporalUpscaler(DLSSProvider provider, TemporalUpscalerDesc desc) : base(desc)
     {
-        this.backend = backend;
+        this.provider = provider;
 
-        feature = new(backend);
+        feature = new(provider);
 
-        if (!desc.Flags.HasFlag(ReconstructionFlags.AutoExposure))
+        if (!desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure))
         {
             feature.SetUI(Ngx.ParameterDLSSHintRenderPresetDLAA, (uint)NGXDLSSHintRenderPreset.K);
             feature.SetUI(Ngx.ParameterDLSSHintRenderPresetQuality, (uint)NGXDLSSHintRenderPreset.K);
@@ -30,17 +30,17 @@ internal class DLSSTemporalUpscaler : TemporalUpscaler
                 Height = desc.InputHeight,
                 TargetWidth = desc.OutputWidth,
                 TargetHeight = desc.OutputHeight,
-                PerfQualityValue = backend.FindPerfQualityValue(NGXFeature.SuperSampling, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight)
+                PerfQualityValue = provider.FindPerfQualityValue(NGXFeature.SuperSampling, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight)
             },
             FeatureCreateFlags = (int)DLSSFormats.NGX(desc.Flags)
         };
 
-        backend.Create(feature, createParams);
+        provider.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, TemporalUpscalerArgs args)
     {
-        backend.Evaluate(commandBuffer, feature, args);
+        provider.Evaluate(commandBuffer, feature, args);
     }
 
     protected override void Destroy()

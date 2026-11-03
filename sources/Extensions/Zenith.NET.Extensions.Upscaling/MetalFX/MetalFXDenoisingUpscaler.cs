@@ -2,13 +2,13 @@
 using System.Runtime.CompilerServices;
 using Metal.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.MetalFX;
+namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal class MetalFXDenoisingUpscaler : DenoisingUpscaler
 {
     private readonly MTL4FXTemporalDenoisedScaler scaler;
 
-    public MetalFXDenoisingUpscaler(MetalFXBackend backend, DenoisingUpscalerDesc desc) : base(desc)
+    public MetalFXDenoisingUpscaler(MetalFXProvider provider, DenoisingUpscalerDesc desc) : base(desc)
     {
         using MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
         {
@@ -33,7 +33,7 @@ internal class MetalFXDenoisingUpscaler : DenoisingUpscaler
             IsTransparencyOverlayTextureEnabled = desc.TransparencyOverlayFormat is not null
         };
 
-        scaler = descriptor.MakeTemporalDenoisedScaler(backend.Device, backend.Compiler);
+        scaler = descriptor.MakeTemporalDenoisedScaler(provider.Device, provider.Compiler);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, DenoisingUpscalerArgs args)
@@ -61,10 +61,10 @@ internal class MetalFXDenoisingUpscaler : DenoisingUpscaler
         scaler.ViewToClipMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.ViewToClip);
         scaler.PreExposure = args.PreExposure;
         scaler.ShouldResetHistory = args.Reset;
-        scaler.IsDepthReversed = Desc.Flags.HasFlag(ReconstructionFlags.DepthReversed);
+        scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         scaler.Encode(mtlCommandBuffer);
 
-        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
+        MetalFXProvider.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()

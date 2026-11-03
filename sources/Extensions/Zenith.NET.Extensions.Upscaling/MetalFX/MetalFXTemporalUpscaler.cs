@@ -1,12 +1,12 @@
 ﻿using Metal.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.MetalFX;
+namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal class MetalFXTemporalUpscaler : TemporalUpscaler
 {
     private readonly MTL4FXTemporalScaler scaler;
 
-    public MetalFXTemporalUpscaler(MetalFXBackend backend, TemporalUpscalerDesc desc) : base(desc)
+    public MetalFXTemporalUpscaler(MetalFXProvider provider, TemporalUpscalerDesc desc) : base(desc)
     {
         using MTLFXTemporalScalerDescriptor descriptor = new()
         {
@@ -18,14 +18,14 @@ internal class MetalFXTemporalUpscaler : TemporalUpscaler
             InputHeight = desc.InputHeight,
             OutputWidth = desc.OutputWidth,
             OutputHeight = desc.OutputHeight,
-            IsAutoExposureEnabled = desc.Flags.HasFlag(ReconstructionFlags.AutoExposure),
-            IsOutputResolutionMotionVectorsEnabled = desc.Flags.HasFlag(ReconstructionFlags.OutputResolutionMotionVectors),
-            IsJitteredMotionVectorsEnabled = desc.Flags.HasFlag(ReconstructionFlags.JitteredMotionVectors),
+            IsAutoExposureEnabled = desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure),
+            IsOutputResolutionMotionVectorsEnabled = desc.Flags.HasFlag(UpscalingInputFlags.OutputResolutionMotionVectors),
+            IsJitteredMotionVectorsEnabled = desc.Flags.HasFlag(UpscalingInputFlags.JitteredMotionVectors),
             IsReactiveMaskTextureEnabled = desc.ReactiveMaskFormat is not null,
             ReactiveMaskTextureFormat = MetalFXFormats.Metal(desc.ReactiveMaskFormat)
         };
 
-        scaler = descriptor.MakeTemporalScaler(backend.Device, backend.Compiler);
+        scaler = descriptor.MakeTemporalScaler(provider.Device, provider.Compiler);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, TemporalUpscalerArgs args)
@@ -48,10 +48,10 @@ internal class MetalFXTemporalUpscaler : TemporalUpscaler
         scaler.MotionVectorScaleY = args.MotionVectorScale.Y;
         scaler.PreExposure = args.PreExposure;
         scaler.Reset = args.Reset;
-        scaler.IsDepthReversed = Desc.Flags.HasFlag(ReconstructionFlags.DepthReversed);
+        scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         scaler.Encode(mtlCommandBuffer);
 
-        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
+        MetalFXProvider.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()

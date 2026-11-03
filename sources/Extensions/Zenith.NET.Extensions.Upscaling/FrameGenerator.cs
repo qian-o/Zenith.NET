@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Extensions.Reconstruction;
+﻿namespace Zenith.NET.Extensions.Upscaling;
 
 public abstract class FrameGenerator(FrameGeneratorDesc desc) : DisposableObject
 {

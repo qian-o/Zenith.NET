@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Extensions.Reconstruction;
+﻿namespace Zenith.NET.Extensions.Upscaling;
 
 public struct TemporalUpscalerDesc
 {
@@ -20,5 +20,5 @@ public struct TemporalUpscalerDesc
 
     public uint OutputHeight;
 
-    public ReconstructionFlags Flags;
+    public UpscalingInputFlags Flags;
 }

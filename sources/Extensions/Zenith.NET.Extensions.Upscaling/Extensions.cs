@@ -2,31 +2,29 @@
 using System.Numerics;
 using Metal.NET;
 using NGX.NET;
-using Zenith.NET.Extensions.Reconstruction.DLSS;
-using Zenith.NET.Extensions.Reconstruction.MetalFX;
 
-namespace Zenith.NET.Extensions.Reconstruction;
+namespace Zenith.NET.Extensions.Upscaling;
 
 public static class Extensions
 {
     private static readonly Lock @lock = new();
-    private static readonly Dictionary<GraphicsContext, ReconstructionBackend> backends = [];
+    private static readonly Dictionary<GraphicsContext, UpscalingBackend> backends = [];
 
     extension(GraphicsContext context)
     {
-        public void InitializeReconstruction(string dataPath)
+        public void InitializeUpscaling(params ReadOnlySpan<UpscalingProvider> providers)
         {
             using Lock.Scope _ = @lock.EnterScope();
 
             if (!backends.ContainsKey(context))
             {
-                backends[context] = context.GraphicsApi is GraphicsApi.Metal ? new MetalFXBackend(context, dataPath) : new DLSSBackend(context, dataPath);
+                backends[context] = new(context, providers);
 
                 context.Disposing += static (sender, _) =>
                 {
                     using Lock.Scope scope = @lock.EnterScope();
 
-                    if (backends.Remove((GraphicsContext)sender!, out ReconstructionBackend? disposedBackend))
+                    if (backends.Remove((GraphicsContext)sender!, out UpscalingBackend? disposedBackend))
                     {
                         disposedBackend.Dispose();
                     }
@@ -34,7 +32,7 @@ public static class Extensions
             }
         }
 
-        public ReconstructionCapabilities ReconstructionCapabilities => GetBackend(context).Capabilities;
+        public UpscalingCapabilities UpscalingCapabilities => GetBackend(context).Capabilities;
 
         public UpscalerInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
         {
@@ -129,13 +127,13 @@ public static class Extensions
         }
     }
 
-    private static ReconstructionBackend GetBackend(GraphicsContext context)
+    private static UpscalingBackend GetBackend(GraphicsContext context)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!backends.TryGetValue(context, out ReconstructionBackend? backend))
+        if (!backends.TryGetValue(context, out UpscalingBackend? backend))
         {
-            throw new InvalidOperationException("The graphics context has not been initialized for reconstruction.");
+            throw new InvalidOperationException("The graphics context has not been initialized for upscaling.");
         }
 
         return backend;

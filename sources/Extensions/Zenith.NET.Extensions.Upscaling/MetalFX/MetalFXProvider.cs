@@ -1,14 +1,14 @@
 ﻿using Metal.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.MetalFX;
+namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXBackend(GraphicsContext context, string dataPath) : ReconstructionBackend(context, dataPath)
+internal class MetalFXProvider(GraphicsContext context) : Provider(context)
 {
     public readonly MTLDevice Device = new(context.GetNativeObject(NativeObjectType.MTLDevice), NativeObjectOwnership.Borrowed);
 
     public MTL4Compiler Compiler = MTL4Compiler.Null;
 
-    protected override void Initialize(string dataPath, out ReconstructionCapabilities capabilities)
+    protected override void Initialize(out UpscalingCapabilities capabilities)
     {
         Compiler = Device.MakeCompiler(new(), out NSError error);
         error.Success();
@@ -18,21 +18,11 @@ internal class MetalFXBackend(GraphicsContext context, string dataPath) : Recons
 
     protected override UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
     {
-        if (!Capabilities.TemporalUpscalerSupported)
-        {
-            return default;
-        }
-
         return GetInputSize(outputWidth, outputHeight, MetalFXFormats.Scale(mode), MTLFXTemporalScalerDescriptor.SupportedInputContentMinScale(Device), MTLFXTemporalScalerDescriptor.SupportedInputContentMaxScale(Device));
     }
 
     protected override UpscalerInputSize GetDenoisingUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
     {
-        if (!Capabilities.DenoisingUpscalerSupported)
-        {
-            return default;
-        }
-
         return GetInputSize(outputWidth, outputHeight, MetalFXFormats.Scale(mode), MTLFXTemporalDenoisedScalerDescriptor.SupportedInputContentMinScale(Device), MTLFXTemporalDenoisedScalerDescriptor.SupportedInputContentMaxScale(Device));
     }
 

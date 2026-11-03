@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using CornellBox.Models;
 using Zenith.NET;
-using Zenith.NET.Extensions.Reconstruction;
+using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Passes;
 
@@ -114,7 +114,7 @@ internal class UpscalingPass : DisposableObject
                     InputHeight = Desc.InputHeight,
                     OutputWidth = Desc.OutputWidth,
                     OutputHeight = Desc.OutputHeight,
-                    Flags = ReconstructionFlags.AutoExposure
+                    Flags = UpscalingInputFlags.AutoExposure
                 });
                 break;
 

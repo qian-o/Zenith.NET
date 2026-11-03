@@ -1,19 +1,19 @@
-﻿namespace Zenith.NET.Extensions.Reconstruction;
+﻿namespace Zenith.NET.Extensions.Upscaling;
 
-internal abstract class ReconstructionBackend : DisposableObject
+internal abstract class Provider : DisposableObject
 {
-    protected ReconstructionBackend(GraphicsContext context, string dataPath)
+    protected Provider(GraphicsContext context)
     {
         Context = context;
 
-        Initialize(dataPath, out ReconstructionCapabilities capabilities);
+        Initialize(out UpscalingCapabilities capabilities);
 
         Capabilities = capabilities;
     }
 
     public GraphicsContext Context { get; }
 
-    public ReconstructionCapabilities Capabilities { get; }
+    public UpscalingCapabilities Capabilities { get; }
 
     public UpscalerInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
     {
@@ -40,7 +40,7 @@ internal abstract class ReconstructionBackend : DisposableObject
         return CreateFrameGeneratorImpl(desc);
     }
 
-    protected abstract void Initialize(string dataPath, out ReconstructionCapabilities capabilities);
+    protected abstract void Initialize(out UpscalingCapabilities capabilities);
 
     protected abstract UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode);
 

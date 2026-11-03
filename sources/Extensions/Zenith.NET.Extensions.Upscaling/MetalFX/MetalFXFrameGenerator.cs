@@ -2,13 +2,13 @@
 using System.Runtime.CompilerServices;
 using Metal.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.MetalFX;
+namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal class MetalFXFrameGenerator : FrameGenerator
 {
     private readonly MTL4FXFrameInterpolator interpolator;
 
-    public MetalFXFrameGenerator(MetalFXBackend backend, FrameGeneratorDesc desc) : base(desc)
+    public MetalFXFrameGenerator(MetalFXProvider provider, FrameGeneratorDesc desc) : base(desc)
     {
         using MTLFXFrameInterpolatorDescriptor descriptor = new()
         {
@@ -24,7 +24,7 @@ internal class MetalFXFrameGenerator : FrameGenerator
             RequiresPrevColorTexture = false
         };
 
-        interpolator = descriptor.MakeFrameInterpolator(backend.Device, backend.Compiler);
+        interpolator = descriptor.MakeFrameInterpolator(provider.Device, provider.Compiler);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args)
@@ -55,10 +55,10 @@ internal class MetalFXFrameGenerator : FrameGenerator
         interpolator.AspectRatio = aspectRatio;
         interpolator.IsUITextureComposited = Desc.UIFormat is not null;
         interpolator.ShouldResetHistory = args.Reset;
-        interpolator.IsDepthReversed = Desc.Flags.HasFlag(ReconstructionFlags.DepthReversed);
+        interpolator.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         interpolator.Encode(mtlCommandBuffer);
 
-        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
+        MetalFXProvider.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()

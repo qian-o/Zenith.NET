@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using CornellBox.Models;
 using Zenith.NET;
-using Zenith.NET.Extensions.Reconstruction;
+using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Passes;
 

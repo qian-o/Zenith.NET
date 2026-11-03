@@ -1,17 +1,17 @@
 ﻿using NGX.NET;
 
-namespace Zenith.NET.Extensions.Reconstruction.DLSS;
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSDenoisingUpscaler : DenoisingUpscaler
 {
-    private readonly DLSSBackend backend;
+    private readonly DLSSProvider provider;
     private readonly DLSSFeature feature;
 
-    public DLSSDenoisingUpscaler(DLSSBackend backend, DenoisingUpscalerDesc desc) : base(desc)
+    public DLSSDenoisingUpscaler(DLSSProvider provider, DenoisingUpscalerDesc desc) : base(desc)
     {
-        this.backend = backend;
+        this.provider = provider;
 
-        feature = new(backend);
+        feature = new(provider);
 
         NGXDLSSDCreateParams createParams = new()
         {
@@ -22,16 +22,16 @@ internal class DLSSDenoisingUpscaler : DenoisingUpscaler
             Height = desc.InputHeight,
             TargetWidth = desc.OutputWidth,
             TargetHeight = desc.OutputHeight,
-            PerfQualityValue = backend.FindPerfQualityValue(NGXFeature.RayReconstruction, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight),
-            FeatureCreateFlags = (int)DLSSFormats.NGX(desc.Flags & ReconstructionFlags.DepthReversed)
+            PerfQualityValue = provider.FindPerfQualityValue(NGXFeature.RayReconstruction, desc.InputWidth, desc.InputHeight, desc.OutputWidth, desc.OutputHeight),
+            FeatureCreateFlags = (int)DLSSFormats.NGX(desc.Flags & UpscalingInputFlags.DepthReversed)
         };
 
-        backend.Create(feature, createParams);
+        provider.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, DenoisingUpscalerArgs args)
     {
-        backend.Evaluate(commandBuffer, feature, args);
+        provider.Evaluate(commandBuffer, feature, args);
     }
 
     protected override void Destroy()
