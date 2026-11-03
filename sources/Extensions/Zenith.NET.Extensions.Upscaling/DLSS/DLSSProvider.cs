@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(context)
+internal unsafe partial class DLSSProvider(GraphicsContext context) : UpscalingProvider(context)
 {
     private readonly NGXParameter parameters;
 
@@ -14,6 +14,12 @@ internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(c
     };
 
     private bool isInitialized;
+
+    public override bool TemporalUpscalerSupported => IsAvailable(Ngx.ParameterSuperSamplingAvailable);
+
+    public override bool DenoisingUpscalerSupported => IsAvailable(Ngx.ParameterSuperSamplingDenoisingAvailable);
+
+    public override bool FrameGeneratorSupported => IsAvailable(Ngx.ParameterFrameGenerationAvailable);
 
     public NGXParameter AllocateParameters()
     {
@@ -68,16 +74,16 @@ internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(c
 
     public NGXPerfQualityValue FindPerfQualityValue(NGXFeature feature, uint inputWidth, uint inputHeight, uint outputWidth, uint outputHeight)
     {
-        foreach (UpscalerMode mode in Enum.GetValues<UpscalerMode>())
+        foreach (UpscalingMode mode in Enum.GetValues<UpscalingMode>())
         {
-            UpscalerInputSize inputSize = GetOptimalInputSize(feature, outputWidth, outputHeight, DLSSFormats.NGX(mode));
+            UpscalingInputSize inputSize = GetOptimalInputSize(feature, outputWidth, outputHeight, DLSSFormats.NGX(mode));
             if (inputSize.Width == inputWidth && inputSize.Height == inputHeight)
             {
                 return DLSSFormats.NGX(mode);
             }
         }
 
-        return DLSSFormats.NGX(UpscalerMode.Native);
+        return DLSSFormats.NGX(UpscalingMode.Native);
     }
 
     public void Create(DLSSFeature feature, NGXDLSSCreateParams createParams)
@@ -192,7 +198,32 @@ internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(c
         }
     }
 
-    protected override void Initialize(out UpscalingCapabilities capabilities)
+    public override UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    {
+        return GetOptimalInputSize(NGXFeature.SuperSampling, outputWidth, outputHeight, DLSSFormats.NGX(mode));
+    }
+
+    public override UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    {
+        return GetOptimalInputSize(NGXFeature.RayReconstruction, outputWidth, outputHeight, DLSSFormats.NGX(mode));
+    }
+
+    public override TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
+    {
+        return new DLSSTemporalUpscaler(this, desc);
+    }
+
+    public override DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
+    {
+        return new DLSSDenoisingUpscaler(this, desc);
+    }
+
+    public override FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
+    {
+        return new DLSSFrameGenerator(this, desc);
+    }
+
+    protected override void Initialize()
     {
         using NGXStrings strings = new();
 
@@ -237,33 +268,6 @@ internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(c
                 }
             }
         }
-
-        capabilities = new DLSSCapabilities(this);
-    }
-
-    protected override UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
-    {
-        return GetOptimalInputSize(NGXFeature.SuperSampling, outputWidth, outputHeight, DLSSFormats.NGX(mode));
-    }
-
-    protected override UpscalerInputSize GetDenoisingUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
-    {
-        return GetOptimalInputSize(NGXFeature.RayReconstruction, outputWidth, outputHeight, DLSSFormats.NGX(mode));
-    }
-
-    protected override TemporalUpscaler CreateTemporalUpscalerImpl(TemporalUpscalerDesc desc)
-    {
-        return new DLSSTemporalUpscaler(this, desc);
-    }
-
-    protected override DenoisingUpscaler CreateDenoisingUpscalerImpl(DenoisingUpscalerDesc desc)
-    {
-        return new DLSSDenoisingUpscaler(this, desc);
-    }
-
-    protected override FrameGenerator CreateFrameGeneratorImpl(FrameGeneratorDesc desc)
-    {
-        return new DLSSFrameGenerator(this, desc);
     }
 
     protected override void Destroy()
@@ -287,7 +291,7 @@ internal unsafe partial class DLSSProvider(GraphicsContext context) : Provider(c
         }
     }
 
-    private UpscalerInputSize GetOptimalInputSize(NGXFeature feature, uint outputWidth, uint outputHeight, NGXPerfQualityValue perfQualityValue)
+    private UpscalingInputSize GetOptimalInputSize(NGXFeature feature, uint outputWidth, uint outputHeight, NGXPerfQualityValue perfQualityValue)
     {
         uint inputWidth = 0;
         uint inputHeight = 0;

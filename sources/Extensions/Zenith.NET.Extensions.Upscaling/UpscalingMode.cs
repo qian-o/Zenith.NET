@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public enum UpscalerMode
+public enum UpscalingMode
 {
     Native,
 

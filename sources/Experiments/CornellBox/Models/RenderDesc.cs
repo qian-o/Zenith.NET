@@ -14,7 +14,7 @@ internal struct RenderDesc
 
     public UpscalerKind Upscaler;
 
-    public UpscalerMode UpscalerMode;
+    public UpscalingMode UpscalingMode;
 
     public FrameGenerationMode FrameGeneration;
 }

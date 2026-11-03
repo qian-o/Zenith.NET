@@ -47,7 +47,7 @@ internal static class App
 
         try
         {
-            Context.InitializeUpscaling([UpscalingProvider.DLSS, UpscalingProvider.MetalFX]);
+            Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.MetalFX]);
 
             UpscalingCapabilities = Context.UpscalingCapabilities;
         }
@@ -223,10 +223,10 @@ internal static class App
             renderer.Upscaler = (UpscalerKind)upscaler;
         }
 
-        int upscalerMode = (int)renderer.UpscalerMode;
-        if (ImGui.Combo("Upscaler Mode", ref upscalerMode, "Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        int upscalingMode = (int)renderer.UpscalingMode;
+        if (ImGui.Combo("Upscaling Mode", ref upscalingMode, "Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
         {
-            renderer.UpscalerMode = (UpscalerMode)upscalerMode;
+            renderer.UpscalingMode = (UpscalingMode)upscalingMode;
         }
 
         int frameGeneration = (int)renderer.FrameGeneration;

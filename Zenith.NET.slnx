@@ -9,8 +9,8 @@
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
-    <Project Path="sources/Extensions/Zenith.NET.Extensions.Upscaling/Zenith.NET.Extensions.Upscaling.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" />
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.Upscaling/Zenith.NET.Extensions.Upscaling.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="sources/Directory.Build.props" />

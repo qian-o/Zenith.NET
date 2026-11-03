@@ -12,13 +12,13 @@ public static class Extensions
 
     extension(GraphicsContext context)
     {
-        public void InitializeUpscaling(params ReadOnlySpan<UpscalingProvider> providers)
+        public void InitializeUpscaling(params ReadOnlySpan<UpscalingApi> apis)
         {
             using Lock.Scope _ = @lock.EnterScope();
 
             if (!backends.ContainsKey(context))
             {
-                backends[context] = new(context, providers);
+                backends[context] = new(context, apis);
 
                 context.Disposing += static (sender, _) =>
                 {
@@ -34,12 +34,12 @@ public static class Extensions
 
         public UpscalingCapabilities UpscalingCapabilities => GetBackend(context).Capabilities;
 
-        public UpscalerInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
+        public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
         {
             return GetBackend(context).GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode);
         }
 
-        public UpscalerInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
+        public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
         {
             return GetBackend(context).GetDenoisingUpscalerInputSize(outputWidth, outputHeight, mode);
         }

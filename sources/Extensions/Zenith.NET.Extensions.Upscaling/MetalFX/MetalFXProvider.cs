@@ -2,43 +2,49 @@
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXProvider(GraphicsContext context) : Provider(context)
+internal class MetalFXProvider(GraphicsContext context) : UpscalingProvider(context)
 {
     public readonly MTLDevice Device = new(context.GetNativeObject(NativeObjectType.MTLDevice), NativeObjectOwnership.Borrowed);
 
     public MTL4Compiler Compiler = MTL4Compiler.Null;
 
-    protected override void Initialize(out UpscalingCapabilities capabilities)
-    {
-        Compiler = Device.MakeCompiler(new(), out NSError error);
-        error.Success();
+    private static bool IsSystemSupported => OperatingSystem.IsMacOSVersionAtLeast(27) || OperatingSystem.IsIOSVersionAtLeast(27) || OperatingSystem.IsTvOSVersionAtLeast(27, 1);
 
-        capabilities = new MetalFXCapabilities(this);
-    }
+    public override bool TemporalUpscalerSupported => IsSystemSupported && MTLFXTemporalScalerDescriptor.SupportsMetal4FX(Device);
 
-    protected override UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
+    public override bool DenoisingUpscalerSupported => IsSystemSupported && MTLFXTemporalDenoisedScalerDescriptor.SupportsMetal4FX(Device);
+
+    public override bool FrameGeneratorSupported => IsSystemSupported && MTLFXFrameInterpolatorDescriptor.SupportsMetal4FX(Device);
+
+    public override UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetInputSize(outputWidth, outputHeight, MetalFXFormats.Scale(mode), MTLFXTemporalScalerDescriptor.SupportedInputContentMinScale(Device), MTLFXTemporalScalerDescriptor.SupportedInputContentMaxScale(Device));
     }
 
-    protected override UpscalerInputSize GetDenoisingUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode)
+    public override UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetInputSize(outputWidth, outputHeight, MetalFXFormats.Scale(mode), MTLFXTemporalDenoisedScalerDescriptor.SupportedInputContentMinScale(Device), MTLFXTemporalDenoisedScalerDescriptor.SupportedInputContentMaxScale(Device));
     }
 
-    protected override TemporalUpscaler CreateTemporalUpscalerImpl(TemporalUpscalerDesc desc)
+    public override TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
     {
         return new MetalFXTemporalUpscaler(this, desc);
     }
 
-    protected override DenoisingUpscaler CreateDenoisingUpscalerImpl(DenoisingUpscalerDesc desc)
+    public override DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
     {
         return new MetalFXDenoisingUpscaler(this, desc);
     }
 
-    protected override FrameGenerator CreateFrameGeneratorImpl(FrameGeneratorDesc desc)
+    public override FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
     {
         return new MetalFXFrameGenerator(this, desc);
+    }
+
+    protected override void Initialize()
+    {
+        Compiler = Device.MakeCompiler(new(), out NSError error);
+        error.Success();
     }
 
     protected override void Destroy()
@@ -54,7 +60,7 @@ internal class MetalFXProvider(GraphicsContext context) : Provider(context)
         encoder.EndEncoding();
     }
 
-    private static UpscalerInputSize GetInputSize(uint outputWidth, uint outputHeight, float scale, float minScale, float maxScale)
+    private static UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, float scale, float minScale, float maxScale)
     {
         if (scale < minScale || scale > maxScale)
         {

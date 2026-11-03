@@ -1,10 +1,17 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public abstract class UpscalingCapabilities
+public class UpscalingCapabilities
 {
-    public abstract bool TemporalUpscalerSupported { get; }
+    internal UpscalingCapabilities(bool temporalUpscalerSupported, bool denoisingUpscalerSupported, bool frameGeneratorSupported)
+    {
+        TemporalUpscalerSupported = temporalUpscalerSupported;
+        DenoisingUpscalerSupported = denoisingUpscalerSupported;
+        FrameGeneratorSupported = frameGeneratorSupported;
+    }
 
-    public abstract bool DenoisingUpscalerSupported { get; }
+    public bool TemporalUpscalerSupported { get; }
 
-    public abstract bool FrameGeneratorSupported { get; }
+    public bool DenoisingUpscalerSupported { get; }
+
+    public bool FrameGeneratorSupported { get; }
 }

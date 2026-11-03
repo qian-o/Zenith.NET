@@ -64,7 +64,7 @@ internal class UpscalingPass : DisposableObject
 
     public void Resize(RenderDesc desc)
     {
-        if (Desc.OutputWidth == desc.OutputWidth && Desc.OutputHeight == desc.OutputHeight && Desc.Upscaler == desc.Upscaler && Desc.UpscalerMode == desc.UpscalerMode)
+        if (Desc.OutputWidth == desc.OutputWidth && Desc.OutputHeight == desc.OutputHeight && Desc.Upscaler == desc.Upscaler && Desc.UpscalingMode == desc.UpscalingMode)
         {
             return;
         }
@@ -83,10 +83,10 @@ internal class UpscalingPass : DisposableObject
 
     private void CreateResources()
     {
-        UpscalerInputSize inputSize = Desc.Upscaler switch
+        UpscalingInputSize inputSize = Desc.Upscaler switch
         {
-            UpscalerKind.Temporal => App.Context.GetTemporalUpscalerInputSize(Desc.OutputWidth, Desc.OutputHeight, Desc.UpscalerMode),
-            UpscalerKind.Denoising => App.Context.GetDenoisingUpscalerInputSize(Desc.OutputWidth, Desc.OutputHeight, Desc.UpscalerMode),
+            UpscalerKind.Temporal => App.Context.GetTemporalUpscalerInputSize(Desc.OutputWidth, Desc.OutputHeight, Desc.UpscalingMode),
+            UpscalerKind.Denoising => App.Context.GetDenoisingUpscalerInputSize(Desc.OutputWidth, Desc.OutputHeight, Desc.UpscalingMode),
             _ => default
         };
 

@@ -74,15 +74,15 @@ internal static class MetalFXFormats
         };
     }
 
-    public static float Scale(UpscalerMode mode)
+    public static float Scale(UpscalingMode mode)
     {
         return mode switch
         {
-            UpscalerMode.Native => 1.0f,
-            UpscalerMode.Quality => 1.5f,
-            UpscalerMode.Balanced => 1.0f / 0.58f,
-            UpscalerMode.Performance => 2.0f,
-            UpscalerMode.UltraPerformance => 3.0f,
+            UpscalingMode.Native => 1.0f,
+            UpscalingMode.Quality => 1.5f,
+            UpscalingMode.Balanced => 1.0f / 0.58f,
+            UpscalingMode.Performance => 2.0f,
+            UpscalingMode.UltraPerformance => 3.0f,
             _ => default
         };
     }

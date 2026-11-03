@@ -45,7 +45,7 @@ internal class Renderer : DisposableObject
 
     public UpscalerKind Upscaler { get; set; }
 
-    public UpscalerMode UpscalerMode { get; set; } = UpscalerMode.Quality;
+    public UpscalingMode UpscalingMode { get; set; } = UpscalingMode.Quality;
 
     public FrameGenerationMode FrameGeneration { get; set; }
 
@@ -119,7 +119,7 @@ internal class Renderer : DisposableObject
             OutputWidth = width,
             OutputHeight = height,
             Upscaler = Upscaler,
-            UpscalerMode = UpscalerMode,
+            UpscalingMode = UpscalingMode,
             FrameGeneration = FrameGeneration
         };
 
@@ -141,7 +141,7 @@ internal class Renderer : DisposableObject
             desc.FrameGeneration = FrameGenerationMode.X1;
         }
 
-        if (outputPass.Color.Desc.Width == width && outputPass.Color.Desc.Height == height && upscalingPass.Desc.Upscaler == desc.Upscaler && upscalingPass.Desc.UpscalerMode == desc.UpscalerMode && frameGenerationPass.Colors.Length == (int)desc.FrameGeneration)
+        if (outputPass.Color.Desc.Width == width && outputPass.Color.Desc.Height == height && upscalingPass.Desc.Upscaler == desc.Upscaler && upscalingPass.Desc.UpscalingMode == desc.UpscalingMode && frameGenerationPass.Colors.Length == (int)desc.FrameGeneration)
         {
             return;
         }

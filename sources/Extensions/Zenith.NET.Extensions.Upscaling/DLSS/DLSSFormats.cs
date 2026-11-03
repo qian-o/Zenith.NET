@@ -146,15 +146,15 @@ internal static class DLSSFormats
         return (format, ZenithHelper.HasDepth(pixelFormat) ? 2u : 1u);
     }
 
-    public static NGXPerfQualityValue NGX(UpscalerMode mode)
+    public static NGXPerfQualityValue NGX(UpscalingMode mode)
     {
         return mode switch
         {
-            UpscalerMode.Native => NGXPerfQualityValue.Dlaa,
-            UpscalerMode.Quality => NGXPerfQualityValue.MaxQuality,
-            UpscalerMode.Balanced => NGXPerfQualityValue.Balanced,
-            UpscalerMode.Performance => NGXPerfQualityValue.MaxPerf,
-            UpscalerMode.UltraPerformance => NGXPerfQualityValue.UltraPerformance,
+            UpscalingMode.Native => NGXPerfQualityValue.Dlaa,
+            UpscalingMode.Quality => NGXPerfQualityValue.MaxQuality,
+            UpscalingMode.Balanced => NGXPerfQualityValue.Balanced,
+            UpscalingMode.Performance => NGXPerfQualityValue.MaxPerf,
+            UpscalingMode.UltraPerformance => NGXPerfQualityValue.UltraPerformance,
             _ => default
         };
     }

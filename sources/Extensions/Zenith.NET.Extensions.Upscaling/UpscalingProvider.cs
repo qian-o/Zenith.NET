@@ -1,54 +1,31 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-internal abstract class Provider : DisposableObject
+internal abstract class UpscalingProvider : DisposableObject
 {
-    protected Provider(GraphicsContext context)
+    protected UpscalingProvider(GraphicsContext context)
     {
         Context = context;
 
-        Initialize(out UpscalingCapabilities capabilities);
-
-        Capabilities = capabilities;
+        Initialize();
     }
 
     public GraphicsContext Context { get; }
 
-    public UpscalingCapabilities Capabilities { get; }
+    public abstract bool TemporalUpscalerSupported { get; }
 
-    public UpscalerInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
-    {
-        return GetTemporalUpscalerInputSizeImpl(outputWidth, outputHeight, mode);
-    }
+    public abstract bool DenoisingUpscalerSupported { get; }
 
-    public UpscalerInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
-    {
-        return GetDenoisingUpscalerInputSizeImpl(outputWidth, outputHeight, mode);
-    }
+    public abstract bool FrameGeneratorSupported { get; }
 
-    public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
-    {
-        return CreateTemporalUpscalerImpl(desc);
-    }
+    public abstract UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-    public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
-    {
-        return CreateDenoisingUpscalerImpl(desc);
-    }
+    public abstract UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-    public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
-    {
-        return CreateFrameGeneratorImpl(desc);
-    }
+    public abstract TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc);
 
-    protected abstract void Initialize(out UpscalingCapabilities capabilities);
+    public abstract DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc);
 
-    protected abstract UpscalerInputSize GetTemporalUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode);
+    public abstract FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc);
 
-    protected abstract UpscalerInputSize GetDenoisingUpscalerInputSizeImpl(uint outputWidth, uint outputHeight, UpscalerMode mode);
-
-    protected abstract TemporalUpscaler CreateTemporalUpscalerImpl(TemporalUpscalerDesc desc);
-
-    protected abstract DenoisingUpscaler CreateDenoisingUpscalerImpl(DenoisingUpscalerDesc desc);
-
-    protected abstract FrameGenerator CreateFrameGeneratorImpl(FrameGeneratorDesc desc);
+    protected abstract void Initialize();
 }

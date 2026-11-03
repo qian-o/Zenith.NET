@@ -574,7 +574,7 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
     return radiance;
 }
 
-// Environment BRDF approximation for the reconstruction specular albedo guide.
+// Environment BRDF approximation for the denoising upscaler specular albedo guide.
 float3 SpecularReflectance(float3 specularColor, float roughness, float NdotV)
 {
     float alpha = roughness * roughness;

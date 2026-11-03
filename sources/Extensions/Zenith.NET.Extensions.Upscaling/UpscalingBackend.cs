@@ -5,34 +5,34 @@ namespace Zenith.NET.Extensions.Upscaling;
 
 internal class UpscalingBackend : DisposableObject
 {
-    private readonly List<Provider> providers = [];
-    private readonly Provider? temporalUpscalerProvider;
-    private readonly Provider? denoisingUpscalerProvider;
-    private readonly Provider? frameGeneratorProvider;
+    private readonly List<UpscalingProvider> providers = [];
+    private readonly UpscalingProvider? temporalUpscalerProvider;
+    private readonly UpscalingProvider? denoisingUpscalerProvider;
+    private readonly UpscalingProvider? frameGeneratorProvider;
 
-    public UpscalingBackend(GraphicsContext context, ReadOnlySpan<UpscalingProvider> providers)
+    public UpscalingBackend(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
     {
         Context = context;
 
-        foreach (UpscalingProvider value in providers.ToArray().Distinct())
+        foreach (UpscalingApi api in apis.ToArray().Distinct())
         {
             if (temporalUpscalerProvider is not null && denoisingUpscalerProvider is not null && frameGeneratorProvider is not null)
             {
                 break;
             }
 
-            if (CreateProvider(value) is not Provider provider)
+            if (CreateProvider(api) is not UpscalingProvider provider)
             {
                 continue;
             }
 
-            temporalUpscalerProvider ??= provider.Capabilities.TemporalUpscalerSupported ? provider : null;
-            denoisingUpscalerProvider ??= provider.Capabilities.DenoisingUpscalerSupported ? provider : null;
-            frameGeneratorProvider ??= provider.Capabilities.FrameGeneratorSupported ? provider : null;
+            temporalUpscalerProvider ??= provider.TemporalUpscalerSupported ? provider : null;
+            denoisingUpscalerProvider ??= provider.DenoisingUpscalerSupported ? provider : null;
+            frameGeneratorProvider ??= provider.FrameGeneratorSupported ? provider : null;
 
             if (provider == temporalUpscalerProvider || provider == denoisingUpscalerProvider || provider == frameGeneratorProvider)
             {
-                this.providers.Add(provider);
+                providers.Add(provider);
             }
             else
             {
@@ -40,24 +40,24 @@ internal class UpscalingBackend : DisposableObject
             }
         }
 
-        if (this.providers.Count is 0)
+        if (providers.Count is 0)
         {
-            throw new NotSupportedException("This device does not support any of the specified upscaling providers.");
+            throw new NotSupportedException("This device does not support any of the specified upscaling APIs.");
         }
 
-        Capabilities = new UpscalingBackendCapabilities(temporalUpscalerProvider, denoisingUpscalerProvider, frameGeneratorProvider);
+        Capabilities = new(temporalUpscalerProvider is not null, denoisingUpscalerProvider is not null, frameGeneratorProvider is not null);
     }
 
     public GraphicsContext Context { get; }
 
     public UpscalingCapabilities Capabilities { get; }
 
-    public UpscalerInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
+    public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetProvider(temporalUpscalerProvider, "temporal upscaler").GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode);
     }
 
-    public UpscalerInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalerMode mode)
+    public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetProvider(denoisingUpscalerProvider, "denoising upscaler").GetDenoisingUpscalerInputSize(outputWidth, outputHeight, mode);
     }
@@ -79,24 +79,24 @@ internal class UpscalingBackend : DisposableObject
 
     protected override void Destroy()
     {
-        foreach (Provider provider in providers)
+        foreach (UpscalingProvider provider in providers)
         {
             provider.Dispose();
         }
     }
 
-    private Provider? CreateProvider(UpscalingProvider provider)
+    private UpscalingProvider? CreateProvider(UpscalingApi api)
     {
-        return provider switch
+        return api switch
         {
-            UpscalingProvider.DLSS when Context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => new DLSSProvider(Context),
-            UpscalingProvider.MetalFX when Context.GraphicsApi is GraphicsApi.Metal => new MetalFXProvider(Context),
+            UpscalingApi.DLSS when Context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => new DLSSProvider(Context),
+            UpscalingApi.MetalFX when Context.GraphicsApi is GraphicsApi.Metal => new MetalFXProvider(Context),
             _ => null
         };
     }
 
-    private static Provider GetProvider(Provider? provider, string feature)
+    private static UpscalingProvider GetProvider(UpscalingProvider? provider, string feature)
     {
-        return provider ?? throw new NotSupportedException($"This device does not support the {feature} with any of the specified upscaling providers.");
+        return provider ?? throw new NotSupportedException($"This device does not support the {feature} with any of the specified upscaling APIs.");
     }
 }

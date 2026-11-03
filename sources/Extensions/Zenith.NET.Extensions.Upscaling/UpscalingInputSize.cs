@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public readonly struct UpscalerInputSize(uint width, uint height)
+public readonly struct UpscalingInputSize(uint width, uint height)
 {
     public readonly uint Width = width;
 
