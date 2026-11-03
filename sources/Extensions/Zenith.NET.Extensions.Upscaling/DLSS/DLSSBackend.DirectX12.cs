@@ -2,43 +2,33 @@
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSProvider
+internal unsafe partial class DLSSBackend
 {
-    private NGXResult InitializeDirectX12(byte* projectId, byte* engineVersion, void* dataPath, NGXFeatureCommonInfo* featureInfo)
-    {
-        return Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, Device, featureInfo, NGXVersion.Api);
-    }
-
-    private void ShutdownDirectX12()
-    {
-        Ngx.D3D12.Shutdown1(Device).Success();
-    }
-
-    private static void CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSCreateParams* createParams)
+    private static NGXResult CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSCreateParams* createParams)
     {
         fixed (NGXHandle* handle = &feature.Handle)
         {
-            Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+            return Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, handle, feature.Parameters, createParams);
         }
     }
 
-    private static void CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSDCreateParams* createParams)
+    private static NGXResult CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSDCreateParams* createParams)
     {
         fixed (NGXHandle* handle = &feature.Handle)
         {
-            Ngx.D3D12.CreateDLSSDExt(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+            return Ngx.D3D12.CreateDLSSDExt(commandList, 1, 1, handle, feature.Parameters, createParams);
         }
     }
 
-    private static void CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSGCreateParams* createParams)
+    private static NGXResult CreateDirectX12(nint commandList, DLSSFeature feature, NGXDLSSGCreateParams* createParams)
     {
         fixed (NGXHandle* handle = &feature.Handle)
         {
-            Ngx.D3D12.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+            return Ngx.D3D12.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams);
         }
     }
 
-    private static void EvaluateDirectX12(nint commandList, DLSSFeature feature, TemporalUpscalerArgs args)
+    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, TemporalUpscalerArgs args)
     {
         NGXD3D12DLSSEvalParams evalParams = new()
         {
@@ -65,10 +55,10 @@ internal unsafe partial class DLSSProvider
             ExposureScale = 1.0f
         };
 
-        Ngx.D3D12.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
+        return Ngx.D3D12.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private static void EvaluateDirectX12(nint commandList, DLSSFeature feature, DenoisingUpscalerArgs args)
+    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, DenoisingUpscalerArgs args)
     {
         NGXD3D12DLSSDEvalParams evalParams = new()
         {
@@ -99,10 +89,10 @@ internal unsafe partial class DLSSProvider
             TransparencyLayer = args.TransparencyOverlay?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0
         };
 
-        Ngx.D3D12.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
+        return Ngx.D3D12.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private static void EvaluateDirectX12(nint commandList, DLSSFeature feature, FrameGeneratorArgs args, NGXDLSSGOptEvalParams* optEvalParams)
+    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, FrameGeneratorArgs args, NGXDLSSGOptEvalParams* optEvalParams)
     {
         NGXD3D12DLSSGEvalParams evalParams = new()
         {
@@ -113,6 +103,6 @@ internal unsafe partial class DLSSProvider
             OutputInterpFrame = args.Output.GetNativeObject(NativeObjectType.D3D12Resource)
         };
 
-        Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
+        return Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams);
     }
 }

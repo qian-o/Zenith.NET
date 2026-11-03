@@ -11,10 +11,15 @@ public abstract class TemporalUpscaler(TemporalUpscalerDesc desc) : DisposableOb
         commandBuffer.BeginExternalCommands();
         commandBuffer.BeginDebugEvent("Temporal Upscaler");
 
-        DispatchImpl(commandBuffer, args);
-
-        commandBuffer.EndDebugEvent();
-        commandBuffer.EndExternalCommands();
+        try
+        {
+            DispatchImpl(commandBuffer, args);
+        }
+        finally
+        {
+            commandBuffer.EndDebugEvent();
+            commandBuffer.EndExternalCommands();
+        }
     }
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, TemporalUpscalerArgs args);

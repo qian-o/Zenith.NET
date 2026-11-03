@@ -3,7 +3,7 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSProvider
+internal unsafe partial class DLSSBackend
 {
     private const uint ImageViewCreateInfoType = 15;
     private const uint PipelineLayoutCreateInfoType = 30;
@@ -26,69 +26,14 @@ internal unsafe partial class DLSSProvider
     private delegate* unmanaged<nint, nint, void*, void> vkDestroyDescriptorPool;
     private delegate* unmanaged<nint, uint, nint, uint, uint, nint*, uint, uint*, void> vkCmdBindDescriptorSets;
 
-    private NGXResult InitializeVulkan(byte* projectId, byte* engineVersion, void* dataPath, NGXFeatureCommonInfo* featureInfo)
+    private bool CreateVulkanResources()
     {
-        NGXResult result = Ngx.Vulkan.InitWithProjectID(projectId,
-                                                        NGXEngineType.Custom,
-                                                        engineVersion,
-                                                        dataPath,
-                                                        Context.GetNativeObject(NativeObjectType.VulkanInstance),
-                                                        Context.GetNativeObject(NativeObjectType.VulkanPhysicalDevice),
-                                                        Device,
-                                                        (delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>)Context.GetNativeObject(NativeObjectType.VulkanGetInstanceProcAddr),
-                                                        (delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>)Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr),
-                                                        featureInfo,
-                                                        NGXVersion.Api);
-        if (!result.IsSuccess())
-        {
-            return result;
-        }
-
         delegate* unmanaged<nint, byte*, nint> getDeviceProcAddr = (delegate* unmanaged<nint, byte*, nint>)Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr);
 
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateDescriptorSetLayout = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateDescriptorSetLayout");
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreatePipelineLayout = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreatePipelineLayout");
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateDescriptorPool = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateDescriptorPool");
         delegate* unmanaged<nint, void*, nint*, int> vkAllocateDescriptorSets = (delegate* unmanaged<nint, void*, nint*, int>)GetProcedureAddress("vkAllocateDescriptorSets");
-
-        fixed (nint* pDescriptorSetLayout = &descriptorSetLayout)
-        {
-            fixed (nint* pPipelineLayout = &pipelineLayout)
-            {
-                fixed (nint* pDescriptorPool = &descriptorPool)
-                {
-                    fixed (nint* pDescriptorSet = &descriptorSet)
-                    {
-                        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = DescriptorSetLayoutCreateInfoType };
-                        vkCreateDescriptorSetLayout(Device, &descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout).Success();
-
-                        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
-                        {
-                            SType = PipelineLayoutCreateInfoType,
-                            SetLayoutCount = 1,
-                            PSetLayouts = pDescriptorSetLayout
-                        };
-                        vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout).Success();
-
-                        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
-                        {
-                            SType = DescriptorPoolCreateInfoType,
-                            MaxSets = 1
-                        };
-                        vkCreateDescriptorPool(Device, &descriptorPoolCreateInfo, null, pDescriptorPool).Success();
-
-                        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
-                        {
-                            SType = DescriptorSetAllocateInfoType,
-                            DescriptorPool = descriptorPool,
-                            DescriptorSetCount = 1,
-                            PSetLayouts = pDescriptorSetLayout
-                        };
-                        vkAllocateDescriptorSets(Device, &descriptorSetAllocateInfo, pDescriptorSet).Success();
-                    }
-                }
-            }
-        }
 
         vkCreateImageView = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateImageView");
         vkDestroyImageView = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyImageView");
@@ -97,7 +42,59 @@ internal unsafe partial class DLSSProvider
         vkDestroyDescriptorPool = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyDescriptorPool");
         vkCmdBindDescriptorSets = (delegate* unmanaged<nint, uint, nint, uint, uint, nint*, uint, uint*, void>)GetProcedureAddress("vkCmdBindDescriptorSets");
 
-        return result;
+        fixed (nint* pDescriptorSetLayout = &descriptorSetLayout)
+        fixed (nint* pPipelineLayout = &pipelineLayout)
+        fixed (nint* pDescriptorPool = &descriptorPool)
+        fixed (nint* pDescriptorSet = &descriptorSet)
+        {
+            VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = DescriptorSetLayoutCreateInfoType };
+            int result = vkCreateDescriptorSetLayout(Device, &descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout);
+            result.Success();
+
+            if (result is not 0)
+            {
+                return false;
+            }
+
+            VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+            {
+                SType = PipelineLayoutCreateInfoType,
+                SetLayoutCount = 1,
+                PSetLayouts = pDescriptorSetLayout
+            };
+            result = vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout);
+            result.Success();
+
+            if (result is not 0)
+            {
+                return false;
+            }
+
+            VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
+            {
+                SType = DescriptorPoolCreateInfoType,
+                MaxSets = 1
+            };
+            result = vkCreateDescriptorPool(Device, &descriptorPoolCreateInfo, null, pDescriptorPool);
+            result.Success();
+
+            if (result is not 0)
+            {
+                return false;
+            }
+
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
+            {
+                SType = DescriptorSetAllocateInfoType,
+                DescriptorPool = descriptorPool,
+                DescriptorSetCount = 1,
+                PSetLayouts = pDescriptorSetLayout
+            };
+            result = vkAllocateDescriptorSets(Device, &descriptorSetAllocateInfo, pDescriptorSet);
+            result.Success();
+
+            return result is 0;
+        }
 
         nint GetProcedureAddress(string name)
         {
@@ -107,7 +104,7 @@ internal unsafe partial class DLSSProvider
         }
     }
 
-    private void ShutdownVulkan()
+    private void DestroyVulkanResources()
     {
         foreach (NGXResourceVK resource in resources.Values)
         {
@@ -115,34 +112,43 @@ internal unsafe partial class DLSSProvider
         }
         resources.Clear();
 
-        vkDestroyDescriptorPool(Device, descriptorPool, null);
-        vkDestroyPipelineLayout(Device, pipelineLayout, null);
-        vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
+        if (descriptorPool is not 0)
+        {
+            vkDestroyDescriptorPool(Device, descriptorPool, null);
+        }
 
-        Ngx.Vulkan.Shutdown1(Device).Success();
+        if (pipelineLayout is not 0)
+        {
+            vkDestroyPipelineLayout(Device, pipelineLayout, null);
+        }
+
+        if (descriptorSetLayout is not 0)
+        {
+            vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
+        }
     }
 
-    private void CreateVulkan(nint commandList, DLSSFeature feature, NGXDLSSCreateParams* createParams)
+    private NGXResult CreateVulkan(nint commandList, DLSSFeature feature, NGXDLSSCreateParams* createParams)
     {
         BindDescriptorSet(commandList);
 
         fixed (NGXHandle* handle = &feature.Handle)
         {
-            Ngx.Vulkan.CreateDLSSExt1(Device, commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+            return Ngx.Vulkan.CreateDLSSExt1(Device, commandList, 1, 1, handle, feature.Parameters, createParams);
         }
     }
 
-    private void CreateVulkan(nint commandList, DLSSFeature feature, NGXDLSSDCreateParams* createParams)
+    private NGXResult CreateVulkan(nint commandList, DLSSFeature feature, NGXDLSSDCreateParams* createParams)
     {
         BindDescriptorSet(commandList);
 
         fixed (NGXHandle* handle = &feature.Handle)
         {
-            Ngx.Vulkan.CreateDLSSDExt1(Device, commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+            return Ngx.Vulkan.CreateDLSSDExt1(Device, commandList, 1, 1, handle, feature.Parameters, createParams);
         }
     }
 
-    private void CreateVulkan(nint commandList, DLSSFeature feature, NGXDLSSGCreateParams* createParams)
+    private NGXResult CreateVulkan(nint commandList, DLSSFeature feature, NGXDLSSGCreateParams* createParams)
     {
         BindDescriptorSet(commandList);
 
@@ -153,18 +159,18 @@ internal unsafe partial class DLSSProvider
 
         fixed (NGXHandle* handle = &feature.Handle)
         {
-            Ngx.Vulkan.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+            return Ngx.Vulkan.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams);
         }
     }
 
-    private void EvaluateVulkan(nint commandList, DLSSFeature feature, TemporalUpscalerArgs args)
+    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, TemporalUpscalerArgs args)
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = EnsureVulkanResource(args.Color) with { ReadWrite = false };
-        NGXResourceVK depth = EnsureVulkanResource(args.Depth) with { ReadWrite = false };
-        NGXResourceVK motionVectors = EnsureVulkanResource(args.MotionVectors) with { ReadWrite = false };
-        NGXResourceVK output = EnsureVulkanResource(args.Output) with { ReadWrite = true };
+        NGXResourceVK color = GetVulkanResource(args.Color);
+        NGXResourceVK depth = GetVulkanResource(args.Depth);
+        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors);
+        NGXResourceVK output = GetVulkanResource(args.Output, readWrite: true);
 
         NGXVKDLSSEvalParams evalParams = new()
         {
@@ -192,7 +198,7 @@ internal unsafe partial class DLSSProvider
         NGXResourceVK exposure;
         if (args.Exposure is not null)
         {
-            exposure = EnsureVulkanResource(args.Exposure) with { ReadWrite = false };
+            exposure = GetVulkanResource(args.Exposure);
 
             evalParams.ExposureTexture = &exposure;
         }
@@ -200,27 +206,27 @@ internal unsafe partial class DLSSProvider
         NGXResourceVK reactiveMask;
         if (args.ReactiveMask is not null)
         {
-            reactiveMask = EnsureVulkanResource(args.ReactiveMask) with { ReadWrite = false };
+            reactiveMask = GetVulkanResource(args.ReactiveMask);
 
             evalParams.BiasCurrentColorMask = &reactiveMask;
         }
 
-        Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
+        return Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private void EvaluateVulkan(nint commandList, DLSSFeature feature, DenoisingUpscalerArgs args)
+    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, DenoisingUpscalerArgs args)
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK color = EnsureVulkanResource(args.Color) with { ReadWrite = false };
-        NGXResourceVK depth = EnsureVulkanResource(args.Depth) with { ReadWrite = false };
-        NGXResourceVK motionVectors = EnsureVulkanResource(args.MotionVectors) with { ReadWrite = false };
-        NGXResourceVK diffuseAlbedo = EnsureVulkanResource(args.DiffuseAlbedo) with { ReadWrite = false };
-        NGXResourceVK specularAlbedo = EnsureVulkanResource(args.SpecularAlbedo) with { ReadWrite = false };
-        NGXResourceVK normals = EnsureVulkanResource(args.Normals) with { ReadWrite = false };
-        NGXResourceVK roughness = EnsureVulkanResource(args.Roughness) with { ReadWrite = false };
-        NGXResourceVK specularHitDistance = EnsureVulkanResource(args.SpecularHitDistance) with { ReadWrite = false };
-        NGXResourceVK output = EnsureVulkanResource(args.Output) with { ReadWrite = true };
+        NGXResourceVK color = GetVulkanResource(args.Color);
+        NGXResourceVK depth = GetVulkanResource(args.Depth);
+        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors);
+        NGXResourceVK diffuseAlbedo = GetVulkanResource(args.DiffuseAlbedo);
+        NGXResourceVK specularAlbedo = GetVulkanResource(args.SpecularAlbedo);
+        NGXResourceVK normals = GetVulkanResource(args.Normals);
+        NGXResourceVK roughness = GetVulkanResource(args.Roughness);
+        NGXResourceVK specularHitDistance = GetVulkanResource(args.SpecularHitDistance);
+        NGXResourceVK output = GetVulkanResource(args.Output, readWrite: true);
 
         NGXVKDLSSDEvalParams evalParams = new()
         {
@@ -252,7 +258,7 @@ internal unsafe partial class DLSSProvider
         NGXResourceVK reactiveMask;
         if (args.ReactiveMask is not null)
         {
-            reactiveMask = EnsureVulkanResource(args.ReactiveMask) with { ReadWrite = false };
+            reactiveMask = GetVulkanResource(args.ReactiveMask);
 
             evalParams.BiasCurrentColorMask = &reactiveMask;
         }
@@ -260,22 +266,22 @@ internal unsafe partial class DLSSProvider
         NGXResourceVK transparencyOverlay;
         if (args.TransparencyOverlay is not null)
         {
-            transparencyOverlay = EnsureVulkanResource(args.TransparencyOverlay) with { ReadWrite = false };
+            transparencyOverlay = GetVulkanResource(args.TransparencyOverlay);
 
             evalParams.TransparencyLayer = &transparencyOverlay;
         }
 
-        Ngx.Vulkan.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
+        return Ngx.Vulkan.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private void EvaluateVulkan(nint commandList, DLSSFeature feature, FrameGeneratorArgs args, NGXDLSSGOptEvalParams* optEvalParams)
+    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, FrameGeneratorArgs args, NGXDLSSGOptEvalParams* optEvalParams)
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK backbuffer = EnsureVulkanResource(args.UI ?? args.Color) with { ReadWrite = false };
-        NGXResourceVK depth = EnsureVulkanResource(args.Depth) with { ReadWrite = false };
-        NGXResourceVK motionVectors = EnsureVulkanResource(args.MotionVectors) with { ReadWrite = false };
-        NGXResourceVK output = EnsureVulkanResource(args.Output) with { ReadWrite = true };
+        NGXResourceVK backbuffer = GetVulkanResource(args.UI ?? args.Color);
+        NGXResourceVK depth = GetVulkanResource(args.Depth);
+        NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors);
+        NGXResourceVK output = GetVulkanResource(args.Output, readWrite: true);
 
         NGXVKDLSSGEvalParams evalParams = new()
         {
@@ -288,12 +294,12 @@ internal unsafe partial class DLSSProvider
         NGXResourceVK hudless;
         if (args.UI is not null)
         {
-            hudless = EnsureVulkanResource(args.Color) with { ReadWrite = false };
+            hudless = GetVulkanResource(args.Color);
 
             evalParams.Hudless = &hudless;
         }
 
-        Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
+        return Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams);
     }
 
     private void BindDescriptorSet(nint commandList)
@@ -304,7 +310,7 @@ internal unsafe partial class DLSSProvider
         }
     }
 
-    private NGXResourceVK EnsureVulkanResource(Texture texture)
+    private NGXResourceVK GetVulkanResource(Texture texture, bool readWrite = false)
     {
         nint image = texture.GetNativeObject(NativeObjectType.VulkanImage);
 
@@ -328,8 +334,14 @@ internal unsafe partial class DLSSProvider
                 SubresourceRange = subresourceRange
             };
 
-            nint view;
-            vkCreateImageView(Device, &createInfo, null, &view).Success();
+            nint view = 0;
+            int result = vkCreateImageView(Device, &createInfo, null, &view);
+            result.Success();
+
+            if (result is not 0)
+            {
+                throw new InvalidOperationException("DLSS Vulkan image view creation failed.");
+            }
 
             resources[image] = resource = new()
             {
@@ -348,21 +360,41 @@ internal unsafe partial class DLSSProvider
                 Type = NGXResourceVKType.VkImageView
             };
 
-            texture.Disposing += (_, _) =>
-            {
-                if (resources.Remove(image, out NGXResourceVK disposedResource))
-                {
-                    DestroyVulkanResource(disposedResource);
-                }
-            };
+            texture.Disposing += OnTextureDisposing;
         }
 
-        return resource;
+        return resource with { ReadWrite = readWrite };
+    }
+
+    private void OnTextureDisposing(object? sender, EventArgs args)
+    {
+        Texture texture = (Texture)sender!;
+        texture.Disposing -= OnTextureDisposing;
+
+        if (resources.Remove(texture.GetNativeObject(NativeObjectType.VulkanImage), out NGXResourceVK resource))
+        {
+            DestroyVulkanResource(resource);
+        }
     }
 
     private void DestroyVulkanResource(NGXResourceVK resource)
     {
         vkDestroyImageView(Device, resource.Resource.ImageViewInfo.ImageView, null);
+    }
+
+    private static NGXResult InitializeVulkan(GraphicsContext context, nint device, byte* projectId, byte* engineVersion, void* dataPath, NGXFeatureCommonInfo* featureInfo)
+    {
+        return Ngx.Vulkan.InitWithProjectID(projectId,
+                                           NGXEngineType.Custom,
+                                           engineVersion,
+                                           dataPath,
+                                           context.GetNativeObject(NativeObjectType.VulkanInstance),
+                                           context.GetNativeObject(NativeObjectType.VulkanPhysicalDevice),
+                                           device,
+                                           (delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>)context.GetNativeObject(NativeObjectType.VulkanGetInstanceProcAddr),
+                                           (delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>)context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr),
+                                           featureInfo,
+                                           NGXVersion.Api);
     }
 }
 

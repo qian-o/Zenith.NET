@@ -8,9 +8,9 @@ internal class MetalFXFrameGenerator : FrameGenerator
 {
     private readonly MTL4FXFrameInterpolator interpolator;
 
-    public MetalFXFrameGenerator(MetalFXProvider provider, FrameGeneratorDesc desc) : base(desc)
+    public MetalFXFrameGenerator(MetalFXBackend backend, FrameGeneratorDesc desc) : base(desc)
     {
-        using MTLFXFrameInterpolatorDescriptor descriptor = new()
+        MTLFXFrameInterpolatorDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
             OutputTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
@@ -24,7 +24,12 @@ internal class MetalFXFrameGenerator : FrameGenerator
             RequiresPrevColorTexture = false
         };
 
-        interpolator = descriptor.MakeFrameInterpolator(provider.Device, provider.Compiler);
+        interpolator = descriptor.MakeFrameInterpolator(backend.Device, backend.Compiler);
+
+        if (interpolator.IsNull)
+        {
+            throw new InvalidOperationException("MetalFX frame generator creation failed.");
+        }
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args)
@@ -33,7 +38,7 @@ internal class MetalFXFrameGenerator : FrameGenerator
 
         MTL4CommandBuffer mtlCommandBuffer = commandBuffer.Metal();
 
-        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio) = args.ViewToClip.DecomposePerspective();
+        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
 
         interpolator.ColorTexture = args.Color.Metal();
         interpolator.DepthTexture = args.Depth.Metal();
@@ -58,7 +63,7 @@ internal class MetalFXFrameGenerator : FrameGenerator
         interpolator.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         interpolator.Encode(mtlCommandBuffer);
 
-        MetalFXProvider.EncodeBarrier(mtlCommandBuffer);
+        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()

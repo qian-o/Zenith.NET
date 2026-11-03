@@ -11,10 +11,15 @@ public abstract class FrameGenerator(FrameGeneratorDesc desc) : DisposableObject
         commandBuffer.BeginExternalCommands();
         commandBuffer.BeginDebugEvent("Frame Generator");
 
-        DispatchImpl(commandBuffer, args);
-
-        commandBuffer.EndDebugEvent();
-        commandBuffer.EndExternalCommands();
+        try
+        {
+            DispatchImpl(commandBuffer, args);
+        }
+        finally
+        {
+            commandBuffer.EndDebugEvent();
+            commandBuffer.EndExternalCommands();
+        }
     }
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args);

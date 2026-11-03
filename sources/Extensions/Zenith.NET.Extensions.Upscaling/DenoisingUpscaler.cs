@@ -11,10 +11,15 @@ public abstract class DenoisingUpscaler(DenoisingUpscalerDesc desc) : Disposable
         commandBuffer.BeginExternalCommands();
         commandBuffer.BeginDebugEvent("Denoising Upscaler");
 
-        DispatchImpl(commandBuffer, args);
-
-        commandBuffer.EndDebugEvent();
-        commandBuffer.EndExternalCommands();
+        try
+        {
+            DispatchImpl(commandBuffer, args);
+        }
+        finally
+        {
+            commandBuffer.EndDebugEvent();
+            commandBuffer.EndExternalCommands();
+        }
     }
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, DenoisingUpscalerArgs args);

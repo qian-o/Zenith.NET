@@ -6,9 +6,9 @@ internal class MetalFXTemporalUpscaler : TemporalUpscaler
 {
     private readonly MTL4FXTemporalScaler scaler;
 
-    public MetalFXTemporalUpscaler(MetalFXProvider provider, TemporalUpscalerDesc desc) : base(desc)
+    public MetalFXTemporalUpscaler(MetalFXBackend backend, TemporalUpscalerDesc desc) : base(desc)
     {
-        using MTLFXTemporalScalerDescriptor descriptor = new()
+        MTLFXTemporalScalerDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
             DepthTextureFormat = MetalFXFormats.Metal(desc.DepthFormat),
@@ -25,7 +25,12 @@ internal class MetalFXTemporalUpscaler : TemporalUpscaler
             ReactiveMaskTextureFormat = MetalFXFormats.Metal(desc.ReactiveMaskFormat)
         };
 
-        scaler = descriptor.MakeTemporalScaler(provider.Device, provider.Compiler);
+        scaler = descriptor.MakeTemporalScaler(backend.Device, backend.Compiler);
+
+        if (scaler.IsNull)
+        {
+            throw new InvalidOperationException("MetalFX temporal upscaler creation failed.");
+        }
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, TemporalUpscalerArgs args)
@@ -51,7 +56,7 @@ internal class MetalFXTemporalUpscaler : TemporalUpscaler
         scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         scaler.Encode(mtlCommandBuffer);
 
-        MetalFXProvider.EncodeBarrier(mtlCommandBuffer);
+        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()

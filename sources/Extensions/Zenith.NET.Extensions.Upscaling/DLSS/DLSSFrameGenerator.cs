@@ -5,29 +5,26 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe class DLSSFrameGenerator : FrameGenerator
 {
-    private readonly DLSSProvider provider;
     private readonly DLSSFeature feature;
 
     private Matrix4x4 previousWorldToView;
     private Matrix4x4 previousViewToClip;
 
-    public DLSSFrameGenerator(DLSSProvider provider, FrameGeneratorDesc desc) : base(desc)
+    public DLSSFrameGenerator(DLSSBackend backend, FrameGeneratorDesc desc) : base(desc)
     {
-        this.provider = provider;
-
-        feature = new(provider);
+        feature = new(backend);
         feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
         {
             Width = desc.OutputWidth,
             Height = desc.OutputHeight,
-            NativeBackbufferFormat = provider.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
+            NativeBackbufferFormat = backend.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
             RenderWidth = desc.InputWidth,
             RenderHeight = desc.InputHeight
         };
 
-        provider.Create(feature, createParams);
+        backend.Create(feature, createParams);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGeneratorArgs args)
@@ -57,7 +54,7 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
             previousClipToClip = previousClipToView * previousViewToView * args.ViewToClip;
         }
 
-        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio) = args.ViewToClip.DecomposePerspective();
+        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
 
         Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
 
@@ -111,7 +108,7 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
             }
         };
 
-        provider.Evaluate(commandBuffer, feature, args, &optEvalParams);
+        feature.Backend.Evaluate(commandBuffer, feature, args, &optEvalParams);
 
         previousWorldToView = args.WorldToView;
         previousViewToClip = args.ViewToClip;
@@ -119,6 +116,6 @@ internal unsafe class DLSSFrameGenerator : FrameGenerator
 
     protected override void Destroy()
     {
-        feature.Dispose();
+        feature?.Dispose();
     }
 }

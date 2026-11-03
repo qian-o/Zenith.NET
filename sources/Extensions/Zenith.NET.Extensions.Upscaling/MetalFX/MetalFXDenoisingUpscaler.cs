@@ -8,9 +8,9 @@ internal class MetalFXDenoisingUpscaler : DenoisingUpscaler
 {
     private readonly MTL4FXTemporalDenoisedScaler scaler;
 
-    public MetalFXDenoisingUpscaler(MetalFXProvider provider, DenoisingUpscalerDesc desc) : base(desc)
+    public MetalFXDenoisingUpscaler(MetalFXBackend backend, DenoisingUpscalerDesc desc) : base(desc)
     {
-        using MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
+        MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
             DepthTextureFormat = MetalFXFormats.Metal(desc.DepthFormat),
@@ -33,7 +33,12 @@ internal class MetalFXDenoisingUpscaler : DenoisingUpscaler
             IsTransparencyOverlayTextureEnabled = desc.TransparencyOverlayFormat is not null
         };
 
-        scaler = descriptor.MakeTemporalDenoisedScaler(provider.Device, provider.Compiler);
+        scaler = descriptor.MakeTemporalDenoisedScaler(backend.Device, backend.Compiler);
+
+        if (scaler.IsNull)
+        {
+            throw new InvalidOperationException("MetalFX denoising upscaler creation failed.");
+        }
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, DenoisingUpscalerArgs args)
@@ -64,7 +69,7 @@ internal class MetalFXDenoisingUpscaler : DenoisingUpscaler
         scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
         scaler.Encode(mtlCommandBuffer);
 
-        MetalFXProvider.EncodeBarrier(mtlCommandBuffer);
+        MetalFXBackend.EncodeBarrier(mtlCommandBuffer);
     }
 
     protected override void Destroy()
