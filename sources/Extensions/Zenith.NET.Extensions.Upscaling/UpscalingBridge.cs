@@ -3,14 +3,14 @@ using Zenith.NET.Extensions.Upscaling.MetalFX;
 
 namespace Zenith.NET.Extensions.Upscaling;
 
-internal class UpscalingBackend : DisposableObject
+internal class UpscalingBridge : DisposableObject
 {
-    private readonly List<IUpscalingBackend> backends = [];
-    private readonly IUpscalingBackend? temporalUpscalerBackend;
-    private readonly IUpscalingBackend? denoisingUpscalerBackend;
-    private readonly IUpscalingBackend? frameGeneratorBackend;
+    private readonly List<Backend> backends = [];
+    private readonly Backend? temporalUpscalerBackend;
+    private readonly Backend? denoisingUpscalerBackend;
+    private readonly Backend? frameGeneratorBackend;
 
-    public UpscalingBackend(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
+    public UpscalingBridge(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
     {
         foreach (UpscalingApi api in apis.ToArray().Distinct())
         {
@@ -19,7 +19,7 @@ internal class UpscalingBackend : DisposableObject
                 break;
             }
 
-            if (CreateBackend(context, api) is not IUpscalingBackend backend)
+            if (CreateBackend(context, api) is not Backend backend)
             {
                 continue;
             }
@@ -82,7 +82,7 @@ internal class UpscalingBackend : DisposableObject
         }
     }
 
-    private static IUpscalingBackend? CreateBackend(GraphicsContext context, UpscalingApi api)
+    private static Backend? CreateBackend(GraphicsContext context, UpscalingApi api)
     {
         return api switch
         {
@@ -92,23 +92,23 @@ internal class UpscalingBackend : DisposableObject
         };
     }
 
-    private static IUpscalingBackend GetBackend(IUpscalingBackend? backend, string feature)
+    private static Backend GetBackend(Backend? backend, string feature)
     {
         return backend ?? throw new NotSupportedException($"This device does not support the {feature} with any of the specified upscaling APIs.");
     }
 }
 
-internal interface IUpscalingBackend : IDisposable
+internal abstract class Backend : DisposableObject
 {
-    UpscalingCapabilities Capabilities { get; }
+    public abstract UpscalingCapabilities Capabilities { get; }
 
-    UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+    public abstract UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-    UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+    public abstract UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-    TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc);
+    public abstract TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc);
 
-    DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc);
+    public abstract DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc);
 
-    FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc);
+    public abstract FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc);
 }

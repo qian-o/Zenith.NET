@@ -5,15 +5,15 @@ namespace Zenith.NET.Extensions.Skia;
 
 public class SkiaTexture : DisposableObject
 {
-    private readonly SkiaBackend backend;
+    private readonly SkiaBridge bridge;
     private readonly Texture texture;
     private readonly SKSurface surface;
 
-    internal SkiaTexture(SkiaBackend backend, SkiaTextureDesc desc)
+    internal SkiaTexture(SkiaBridge bridge, SkiaTextureDesc desc)
     {
-        this.backend = backend;
+        this.bridge = bridge;
 
-        texture = backend.Context.CreateTexture(new()
+        texture = bridge.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = desc.Format,
@@ -26,7 +26,7 @@ public class SkiaTexture : DisposableObject
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
         });
 
-        CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
+        CommandBuffer commandBuffer = bridge.Context.GraphicsQueue.CommandBuffer();
 
         commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
@@ -40,9 +40,9 @@ public class SkiaTexture : DisposableObject
 
         commandBuffer.Submit().Wait();
 
-        using GRBackendTexture backendTexture = backend.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
+        using GRBackendTexture backendTexture = bridge.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
 
-        surface = SKSurface.Create(backend.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SkiaFormats.Skia(desc.Format));
+        surface = SKSurface.Create(bridge.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SkiaFormats.Skia(desc.Format));
 
         Desc = desc;
     }
@@ -53,7 +53,7 @@ public class SkiaTexture : DisposableObject
 
     public void Render(Action<SKCanvas> render)
     {
-        backend.Render(surface, render);
+        bridge.Render(surface, render);
     }
 
     protected override void Destroy()

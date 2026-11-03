@@ -4,7 +4,7 @@ using HexaImGui = Hexa.NET.ImGui.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
 
-internal unsafe partial class ImGuiBackend : DisposableObject
+internal unsafe partial class ImGuiBridge : DisposableObject
 {
     private readonly ImGuiContextPtr imGui;
     private readonly PlatformGetClipboardTextFn platformGetClipboardText;
@@ -18,7 +18,7 @@ internal unsafe partial class ImGuiBackend : DisposableObject
     private bool frameBegun;
     private ZenithMarshal.Scope? clipboardScope;
 
-    public ImGuiBackend(GraphicsContext context, IImGuiPlatform platform, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
+    public ImGuiBridge(GraphicsContext context, IImGuiPlatform platform, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
     {
         Context = context;
         Platform = platform;

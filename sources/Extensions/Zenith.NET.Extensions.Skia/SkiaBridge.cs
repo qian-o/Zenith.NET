@@ -3,12 +3,12 @@ using SkiaSharp;
 
 namespace Zenith.NET.Extensions.Skia;
 
-internal unsafe class SkiaBackend : DisposableObject
+internal unsafe class SkiaBridge : DisposableObject
 {
     private readonly Lock @lock = new();
     private readonly nint commandQueue;
 
-    public SkiaBackend(GraphicsContext context)
+    public SkiaBridge(GraphicsContext context)
     {
         Context = context;
 

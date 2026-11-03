@@ -6,9 +6,9 @@ using System.Text;
 using Zenith.NET;
 
 const string NamespaceName = "Zenith.NET.Extensions.ImGui";
-const string ClassName = "ImGuiBackend";
+const string ClassName = "ImGuiBridge";
 const string SourceFileName = "ImGui.slang";
-const string GeneratedFileName = "ImGuiBackend.g.cs";
+const string GeneratedFileName = "ImGuiBridge.g.cs";
 const int BytesPerLine = 16;
 const string LineEnding = "\r\n";
 

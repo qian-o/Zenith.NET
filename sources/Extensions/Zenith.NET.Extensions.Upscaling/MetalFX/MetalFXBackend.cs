@@ -4,7 +4,7 @@ using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXBackend : DisposableObject, IUpscalingBackend
+internal class MetalFXBackend : Backend
 {
     private readonly (float Min, float Max) temporalScale;
     private readonly (float Min, float Max) denoisingScale;
@@ -32,29 +32,29 @@ internal class MetalFXBackend : DisposableObject, IUpscalingBackend
         error.Success();
     }
 
-    public UpscalingCapabilities Capabilities { get; }
+    public override UpscalingCapabilities Capabilities { get; }
 
-    public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetInputSize(outputWidth, outputHeight, MetalFXFormats.Scale(mode), temporalScale.Min, temporalScale.Max);
     }
 
-    public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetInputSize(outputWidth, outputHeight, MetalFXFormats.Scale(mode), denoisingScale.Min, denoisingScale.Max);
     }
 
-    public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
+    public override TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
     {
         return new MetalFXTemporalUpscaler(this, desc);
     }
 
-    public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
+    public override DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
     {
         return new MetalFXDenoisingUpscaler(this, desc);
     }
 
-    public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
+    public override FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
     {
         return new MetalFXFrameGenerator(this, desc);
     }

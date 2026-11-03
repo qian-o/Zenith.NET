@@ -3,7 +3,7 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe partial class DLSSBackend : DisposableObject, IUpscalingBackend
+internal unsafe partial class DLSSBackend : Backend
 {
     private readonly NGXParameter parameters;
 
@@ -66,7 +66,7 @@ internal unsafe partial class DLSSBackend : DisposableObject, IUpscalingBackend
 
     public GraphicsContext Context { get; }
 
-    public UpscalingCapabilities Capabilities { get; }
+    public override UpscalingCapabilities Capabilities { get; }
 
     public NGXParameter AllocateParameters()
     {
@@ -163,27 +163,27 @@ internal unsafe partial class DLSSBackend : DisposableObject, IUpscalingBackend
         result.Success();
     }
 
-    public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetOptimalInputSize(NGXFeature.SuperSampling, outputWidth, outputHeight, DLSSFormats.NGX(mode));
     }
 
-    public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
         return GetOptimalInputSize(NGXFeature.RayReconstruction, outputWidth, outputHeight, DLSSFormats.NGX(mode));
     }
 
-    public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
+    public override TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
     {
         return new DLSSTemporalUpscaler(this, desc);
     }
 
-    public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
+    public override DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
     {
         return new DLSSDenoisingUpscaler(this, desc);
     }
 
-    public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
+    public override FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
     {
         return new DLSSFrameGenerator(this, desc);
     }
