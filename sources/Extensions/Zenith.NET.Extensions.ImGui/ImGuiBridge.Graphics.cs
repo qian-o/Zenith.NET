@@ -367,11 +367,11 @@ internal unsafe partial class ImGuiBridge
                                    colorAttachment.Texture.Desc.Height,
                                    0,
                                    colorAttachment.Subresource.MipLevel,
-                                   out uint framebufferWidth,
-                                   out uint framebufferHeight,
+                                   out uint colorAttachmentWidth,
+                                   out uint colorAttachmentHeight,
                                    out _);
 
-        Vector2 framebufferSize = new(framebufferWidth, framebufferHeight);
+        Vector2 colorAttachmentSize = new(colorAttachmentWidth, colorAttachmentHeight);
 
         commandBuffer.BeginDebugEvent("ImGui");
         commandBuffer.BeginRenderPass([colorAttachment], null);
@@ -396,11 +396,8 @@ internal unsafe partial class ImGuiBridge
                 }
                 else
                 {
-                    Vector2 clipMin = (new Vector2(drawCmd.ClipRect.X, drawCmd.ClipRect.Y) - drawData.DisplayPos) * drawData.FramebufferScale;
-                    Vector2 clipMax = (new Vector2(drawCmd.ClipRect.Z, drawCmd.ClipRect.W) - drawData.DisplayPos) * drawData.FramebufferScale;
-
-                    clipMin = Vector2.Max(clipMin, Vector2.Zero);
-                    clipMax = Vector2.Min(clipMax, framebufferSize);
+                    Vector2 clipMin = Vector2.Max((new Vector2(drawCmd.ClipRect.X, drawCmd.ClipRect.Y) - drawData.DisplayPos) * drawData.FramebufferScale, Vector2.Zero);
+                    Vector2 clipMax = Vector2.Min((new Vector2(drawCmd.ClipRect.Z, drawCmd.ClipRect.W) - drawData.DisplayPos) * drawData.FramebufferScale, colorAttachmentSize);
 
                     if (clipMax.X <= clipMin.X || clipMax.Y <= clipMin.Y)
                     {
