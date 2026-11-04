@@ -54,9 +54,9 @@ internal class CameraHandler : DisposableObject
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height)
+    public void Update(double deltaSeconds)
     {
-        Size = new(width, height);
+        Size = new(App.LogicalWidth, App.LogicalHeight);
 
         float distance = Speed * (float)deltaSeconds;
 

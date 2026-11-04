@@ -25,12 +25,12 @@ internal class Renderer : DisposableObject
     {
         simulation = new();
         scene = new();
-        scenePass = new(App.Width, App.Height);
-        surfacePass = new(App.Width, App.Height);
-        waterPass = new(App.Width, App.Height);
+        scenePass = new();
+        surfacePass = new();
+        waterPass = new();
         particlePass = new();
         glassPass = new();
-        outputPass = new(App.Width, App.Height);
+        outputPass = new();
     }
 
     public FluidViewMode ViewMode { get; set; }
@@ -98,17 +98,12 @@ internal class Renderer : DisposableObject
         outputPass.Record(commandBuffer, color);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
-        if (Color.Desc.Width == width && Color.Desc.Height == height)
-        {
-            return;
-        }
-
-        scenePass.Resize(width, height);
-        surfacePass.Resize(width, height);
-        waterPass.Resize(width, height);
-        outputPass.Resize(width, height);
+        scenePass.Resize();
+        surfacePass.Resize();
+        waterPass.Resize();
+        outputPass.Resize();
     }
 
     protected override void Destroy()

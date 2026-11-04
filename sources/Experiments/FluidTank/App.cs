@@ -66,15 +66,15 @@ internal static class App
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, PhysicalWidth, PhysicalHeight);
         }
         else if (OperatingSystem.IsMacOS())
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), PhysicalWidth, PhysicalHeight);
         }
         else
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, PhysicalWidth, PhysicalHeight);
         }
 
         swapChain = Context.CreateSwapChain(new()
@@ -96,9 +96,13 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
-    public static uint Width => (uint)window.FramebufferSize.X;
+    public static uint LogicalWidth => (uint)window.Size.X;
 
-    public static uint Height => (uint)window.FramebufferSize.Y;
+    public static uint LogicalHeight => (uint)window.Size.Y;
+
+    public static uint PhysicalWidth => (uint)window.FramebufferSize.X;
+
+    public static uint PhysicalHeight => (uint)window.FramebufferSize.Y;
 
     public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
@@ -126,20 +130,15 @@ internal static class App
 
     private static void OnUpdate(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
 
-        Vector2 dpiScale = DpiScale;
-        uint width = (uint)(Width / dpiScale.X);
-        uint height = (uint)(Height / dpiScale.Y);
-
-        camera.Update(deltaSeconds, width, height);
+        camera.Update(deltaSeconds);
         renderer.Update(deltaSeconds);
 
-        ImGui.GetIO().DisplayFramebufferScale = dpiScale;
-        Context.BeginImGuiFrame(deltaSeconds, width, height);
+        Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
 
         if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)
         {
@@ -149,12 +148,12 @@ internal static class App
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
 
-        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(width, height));
+        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(LogicalWidth, LogicalHeight));
     }
 
     private static void OnRender(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
@@ -175,13 +174,13 @@ internal static class App
 
     private static void OnResize(Vector2D<int> size)
     {
-        if (Width is 0 || Height is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
 
-        renderer.Resize(Width, Height);
-        swapChain.Resize(Width, Height);
+        renderer.Resize();
+        swapChain.Resize(PhysicalWidth, PhysicalHeight);
     }
 
     private static void DrawOverlay()

@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using HexaImGui = Hexa.NET.ImGui.ImGui;
 
@@ -52,7 +53,7 @@ internal unsafe partial class ImGuiBridge : DisposableObject
 
     internal IImGuiPlatform Platform { get; }
 
-    public void Update(double delta, uint width, uint height)
+    public void Update(double delta, uint width, uint height, Vector2 dpiScale)
     {
         HexaImGui.SetCurrentContext(imGui);
 
@@ -66,6 +67,7 @@ internal unsafe partial class ImGuiBridge : DisposableObject
         io.DeltaTime = (float)delta;
         io.DisplaySize.X = width;
         io.DisplaySize.Y = height;
+        io.DisplayFramebufferScale = dpiScale;
 
         Platform.SetCursor(HexaImGui.GetMouseCursor());
 

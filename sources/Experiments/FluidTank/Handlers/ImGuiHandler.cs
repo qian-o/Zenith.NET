@@ -36,8 +36,6 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     public void Initialize(ImGuiIOPtr io)
     {
-        io.DisplayFramebufferScale = App.DpiScale;
-
         io.Fonts.Clear();
         io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
     }

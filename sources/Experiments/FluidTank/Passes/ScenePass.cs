@@ -16,7 +16,7 @@ internal unsafe class ScenePass : DisposableObject
 
     private bool isInitialized;
 
-    public ScenePass(uint width, uint height)
+    public ScenePass()
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -89,7 +89,7 @@ internal unsafe class ScenePass : DisposableObject
             }
         });
 
-        CreateTextures(width, height);
+        CreateTextures();
     }
 
     public Texture Color { get; private set; } = null!;
@@ -155,10 +155,10 @@ internal unsafe class ScenePass : DisposableObject
         isInitialized = true;
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
         DestroyTextures();
-        CreateTextures(width, height);
+        CreateTextures();
     }
 
     protected override void Destroy()
@@ -170,17 +170,17 @@ internal unsafe class ScenePass : DisposableObject
         constantBuffer?.Dispose();
     }
 
-    private void CreateTextures(uint width, uint height)
+    private void CreateTextures()
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
-        LinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        LinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
-        DepthStencil = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.D32FloatS8UInt, width, height, 1, SampleCount.Count1) with
+        DepthStencil = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.D32FloatS8UInt, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.DepthStencilAttachment
         });

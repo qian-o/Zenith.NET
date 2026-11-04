@@ -25,7 +25,7 @@ internal unsafe class SurfacePass : DisposableObject
     private readonly Texture field;
     private readonly Texture occupancy;
 
-    public SurfacePass(uint width, uint height)
+    public SurfacePass()
     {
         constants = App.Context.CreateBuffer(new()
         {
@@ -64,7 +64,7 @@ internal unsafe class SurfacePass : DisposableObject
         field = App.Context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16G16B16A16Float, gridWidth, gridHeight, gridDepth, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
         occupancy = App.Context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16Float, gridWidth / 4, gridHeight / 4, gridDepth / 4, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
 
-        Resize(width, height);
+        CreateTextures();
     }
 
     public Texture Depth { get; private set; } = null!;
@@ -147,18 +147,10 @@ internal unsafe class SurfacePass : DisposableObject
         commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
-        width = Math.Max((uint)(width * SurfaceScale), 1);
-        height = Math.Max((uint)(height * SurfaceScale), 1);
-
-        if (Depth is not null && Depth.Desc.Width == width && Depth.Desc.Height == height)
-        {
-            return;
-        }
-
         DestroyTextures();
-        CreateTextures(width, height);
+        CreateTextures();
     }
 
     protected override void Destroy()
@@ -186,8 +178,11 @@ internal unsafe class SurfacePass : DisposableObject
         commandBuffer.Dispatch((width + group.X - 1) / group.X, (height + group.Y - 1) / group.Y, (depth + group.Z - 1) / group.Z);
     }
 
-    private void CreateTextures(uint width, uint height)
+    private void CreateTextures()
     {
+        uint width = Math.Max((uint)(App.LogicalWidth * SurfaceScale), 1);
+        uint height = Math.Max((uint)(App.LogicalHeight * SurfaceScale), 1);
+
         Depth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
         Thickness = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
         Normal = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });

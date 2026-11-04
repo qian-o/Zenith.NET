@@ -17,7 +17,7 @@ internal unsafe class WaterPass : DisposableObject
 
     private Texture? reflection;
 
-    public WaterPass(uint width, uint height)
+    public WaterPass()
     {
         compositeConstants = App.Context.CreateBuffer(new()
         {
@@ -63,7 +63,7 @@ internal unsafe class WaterPass : DisposableObject
             reflectionPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = reflectionShader });
         }
 
-        CreateTexture(width, height);
+        CreateTexture();
     }
 
     public Texture Color { get; private set; } = null!;
@@ -151,10 +151,10 @@ internal unsafe class WaterPass : DisposableObject
         commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
         DestroyTexture();
-        CreateTexture(width, height);
+        CreateTexture();
     }
 
     protected override void Destroy()
@@ -167,9 +167,9 @@ internal unsafe class WaterPass : DisposableObject
         compositeConstants?.Dispose();
     }
 
-    private void CreateTexture(uint width, uint height)
+    private void CreateTexture()
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled });
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with { Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled });
     }
 
     private void DestroyTexture()

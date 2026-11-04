@@ -1,4 +1,5 @@
-﻿using Hexa.NET.ImGui;
+﻿using System.Numerics;
+using Hexa.NET.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
 
@@ -29,9 +30,9 @@ public static class Extensions
             }
         }
 
-        public void BeginImGuiFrame(double delta, uint width, uint height)
+        public void BeginImGuiFrame(double delta, uint width, uint height, Vector2 dpiScale)
         {
-            GetBridge(context).Update(delta, width, height);
+            GetBridge(context).Update(delta, width, height, dpiScale);
         }
 
         public void EndImGuiFrame(CommandBuffer commandBuffer, ColorAttachment colorAttachment)

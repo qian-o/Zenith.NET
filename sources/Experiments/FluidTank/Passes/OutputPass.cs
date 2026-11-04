@@ -14,7 +14,7 @@ internal unsafe class OutputPass : DisposableObject
 
     private Texture displayColor = null!;
 
-    public OutputPass(uint width, uint height)
+    public OutputPass()
     {
         constants = App.Context.CreateBuffer(new()
         {
@@ -64,7 +64,7 @@ internal unsafe class OutputPass : DisposableObject
             }
         });
 
-        CreateTextures(width, height);
+        CreateTextures();
     }
 
     public Texture Color { get; private set; } = null!;
@@ -98,10 +98,10 @@ internal unsafe class OutputPass : DisposableObject
         Draw(commandBuffer, antialiasingPipeline, Color, 256);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
         DestroyTextures();
-        CreateTextures(width, height);
+        CreateTextures();
     }
 
     protected override void Destroy()
@@ -113,12 +113,10 @@ internal unsafe class OutputPass : DisposableObject
         constants?.Dispose();
     }
 
-    private void CreateTextures(uint width, uint height)
+    private void CreateTextures()
     {
-        TextureDesc desc = TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
-        };
+        TextureDesc desc = TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with { Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled };
+
         Color = App.Context.CreateTexture(desc);
         displayColor = App.Context.CreateTexture(desc);
     }
