@@ -81,30 +81,18 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        Input?.Invoke(this, new(ImGuiInput.MouseDown)
+        if (button is >= MouseButton.Left and <= MouseButton.Button5)
         {
-            MouseButton = button switch
-            {
-                MouseButton.Left => ImGuiMouseButton.Left,
-                MouseButton.Right => ImGuiMouseButton.Right,
-                MouseButton.Middle => ImGuiMouseButton.Middle,
-                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
-            }
-        });
+            Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)button });
+        }
     }
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        Input?.Invoke(this, new(ImGuiInput.MouseUp)
+        if (button is >= MouseButton.Left and <= MouseButton.Button5)
         {
-            MouseButton = button switch
-            {
-                MouseButton.Left => ImGuiMouseButton.Left,
-                MouseButton.Right => ImGuiMouseButton.Right,
-                MouseButton.Middle => ImGuiMouseButton.Middle,
-                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
-            }
-        });
+            Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)button });
+        }
     }
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
