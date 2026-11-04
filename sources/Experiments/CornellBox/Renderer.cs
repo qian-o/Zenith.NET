@@ -18,13 +18,13 @@ internal class Renderer : DisposableObject
     private double elapsedSeconds;
     private uint frameIndex;
 
-    public Renderer(uint width, uint height)
+    public Renderer()
     {
         scene = new();
         pathTracingPass = new();
         outputPass = new();
 
-        Resize(width, height);
+        Resize();
     }
 
     public bool IsPaused { get; set; }
@@ -38,7 +38,7 @@ internal class Renderer : DisposableObject
             {
                 field = value;
 
-                Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
+                Resize();
             }
         }
     } = App.Context.UpscalingCapabilities.TemporalUpscalerSupported ? Zenith.NET.Extensions.Upscaling.UpscalingMode.Quality : null;
@@ -52,7 +52,7 @@ internal class Renderer : DisposableObject
             {
                 field = value;
 
-                Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
+                Resize();
             }
         }
     } = App.Context.UpscalingCapabilities.DenoisingUpscalerSupported;
@@ -66,7 +66,7 @@ internal class Renderer : DisposableObject
             {
                 field = value;
 
-                Resize(outputPass.Color.Desc.Width, outputPass.Color.Desc.Height);
+                Resize();
             }
         }
     } = App.Context.UpscalingCapabilities.FrameGeneratorSupported;
@@ -107,18 +107,18 @@ internal class Renderer : DisposableObject
         return outputPass.Composite(commandBuffer, [frameGenerationPass.Color, outputPass.Color]);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
         upscalingPass?.Dispose();
-        upscalingPass = UpscalingMode is UpscalingMode mode ? new(mode, IsDenoisingEnabled, width, height) : null;
+        upscalingPass = UpscalingMode is UpscalingMode mode ? new(mode, IsDenoisingEnabled) : null;
 
-        UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(width, height);
+        UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(App.PhysicalWidth, App.PhysicalHeight);
 
         pathTracingPass.Resize(inputSize.Width, inputSize.Height);
-        outputPass.Resize(width, height, IsFrameGenerationEnabled ? 2 : 1);
+        outputPass.Resize(IsFrameGenerationEnabled ? 2 : 1);
 
         frameGenerationPass?.Dispose();
-        frameGenerationPass = IsFrameGenerationEnabled ? new(inputSize.Width, inputSize.Height, width, height) : null;
+        frameGenerationPass = IsFrameGenerationEnabled ? new(inputSize.Width, inputSize.Height) : null;
 
         frameIndex = 0;
     }

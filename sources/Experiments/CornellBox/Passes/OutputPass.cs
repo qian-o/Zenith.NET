@@ -76,10 +76,10 @@ internal unsafe class OutputPass : DisposableObject
         return frames.AsSpan(0, inputs.Length);
     }
 
-    public void Resize(uint width, uint height, int frameCount)
+    public void Resize(int frameCount)
     {
         DestroyTextures();
-        CreateTextures(width, height, frameCount);
+        CreateTextures(frameCount);
     }
 
     protected override void Destroy()
@@ -113,10 +113,10 @@ internal unsafe class OutputPass : DisposableObject
         });
     }
 
-    private void CreateTextures(uint width, uint height, int frameCount)
+    private void CreateTextures(int frameCount)
     {
-        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.R8G8B8A8UNorm, width, height, 1, SampleCount.Count1));
-        Overlay = App.Context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
+        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.R8G8B8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1));
+        Overlay = App.Context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1));
 
         frames = new Texture[frameCount];
         for (int i = 0; i < frames.Length; i++)

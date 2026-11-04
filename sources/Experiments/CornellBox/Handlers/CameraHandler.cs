@@ -13,8 +13,6 @@ internal class CameraHandler
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
-    public Vector2 Size { get; private set; } = new(800, 600);
-
     public Vector3 Position { get; private set; }
 
     public Vector3 Forward { get; private set; }
@@ -31,16 +29,12 @@ internal class CameraHandler
 
     public float Speed { get; set; } = 12.0f;
 
-    public float AspectRatio => Size.X / Size.Y;
-
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
-    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
+    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)App.LogicalWidth / App.LogicalHeight, NearPlane, FarPlane);
 
-    public void Update(double deltaSeconds, uint width, uint height)
+    public void Update(double deltaSeconds)
     {
-        Size = new(width, height);
-
         if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
         {
             Rotate(ImGui.GetIO().MouseDelta);
@@ -83,8 +77,8 @@ internal class CameraHandler
     {
         const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
-        float yaw = -(delta.X * MathF.PI / Size.X);
-        float pitch = -(delta.Y * MathF.PI / Size.Y);
+        float yaw = -(delta.X * MathF.PI / App.LogicalWidth);
+        float pitch = -(delta.Y * MathF.PI / App.LogicalHeight);
         float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
 
         pitch = newPitch - MathF.Asin(Forward.Y);

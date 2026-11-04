@@ -11,11 +11,11 @@ internal class UpscalingPass : DisposableObject
     private readonly TemporalUpscaler? temporalUpscaler;
     private readonly DenoisingUpscaler? denoisingUpscaler;
 
-    public UpscalingPass(UpscalingMode mode, bool isDenoisingEnabled, uint width, uint height)
+    public UpscalingPass(UpscalingMode mode, bool isDenoisingEnabled)
     {
         if (isDenoisingEnabled)
         {
-            InputSize = App.Context.GetDenoisingUpscalerInputSize(width, height, mode);
+            InputSize = App.Context.GetDenoisingUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, mode);
             denoisingUpscaler = App.Context.CreateDenoisingUpscaler(new()
             {
                 ColorFormat = PixelFormat.R16G16B16A16Float,
@@ -29,13 +29,13 @@ internal class UpscalingPass : DisposableObject
                 OutputFormat = PixelFormat.R16G16B16A16Float,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
-                OutputWidth = width,
-                OutputHeight = height
+                OutputWidth = App.PhysicalWidth,
+                OutputHeight = App.PhysicalHeight
             });
         }
         else
         {
-            InputSize = App.Context.GetTemporalUpscalerInputSize(width, height, mode);
+            InputSize = App.Context.GetTemporalUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, mode);
             temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
             {
                 ColorFormat = PixelFormat.R16G16B16A16Float,
@@ -44,13 +44,13 @@ internal class UpscalingPass : DisposableObject
                 OutputFormat = PixelFormat.R16G16B16A16Float,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
-                OutputWidth = width,
-                OutputHeight = height,
+                OutputWidth = App.PhysicalWidth,
+                OutputHeight = App.PhysicalHeight,
                 Flags = UpscalingInputFlags.AutoExposure
             });
         }
 
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
         });

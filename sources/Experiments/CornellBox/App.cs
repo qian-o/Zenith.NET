@@ -2,6 +2,7 @@
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Hexa.NET.ImGui;
+using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
@@ -16,10 +17,15 @@ namespace CornellBox;
 internal static class App
 {
     private static readonly IWindow window;
+    private static readonly IInputContext input;
     private static readonly ImGuiHandler imGui;
     private static readonly FramePresenter presenter;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
+    private static readonly Lock sizeLock = new();
+
+    private static Vector2D<int> pendingLogicalSize;
+    private static Vector2D<int> logicalSize;
 
     static App()
     {
@@ -55,9 +61,8 @@ internal static class App
         window.Initialize();
         window.Center();
 
-        DpiScale = (Vector2)window.FramebufferSize / (Vector2)window.Size;
-
-        imGui = new(window);
+        input = window.CreateInput();
+        imGui = new(input);
 
         Context.InitializeImGui(imGui, new()
         {
@@ -82,6 +87,9 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, width, height);
         }
 
+        pendingLogicalSize = window.Size;
+        logicalSize = pendingLogicalSize;
+
         presenter = new(Context, new()
         {
             Surface = surface,
@@ -96,18 +104,28 @@ internal static class App
             Speed = 240.0f
         };
 
-        renderer = new(presenter.Width, presenter.Height);
+        renderer = new();
     }
 
     public static GraphicsContext Context { get; }
 
-    public static Vector2 DpiScale { get; }
+    public static uint LogicalWidth => (uint)logicalSize.X;
+
+    public static uint LogicalHeight => (uint)logicalSize.Y;
+
+    public static uint PhysicalWidth => presenter.Width;
+
+    public static uint PhysicalHeight => presenter.Height;
+
+    public static Vector2 DpiScale => new Vector2(PhysicalWidth, PhysicalHeight) / (Vector2)logicalSize;
 
     public static void Run()
     {
         presenter.Render += OnRender;
-        presenter.Resize += OnResize;
+        presenter.Resize += renderer.Resize;
 
+        window.Update += imGui.UpdateCursor;
+        window.Resize += OnResize;
         window.FramebufferResize += OnFramebufferResize;
         window.Closing += OnClosing;
 
@@ -120,13 +138,16 @@ internal static class App
 
         window.Closing -= OnClosing;
         window.FramebufferResize -= OnFramebufferResize;
+        window.Resize -= OnResize;
+        window.Update -= imGui.UpdateCursor;
 
-        presenter.Resize -= OnResize;
+        presenter.Resize -= renderer.Resize;
         presenter.Render -= OnRender;
 
         renderer.Dispose();
         presenter.Dispose();
         imGui.Dispose();
+        input.Dispose();
         window.Dispose();
 
         Context.Dispose();
@@ -134,13 +155,15 @@ internal static class App
 
     private static void OnRender(CommandBuffer commandBuffer, double deltaSeconds)
     {
-        uint width = (uint)(presenter.Width / DpiScale.X);
-        uint height = (uint)(presenter.Height / DpiScale.Y);
+        using (Lock.Scope _ = sizeLock.EnterScope())
+        {
+            logicalSize = pendingLogicalSize;
+        }
 
         imGui.Update();
-        Context.BeginImGuiFrame(deltaSeconds, width, height);
+        Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
 
-        camera.Update(deltaSeconds, width, height);
+        camera.Update(deltaSeconds);
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
@@ -155,9 +178,16 @@ internal static class App
         }
     }
 
-    private static void OnResize(uint width, uint height)
+    private static void OnResize(Vector2D<int> size)
     {
-        renderer.Resize(width, height);
+        if (size.X is 0 || size.Y is 0)
+        {
+            return;
+        }
+
+        using Lock.Scope _ = sizeLock.EnterScope();
+
+        pendingLogicalSize = size;
     }
 
     private static void OnFramebufferResize(Vector2D<int> size)

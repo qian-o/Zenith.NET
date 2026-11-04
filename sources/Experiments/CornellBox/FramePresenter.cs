@@ -9,7 +9,6 @@ internal class FramePresenter : DisposableObject
     private const int BatchCount = 2;
     private const int MaxIntervalGrowth = 2;
 
-    private readonly GraphicsContext context;
     private readonly SwapChain swapChain;
     private readonly Lock @lock = new();
     private readonly AutoResetEvent renderWake = new(false);
@@ -25,8 +24,6 @@ internal class FramePresenter : DisposableObject
 
     public FramePresenter(GraphicsContext context, SwapChainDesc desc)
     {
-        this.context = context;
-
         swapChain = context.CreateSwapChain(desc);
         requestedSize = (Width, Height);
 
@@ -41,20 +38,20 @@ internal class FramePresenter : DisposableObject
 
     public event Action<CommandBuffer, double>? Render;
 
-    public event Action<uint, uint>? Resize;
+    public event Action? Resize;
 
     public void Start()
     {
         renderThread = new(RenderLoop)
         {
-            Name = "CornellBox Render",
+            Name = "FramePresenter Render",
             IsBackground = true
         };
         renderThread.Start();
 
         presentThread = new(PresentLoop)
         {
-            Name = "CornellBox Present",
+            Name = "FramePresenter Present",
             IsBackground = true
         };
         presentThread.Start();
@@ -81,7 +78,7 @@ internal class FramePresenter : DisposableObject
     {
         if (batch.Count == batch.Frames.Count)
         {
-            batch.Frames.Add(context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
+            batch.Frames.Add(swapChain.Context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
             {
                 Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
             }));
@@ -156,7 +153,7 @@ internal class FramePresenter : DisposableObject
                 previousStart = start;
 
                 batch.Count = 0;
-                CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+                CommandBuffer commandBuffer = swapChain.Context.GraphicsQueue.CommandBuffer();
 
                 Render?.Invoke(commandBuffer, deltaSeconds);
 
@@ -233,7 +230,7 @@ internal class FramePresenter : DisposableObject
 
         CreateBatches();
 
-        Resize?.Invoke(width, height);
+        Resize?.Invoke();
     }
 
     private void DiscardQueued()

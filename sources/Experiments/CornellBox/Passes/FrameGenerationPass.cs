@@ -10,7 +10,7 @@ internal class FrameGenerationPass : DisposableObject
 {
     private readonly FrameGenerator frameGenerator;
 
-    public FrameGenerationPass(uint inputWidth, uint inputHeight, uint outputWidth, uint outputHeight)
+    public FrameGenerationPass(uint inputWidth, uint inputHeight)
     {
         frameGenerator = App.Context.CreateFrameGenerator(new()
         {
@@ -19,11 +19,11 @@ internal class FrameGenerationPass : DisposableObject
             MotionVectorsFormat = PixelFormat.R32G32Float,
             InputWidth = inputWidth,
             InputHeight = inputHeight,
-            OutputWidth = outputWidth,
-            OutputHeight = outputHeight
+            OutputWidth = App.PhysicalWidth,
+            OutputHeight = App.PhysicalHeight
         });
 
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, outputWidth, outputHeight, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
         });

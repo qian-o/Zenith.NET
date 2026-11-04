@@ -8,19 +8,45 @@ internal class PathTracingOutput : DisposableObject
 
     public PathTracingOutput(uint width, uint height)
     {
-        TextureDesc desc = TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage
-        };
+        });
 
-        Color = App.Context.CreateTexture(desc);
-        Depth = App.Context.CreateTexture(desc with { Format = PixelFormat.R32Float });
-        MotionVectors = App.Context.CreateTexture(desc with { Format = PixelFormat.R32G32Float });
-        DiffuseAlbedo = App.Context.CreateTexture(desc);
-        SpecularAlbedo = App.Context.CreateTexture(desc);
-        Normals = App.Context.CreateTexture(desc);
-        Roughness = App.Context.CreateTexture(desc with { Format = PixelFormat.R16Float });
-        SpecularHitDistance = App.Context.CreateTexture(desc with { Format = PixelFormat.R32Float });
+        Depth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        MotionVectors = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32G32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        DiffuseAlbedo = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        SpecularAlbedo = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        Normals = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        Roughness = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        SpecularHitDistance = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
 
         textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance];
     }
