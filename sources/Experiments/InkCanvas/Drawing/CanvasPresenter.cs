@@ -1,36 +1,40 @@
-﻿using System.Numerics;
-using SkiaSharp;
-using Zenith.NET;
+﻿using Zenith.NET;
 using Zenith.NET.Extensions.Skia;
 
 namespace InkCanvas.Drawing;
 
 internal class CanvasPresenter : DisposableObject
 {
-    private readonly Canvas canvas;
     private readonly SwapChain swapChain;
-    private readonly Action<SKCanvas> draw;
 
-    private SkiaTexture texture = null!;
-    private Vector2 dpiScale;
+    private SkiaTexture? texture;
 
-    public CanvasPresenter(GraphicsContext context, Surface surface, Canvas canvas)
+    public CanvasPresenter(Surface surface)
     {
-        this.canvas = canvas;
-        draw = Draw;
-        swapChain = context.CreateSwapChain(new()
+        swapChain = App.Context.CreateSwapChain(new()
         {
             Surface = surface,
             Format = PixelFormat.B8G8R8A8UNorm
         });
-
-        CreateTexture(surface.Width, surface.Height, canvas.IsMsaaEnabled);
     }
 
-    public void Present(Vector2 dpiScale)
+    public void Present(Canvas canvas)
     {
-        this.dpiScale = dpiScale;
-        texture.Render(draw);
+        if (texture is null || texture.Desc.Width != App.PhysicalWidth || texture.Desc.Height != App.PhysicalHeight || texture.Desc.IsMultisamplingEnabled != canvas.IsMsaaEnabled)
+        {
+            texture?.Dispose();
+            texture = null;
+
+            texture = App.Context.CreateSkiaTexture(new()
+            {
+                Format = swapChain.Desc.Format,
+                Width = App.PhysicalWidth,
+                Height = App.PhysicalHeight,
+                IsMultisamplingEnabled = canvas.IsMsaaEnabled
+            });
+        }
+
+        texture.Render(canvas.Draw);
 
         Texture target = swapChain.Drawable;
         CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
@@ -39,8 +43,8 @@ internal class CanvasPresenter : DisposableObject
         commandBuffer.Transition(target, default, TextureLayout.Undefined, TextureLayout.CopyDst);
         commandBuffer.CopyTexture(texture, default, default, target, default, default, new()
         {
-            Width = texture.Desc.Width,
-            Height = texture.Desc.Height,
+            Width = App.PhysicalWidth,
+            Height = App.PhysicalHeight,
             Depth = 1
         });
         commandBuffer.Transition(target, default, TextureLayout.CopyDst, TextureLayout.Present);
@@ -50,60 +54,19 @@ internal class CanvasPresenter : DisposableObject
         swapChain.Present();
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize()
     {
-        if (texture.Desc.Width == width && texture.Desc.Height == height)
-        {
-            return;
-        }
+        swapChain.Resize(App.PhysicalWidth, App.PhysicalHeight);
 
-        bool isMultisamplingEnabled = texture.Desc.IsMultisamplingEnabled;
-
-        DestroyTexture();
-        swapChain.Resize(width, height);
-        CreateTexture(width, height, isMultisamplingEnabled);
-    }
-
-    public void SetMultisamplingEnabled(bool isEnabled)
-    {
-        uint width = texture.Desc.Width;
-        uint height = texture.Desc.Height;
-
-        DestroyTexture();
-        CreateTexture(width, height, isEnabled);
+        texture?.Dispose();
+        texture = null;
     }
 
     protected override void Destroy()
     {
-        swapChain?.Queue.Timeline.Signal().Wait();
-        DestroyTexture();
-        swapChain?.Dispose();
-    }
-
-    private void CreateTexture(uint width, uint height, bool isMultisamplingEnabled)
-    {
-        texture = swapChain.Context.CreateSkiaTexture(new()
-        {
-            Format = swapChain.Desc.Format,
-            Width = width,
-            Height = height,
-            IsMultisamplingEnabled = isMultisamplingEnabled
-        });
-    }
-
-    private void DestroyTexture()
-    {
         texture?.Dispose();
-        texture = null!;
-    }
+        swapChain.Dispose();
 
-    private void Draw(SKCanvas skiaCanvas)
-    {
-        skiaCanvas.Save();
-        skiaCanvas.Scale(dpiScale.X, dpiScale.Y);
-
-        canvas.Draw(skiaCanvas);
-
-        skiaCanvas.Restore();
+        texture = null;
     }
 }

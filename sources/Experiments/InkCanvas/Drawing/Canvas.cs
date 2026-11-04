@@ -29,35 +29,37 @@ internal class Canvas : DisposableObject
     private bool isErasing;
     private bool isErasePending;
     private SKRect drawingArea;
-    private SKSize size;
+
+    public Canvas()
+    {
+        Resize();
+    }
 
     public bool IsMsaaEnabled => toolbar.IsMsaaEnabled;
 
     private bool CanClear => strokes.Count > 0 || activeStroke is not null || isErasing || isErasePending;
 
-    public void Resize(float width, float height)
+    public void Resize()
     {
-        if (width == size.Width && height == size.Height)
-        {
-            return;
-        }
+        toolbar.Resize();
 
-        size = new(width, height);
-        drawingArea = new(0.0f, Toolbar.ToolbarHeight, width, MathF.Max(Toolbar.ToolbarHeight, height - Toolbar.StatusHeight));
+        drawingArea = new(0.0f, Toolbar.ToolbarHeight, App.LogicalWidth, MathF.Max(Toolbar.ToolbarHeight, App.LogicalHeight - Toolbar.StatusHeight));
 
-        toolbar.Resize(width, height);
         isPictureDirty = true;
     }
 
     public void Draw(SKCanvas canvas)
     {
+        canvas.Save();
+        canvas.Scale(App.DpiScale.X, App.DpiScale.Y);
+
         if (isErasePending)
         {
             ApplyEraser();
         }
 
         fillPaint.Color = Surface;
-        canvas.DrawRect(0.0f, 0.0f, size.Width, size.Height, fillPaint);
+        canvas.DrawRect(0.0f, 0.0f, App.LogicalWidth, App.LogicalHeight, fillPaint);
 
         if (isPictureDirty)
         {
@@ -87,6 +89,8 @@ internal class Canvas : DisposableObject
         canvas.Restore();
 
         toolbar.Draw(canvas, CanClear);
+
+        canvas.Restore();
     }
 
     public void PointerMove(SKPoint position)

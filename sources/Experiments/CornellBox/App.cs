@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
-using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -48,9 +47,9 @@ internal static class App
 
         window = Window.Create(WindowOptions.Default with
         {
+            IsEventDriven = true,
             Size = new(1280, 720),
             API = GraphicsAPI.None,
-            IsEventDriven = true,
             Title = "Cornell Box - Zenith.NET"
         });
         window.Initialize();

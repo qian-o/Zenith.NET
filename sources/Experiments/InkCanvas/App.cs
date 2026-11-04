@@ -16,7 +16,6 @@ internal static class App
 {
     private static readonly IWindow window;
     private static readonly IInputContext input;
-    private static readonly IMouse mouse;
     private static readonly Canvas canvas;
     private static readonly CanvasPresenter presenter;
 
@@ -65,54 +64,54 @@ internal static class App
         window.Center();
 
         input = window.CreateInput();
-        mouse = input.Mice[0];
-        canvas = new();
-        canvas.Resize(window.Size.X, window.Size.Y);
 
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, PhysicalWidth, PhysicalHeight);
         }
         else if (OperatingSystem.IsMacOS())
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), PhysicalWidth, PhysicalHeight);
         }
         else
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, PhysicalWidth, PhysicalHeight);
         }
 
-        presenter = new(Context, surface, canvas);
+        canvas = new();
+        presenter = new(surface);
     }
 
     public static GraphicsContext Context { get; }
 
-    public static uint Width => (uint)window.FramebufferSize.X;
+    public static uint LogicalWidth => (uint)window.Size.X;
 
-    public static uint Height => (uint)window.FramebufferSize.Y;
+    public static uint LogicalHeight => (uint)window.Size.Y;
+
+    public static uint PhysicalWidth => (uint)window.FramebufferSize.X;
+
+    public static uint PhysicalHeight => (uint)window.FramebufferSize.Y;
 
     public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
     public static void Run()
     {
-        mouse.MouseDown += OnMouseDown;
-        mouse.MouseUp += OnMouseUp;
-        mouse.MouseMove += OnMouseMove;
         window.Render += OnRender;
         window.Resize += OnResize;
-        window.FramebufferResize += OnResize;
-        window.FocusChanged += OnFocusChanged;
+
+        input.Mice[0].MouseDown += OnMouseDown;
+        input.Mice[0].MouseUp += OnMouseUp;
+        input.Mice[0].MouseMove += OnMouseMove;
 
         window.Run();
 
-        window.FocusChanged -= OnFocusChanged;
-        window.FramebufferResize -= OnResize;
+        input.Mice[0].MouseMove -= OnMouseMove;
+        input.Mice[0].MouseUp -= OnMouseUp;
+        input.Mice[0].MouseDown -= OnMouseDown;
+
         window.Resize -= OnResize;
         window.Render -= OnRender;
-        mouse.MouseMove -= OnMouseMove;
-        mouse.MouseUp -= OnMouseUp;
-        mouse.MouseDown -= OnMouseDown;
 
         presenter.Dispose();
         canvas.Dispose();
@@ -124,37 +123,30 @@ internal static class App
 
     private static void OnRender(double deltaSeconds)
     {
-        if (Width is 0 || Height is 0 || window.Size.X is 0 || window.Size.Y is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
 
-        presenter.Present(DpiScale);
+        presenter.Present(canvas);
     }
 
     private static void OnResize(Vector2D<int> size)
     {
-        if (Width is 0 || Height is 0 || window.Size.X is 0 || window.Size.Y is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
 
-        canvas.Resize(window.Size.X, window.Size.Y);
-        presenter.Resize(Width, Height);
+        canvas.Resize();
+        presenter.Resize();
     }
 
     private static void OnMouseDown(IMouse mouse, MouseButton button)
     {
         if (button is MouseButton.Left or MouseButton.Right)
         {
-            bool isMsaaEnabled = canvas.IsMsaaEnabled;
-
             canvas.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
-
-            if (canvas.IsMsaaEnabled != isMsaaEnabled)
-            {
-                presenter.SetMultisamplingEnabled(canvas.IsMsaaEnabled);
-            }
         }
     }
 
@@ -169,14 +161,5 @@ internal static class App
     private static void OnMouseMove(IMouse mouse, Vector2 position)
     {
         canvas.PointerMove(new(position.X, position.Y));
-    }
-
-    private static void OnFocusChanged(bool isFocused)
-    {
-        if (!isFocused)
-        {
-            canvas.PointerUp(erase: false);
-            canvas.PointerUp(erase: true);
-        }
     }
 }

@@ -45,7 +45,6 @@ internal class Toolbar : DisposableObject
     private SKTextBlob? statistics;
     private SKRect msaaRect;
     private SKRect clearRect;
-    private SKSize size;
     private int colorIndex;
     private int strokeWidthIndex = 1;
 
@@ -89,12 +88,10 @@ internal class Toolbar : DisposableObject
 
     public bool IsMsaaEnabled { get; private set; } = true;
 
-    public void Resize(float width, float height)
+    public void Resize()
     {
         const float Top = (ToolbarHeight - SwatchSize) * 0.5f;
         const float Bottom = Top + SwatchSize;
-
-        size = new(width, height);
 
         for (int i = 0; i < swatchRects.Length; i++)
         {
@@ -113,7 +110,7 @@ internal class Toolbar : DisposableObject
         float msaaLeft = strokeWidthRects[^1].Right + (SwatchGap * 2.0f);
         msaaRect = new(msaaLeft, Top, msaaLeft + MsaaWidth, Bottom);
 
-        float clearLeft = MathF.Max(msaaRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
+        float clearLeft = MathF.Max(msaaRect.Right + (SwatchGap * 2.0f), App.LogicalWidth - SwatchGap - ButtonWidth);
         clearRect = new(clearLeft, Top, clearLeft + ButtonWidth, Bottom);
     }
 
@@ -170,10 +167,10 @@ internal class Toolbar : DisposableObject
         const float CheckboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
 
         fillPaint.Color = Panel;
-        canvas.DrawRect(0.0f, 0.0f, size.Width, ToolbarHeight, fillPaint);
+        canvas.DrawRect(0.0f, 0.0f, App.LogicalWidth, ToolbarHeight, fillPaint);
 
         fillPaint.Color = Divider;
-        canvas.DrawRect(0.0f, ToolbarHeight - 1.0f, size.Width, 1.0f, fillPaint);
+        canvas.DrawRect(0.0f, ToolbarHeight - 1.0f, App.LogicalWidth, 1.0f, fillPaint);
 
         for (int i = 0; i < Palette.Length; i++)
         {
@@ -235,19 +232,19 @@ internal class Toolbar : DisposableObject
 
     private void DrawStatus(SKCanvas canvas)
     {
-        float top = size.Height - StatusHeight;
+        float top = App.LogicalHeight - StatusHeight;
 
         fillPaint.Color = Panel;
-        canvas.DrawRect(0.0f, top, size.Width, StatusHeight, fillPaint);
+        canvas.DrawRect(0.0f, top, App.LogicalWidth, StatusHeight, fillPaint);
 
         fillPaint.Color = Divider;
-        canvas.DrawRect(0.0f, top, size.Width, 1.0f, fillPaint);
+        canvas.DrawRect(0.0f, top, App.LogicalWidth, 1.0f, fillPaint);
 
         float baseline = top + (StatusHeight * 0.5f) + 4.0f;
 
         fillPaint.Color = Label;
         canvas.DrawText(statistics, SwatchGap, baseline, fillPaint);
-        canvas.DrawText(hintLabel, size.Width - SwatchGap, baseline, fillPaint);
+        canvas.DrawText(hintLabel, App.LogicalWidth - SwatchGap, baseline, fillPaint);
     }
 
     private static int IndexAt(ReadOnlySpan<SKRect> rects, SKPoint position)
