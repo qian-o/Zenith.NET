@@ -67,8 +67,27 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        Render?.BarrierAfterEncoderStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
-        Compute?.BarrierAfterEncoderStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        if (Render is not null)
+        {
+            MTLStages afterEncoderStages = MTLFormats.Metal(before) & (MTLStages.Vertex | MTLStages.Object | MTLStages.Mesh);
+            MTLStages beforeEncoderStages = MTLFormats.Metal(after) & (MTLStages.Vertex | MTLStages.Fragment | MTLStages.Object | MTLStages.Mesh);
+
+            if (afterEncoderStages is not 0 && beforeEncoderStages is not 0)
+            {
+                Render.BarrierAfterEncoderStages(afterEncoderStages, beforeEncoderStages, MTL4VisibilityOptions.Device);
+            }
+        }
+
+        if (Compute is not null)
+        {
+            MTLStages afterEncoderStages = MTLFormats.Metal(before) & (MTLStages.Dispatch | MTLStages.Blit | MTLStages.AccelerationStructure);
+            MTLStages beforeEncoderStages = MTLFormats.Metal(after) & (MTLStages.Dispatch | MTLStages.Blit | MTLStages.AccelerationStructure);
+
+            if (afterEncoderStages is not 0 && beforeEncoderStages is not 0)
+            {
+                Compute.BarrierAfterEncoderStages(afterEncoderStages, beforeEncoderStages, MTL4VisibilityOptions.Device);
+            }
+        }
     }
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
