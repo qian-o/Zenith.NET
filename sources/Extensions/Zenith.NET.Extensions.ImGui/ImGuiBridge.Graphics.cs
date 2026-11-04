@@ -133,8 +133,6 @@ internal unsafe partial class ImGuiBridge
             return;
         }
 
-        drawData.ScaleClipRects(drawData.FramebufferScale);
-
         for (int i = 0; i < drawData.Textures.Size; i++)
         {
             ImTextureDataPtr textureData = drawData.Textures[i];
@@ -365,6 +363,16 @@ internal unsafe partial class ImGuiBridge
 
         ArrayPool<Constants>.Shared.Return(constants);
 
+        ZenithHelper.MipDimensions(colorAttachment.Texture.Desc.Width,
+                                   colorAttachment.Texture.Desc.Height,
+                                   0,
+                                   colorAttachment.Subresource.MipLevel,
+                                   out uint framebufferWidth,
+                                   out uint framebufferHeight,
+                                   out _);
+
+        Vector2 framebufferSize = new(framebufferWidth, framebufferHeight);
+
         commandBuffer.BeginDebugEvent("ImGui");
         commandBuffer.BeginRenderPass([colorAttachment], null);
 
@@ -388,12 +396,23 @@ internal unsafe partial class ImGuiBridge
                 }
                 else
                 {
+                    Vector2 clipMin = (new Vector2(drawCmd.ClipRect.X, drawCmd.ClipRect.Y) - drawData.DisplayPos) * drawData.FramebufferScale;
+                    Vector2 clipMax = (new Vector2(drawCmd.ClipRect.Z, drawCmd.ClipRect.W) - drawData.DisplayPos) * drawData.FramebufferScale;
+
+                    clipMin = Vector2.Max(clipMin, Vector2.Zero);
+                    clipMax = Vector2.Min(clipMax, framebufferSize);
+
+                    if (clipMax.X <= clipMin.X || clipMax.Y <= clipMin.Y)
+                    {
+                        continue;
+                    }
+
                     Scissor scissor = new()
                     {
-                        X = (int)(drawCmd.ClipRect.X - drawData.DisplayPos.X),
-                        Y = (int)(drawCmd.ClipRect.Y - drawData.DisplayPos.Y),
-                        Width = (uint)(drawCmd.ClipRect.Z - drawCmd.ClipRect.X),
-                        Height = (uint)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y)
+                        X = (int)clipMin.X,
+                        Y = (int)clipMin.Y,
+                        Width = (uint)(clipMax.X - clipMin.X),
+                        Height = (uint)(clipMax.Y - clipMin.Y)
                     };
 
                     if (scissor.Width <= 0 || scissor.Height <= 0)

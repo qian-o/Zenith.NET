@@ -114,9 +114,9 @@ internal static class App
 
         window.Run();
 
-        window.Update -= OnUpdate;
-        window.Render -= OnRender;
         window.FramebufferResize -= OnFramebufferResize;
+        window.Render -= OnRender;
+        window.Update -= OnUpdate;
 
         renderer.Dispose();
         camera.Dispose();
