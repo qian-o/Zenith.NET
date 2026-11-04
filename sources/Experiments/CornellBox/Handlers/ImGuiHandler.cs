@@ -97,7 +97,7 @@ internal class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private void AddMouseButton(ImGuiInput type, MouseButton button)
     {
-        if (button <= MouseButton.Button5)
+        if (button is >= MouseButton.Left and <= MouseButton.Button5)
         {
             AddInput(new(type) { MouseButton = (ImGuiMouseButton)button });
         }

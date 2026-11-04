@@ -36,18 +36,19 @@ internal class CanvasPresenter : DisposableObject
 
         texture.Render(canvas.Draw);
 
-        Texture target = swapChain.Drawable;
         CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
         commandBuffer.Transition(texture, default, texture.RequiredLayout, TextureLayout.CopySrc);
-        commandBuffer.Transition(target, default, TextureLayout.Undefined, TextureLayout.CopyDst);
-        commandBuffer.CopyTexture(texture, default, default, target, default, default, new()
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+
+        commandBuffer.CopyTexture(texture, default, default, swapChain.Drawable, default, default, new()
         {
             Width = App.PhysicalWidth,
             Height = App.PhysicalHeight,
             Depth = 1
         });
-        commandBuffer.Transition(target, default, TextureLayout.CopyDst, TextureLayout.Present);
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
         commandBuffer.Transition(texture, default, TextureLayout.CopySrc, texture.RequiredLayout);
         commandBuffer.Submit().Wait();
 
