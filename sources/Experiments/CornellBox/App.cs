@@ -22,10 +22,6 @@ internal static class App
     private static readonly FramePresenter presenter;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
-    private static readonly Lock sizeLock = new();
-
-    private static Vector2D<int> pendingLogicalSize;
-    private static Vector2D<int> logicalSize;
 
     static App()
     {
@@ -61,8 +57,7 @@ internal static class App
         window.Initialize();
         window.Center();
 
-        input = window.CreateInput();
-        imGui = new(input);
+        imGui = new(input = window.CreateInput());
 
         Context.InitializeImGui(imGui, new()
         {
@@ -87,9 +82,6 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, physicalWidth, physicalHeight);
         }
 
-        pendingLogicalSize = window.Size;
-        logicalSize = pendingLogicalSize;
-
         presenter = new(Context, new()
         {
             Surface = surface,
@@ -109,23 +101,21 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
-    public static uint LogicalWidth => (uint)logicalSize.X;
+    public static uint LogicalWidth => (uint)window.Size.X;
 
-    public static uint LogicalHeight => (uint)logicalSize.Y;
+    public static uint LogicalHeight => (uint)window.Size.Y;
 
-    public static uint PhysicalWidth => presenter.Width;
+    public static uint PhysicalWidth => (uint)window.FramebufferSize.X;
 
-    public static uint PhysicalHeight => presenter.Height;
+    public static uint PhysicalHeight => (uint)window.FramebufferSize.Y;
 
-    public static Vector2 DpiScale => new Vector2(PhysicalWidth, PhysicalHeight) / (Vector2)logicalSize;
+    public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
     public static void Run()
     {
         presenter.Render += OnRender;
         presenter.Resize += renderer.Resize;
 
-        window.Update += imGui.UpdateCursor;
-        window.Resize += OnResize;
         window.FramebufferResize += OnFramebufferResize;
         window.Closing += presenter.Stop;
 
@@ -138,8 +128,6 @@ internal static class App
 
         window.Closing -= presenter.Stop;
         window.FramebufferResize -= OnFramebufferResize;
-        window.Resize -= OnResize;
-        window.Update -= imGui.UpdateCursor;
 
         presenter.Resize -= renderer.Resize;
         presenter.Render -= OnRender;
@@ -155,16 +143,10 @@ internal static class App
 
     private static void OnRender(CommandBuffer commandBuffer, double deltaSeconds)
     {
-        {
-            using Lock.Scope _ = sizeLock.EnterScope();
-
-            logicalSize = pendingLogicalSize;
-        }
-
         imGui.Update();
-        Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
-
         camera.Update(deltaSeconds);
+
+        Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
@@ -179,21 +161,9 @@ internal static class App
         }
     }
 
-    private static void OnResize(Vector2D<int> size)
-    {
-        if (size.X is 0 || size.Y is 0)
-        {
-            return;
-        }
-
-        using Lock.Scope _ = sizeLock.EnterScope();
-
-        pendingLogicalSize = size;
-    }
-
     private static void OnFramebufferResize(Vector2D<int> size)
     {
-        presenter.RequestResize((uint)size.X, (uint)size.Y);
+        presenter.RequestResize(PhysicalWidth, PhysicalHeight);
     }
 
     private static void DrawOverlay()

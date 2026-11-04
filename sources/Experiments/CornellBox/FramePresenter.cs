@@ -275,7 +275,7 @@ internal class FramePresenter : DisposableObject
 
         private int frameCount;
 
-        public ReadOnlySpan<Texture> Frames => CollectionsMarshal.AsSpan(textures).Slice(0, frameCount);
+        public ReadOnlySpan<Texture> Frames => CollectionsMarshal.AsSpan(textures)[..frameCount];
 
         public long IntervalTicks { get; private set; }
 

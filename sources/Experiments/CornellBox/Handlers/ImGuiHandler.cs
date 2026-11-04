@@ -13,8 +13,6 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
     private readonly Lock @lock = new();
     private readonly List<ImGuiInputArgs> inputs = [];
 
-    private volatile StandardCursor pendingCursor;
-
     public ImGuiHandler(IInputContext input)
     {
         mouse = input.Mice[0];
@@ -46,7 +44,7 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     public void SetCursor(ImGuiMouseCursor cursor)
     {
-        pendingCursor = cursor switch
+        mouse.Cursor.StandardCursor = cursor switch
         {
             ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
             ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
@@ -74,11 +72,6 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
             Input?.Invoke(this, args);
         }
         inputs.Clear();
-    }
-
-    public void UpdateCursor(double deltaSeconds)
-    {
-        mouse.Cursor.StandardCursor = pendingCursor;
     }
 
     protected override void Destroy()
