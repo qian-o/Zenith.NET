@@ -50,8 +50,7 @@ internal static class App
         {
             Size = new(1280, 720),
             API = GraphicsAPI.None,
-            UpdatesPerSecond = 60.0,
-            FramesPerSecond = 60.0,
+            IsEventDriven = true,
             Title = "Cornell Box - Zenith.NET"
         });
         window.Initialize();
@@ -114,7 +113,11 @@ internal static class App
         window.Closing += OnClosing;
 
         presenter.Start();
-        window.Run();
+
+        while (!window.IsClosing)
+        {
+            window.DoEvents();
+        }
 
         window.Closing -= OnClosing;
         window.FramebufferResize -= OnFramebufferResize;
