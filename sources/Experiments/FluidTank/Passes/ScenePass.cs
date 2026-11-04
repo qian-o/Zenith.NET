@@ -172,15 +172,17 @@ internal unsafe class ScenePass : DisposableObject
 
     private void CreateTextures()
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
-        LinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with
+
+        LinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
-        DepthStencil = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.D32FloatS8UInt, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with
+
+        DepthStencil = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.D32FloatS8UInt, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.DepthStencilAttachment
         });

@@ -30,8 +30,6 @@ internal class CameraHandler : DisposableObject
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
-    public Vector2 Size { get; private set; } = new(800, 600);
-
     public Vector3 Position { get; private set; }
 
     public Vector3 Forward { get; private set; }
@@ -48,16 +46,12 @@ internal class CameraHandler : DisposableObject
 
     public float Speed { get; set; } = 12.0f;
 
-    public float AspectRatio => Size.X / Size.Y;
-
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
-    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
+    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)App.LogicalWidth / App.LogicalHeight, NearPlane, FarPlane);
 
     public void Update(double deltaSeconds)
     {
-        Size = new(App.LogicalWidth, App.LogicalHeight);
-
         float distance = Speed * (float)deltaSeconds;
 
         if (keyDowns.Contains(Key.W))
@@ -104,8 +98,8 @@ internal class CameraHandler : DisposableObject
         Vector2 position = clickPosition.Value;
         clickPosition = null;
 
-        float x = (position.X / Size.X * 2.0f) - 1.0f;
-        float y = 1.0f - (position.Y / Size.Y * 2.0f);
+        float x = (position.X / App.LogicalWidth * 2.0f) - 1.0f;
+        float y = 1.0f - (position.Y / App.LogicalHeight * 2.0f);
 
         Matrix4x4.Invert(Projection, out Matrix4x4 inverseProjection);
         Matrix4x4.Invert(View, out Matrix4x4 inverseView);
@@ -168,8 +162,8 @@ internal class CameraHandler : DisposableObject
             return;
         }
 
-        float pixelToRadianX = MathF.PI / Size.X;
-        float pixelToRadianY = MathF.PI / Size.Y;
+        float pixelToRadianX = MathF.PI / App.LogicalWidth;
+        float pixelToRadianY = MathF.PI / App.LogicalHeight;
         Vector2 delta = position - lastMousePosition.Value;
         float yaw = -(delta.X * pixelToRadianX);
         float pitch = -(delta.Y * pixelToRadianY);

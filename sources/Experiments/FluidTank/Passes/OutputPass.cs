@@ -115,10 +115,15 @@ internal unsafe class OutputPass : DisposableObject
 
     private void CreateTextures()
     {
-        TextureDesc desc = TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.LogicalWidth, App.LogicalHeight, 1, SampleCount.Count1) with { Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled };
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+        });
 
-        Color = App.Context.CreateTexture(desc);
-        displayColor = App.Context.CreateTexture(desc);
+        displayColor = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+        });
     }
 
     private void DestroyTextures()

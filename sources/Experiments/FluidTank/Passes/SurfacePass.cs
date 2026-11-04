@@ -180,12 +180,23 @@ internal unsafe class SurfacePass : DisposableObject
 
     private void CreateTextures()
     {
-        uint width = Math.Max((uint)(App.LogicalWidth * SurfaceScale), 1);
-        uint height = Math.Max((uint)(App.LogicalHeight * SurfaceScale), 1);
+        uint width = Math.Max((uint)(App.PhysicalWidth * SurfaceScale), 1);
+        uint height = Math.Max((uint)(App.PhysicalHeight * SurfaceScale), 1);
 
-        Depth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
-        Thickness = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
-        Normal = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
+        Depth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        Thickness = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+
+        Normal = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
     }
 
     private void DestroyTextures()

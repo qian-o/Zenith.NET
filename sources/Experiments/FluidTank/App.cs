@@ -110,13 +110,13 @@ internal static class App
     {
         window.Update += OnUpdate;
         window.Render += OnRender;
-        window.Resize += OnResize;
+        window.FramebufferResize += OnFramebufferResize;
 
         window.Run();
 
         window.Update -= OnUpdate;
         window.Render -= OnRender;
-        window.Resize -= OnResize;
+        window.FramebufferResize -= OnFramebufferResize;
 
         renderer.Dispose();
         camera.Dispose();
@@ -172,7 +172,7 @@ internal static class App
         swapChain.Present();
     }
 
-    private static void OnResize(Vector2D<int> size)
+    private static void OnFramebufferResize(Vector2D<int> size)
     {
         if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
