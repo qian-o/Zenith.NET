@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Zenith.NET;
 
 namespace CornellBox;
@@ -15,7 +16,7 @@ internal class FramePresenter : DisposableObject
     private readonly BlockingCollection<FrameBatch> freeBatches = [];
     private readonly BlockingCollection<FrameBatch> queuedBatches = [];
 
-    private FrameBatch batch = null!;
+    private FrameBatch? currentBatch;
     private Thread? renderThread;
     private Thread? presentThread;
     private (uint Width, uint Height) requestedSize;
@@ -44,15 +45,15 @@ internal class FramePresenter : DisposableObject
     {
         renderThread = new(RenderLoop)
         {
-            Name = "FramePresenter Render",
-            IsBackground = true
+            IsBackground = true,
+            Name = "FramePresenter Render"
         };
         renderThread.Start();
 
         presentThread = new(PresentLoop)
         {
-            Name = "FramePresenter Present",
-            IsBackground = true
+            IsBackground = true,
+            Name = "FramePresenter Present"
         };
         presentThread.Start();
     }
@@ -76,16 +77,10 @@ internal class FramePresenter : DisposableObject
 
     public void Submit(CommandBuffer commandBuffer, Texture texture)
     {
-        if (batch.Count == batch.Frames.Count)
-        {
-            batch.Frames.Add(swapChain.Context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, Width, Height, 1, SampleCount.Count1) with
-            {
-                Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
-            }));
-        }
+        Texture frame = currentBatch!.AddFrame();
 
         commandBuffer.Transition(texture, default, TextureLayout.Sampled, TextureLayout.CopySrc);
-        CopyFrame(commandBuffer, texture, batch.Frames[batch.Count++], TextureLayout.CopySrc);
+        CopyFrame(commandBuffer, texture, frame, TextureLayout.CopySrc);
         commandBuffer.Transition(texture, default, TextureLayout.CopySrc, TextureLayout.Sampled);
     }
 
@@ -107,109 +102,114 @@ internal class FramePresenter : DisposableObject
 
     private void RenderLoop()
     {
-        long previousStart = Stopwatch.GetTimestamp();
+        long previousStartTimestamp = Stopwatch.GetTimestamp();
         long previousIntervalTicks = 0;
 
         while (!isStopping)
         {
-            (uint Width, uint Height) size;
-
-            using (Lock.Scope _ = @lock.EnterScope())
-            {
-                size = requestedSize;
-            }
-
+            (uint Width, uint Height) size = GetRequestedSize();
             if (size.Width is 0 || size.Height is 0)
             {
-                DiscardQueued();
-
+                DiscardQueuedBatches();
                 renderWake.WaitOne();
 
-                previousStart = Stopwatch.GetTimestamp();
+                previousStartTimestamp = Stopwatch.GetTimestamp();
+
+                continue;
             }
-            else if (size != (Width, Height))
+
+            if (size != (Width, Height))
             {
                 ResizeResources(size.Width, size.Height);
 
-                previousStart = Stopwatch.GetTimestamp();
+                previousStartTimestamp = Stopwatch.GetTimestamp();
+
+                continue;
             }
-            else
+
+            long readyTimestamp = Stopwatch.GetTimestamp();
+            FrameBatch batch = freeBatches.Take();
+
+            if (isStopping)
             {
-                long ready = Stopwatch.GetTimestamp();
-                batch = freeBatches.Take();
-                if (isStopping)
-                {
-                    freeBatches.Add(batch);
+                freeBatches.Add(batch);
 
-                    break;
-                }
-
-                long start = Stopwatch.GetTimestamp();
-                double deltaSeconds = Stopwatch.GetElapsedTime(previousStart, start).TotalSeconds;
-                long intervalTicks = ready - previousStart;
-
-                batch.IntervalTicks = previousIntervalTicks is 0 ? intervalTicks : Math.Min(intervalTicks, previousIntervalTicks * MaxIntervalGrowth);
-                previousIntervalTicks = batch.IntervalTicks;
-                previousStart = start;
-
-                batch.Count = 0;
-                CommandBuffer commandBuffer = swapChain.Context.GraphicsQueue.CommandBuffer();
-
-                Render?.Invoke(commandBuffer, deltaSeconds);
-
-                commandBuffer.Submit().Wait();
-
-                queuedBatches.Add(batch);
+                break;
             }
+
+            long startTimestamp = Stopwatch.GetTimestamp();
+            double deltaSeconds = Stopwatch.GetElapsedTime(previousStartTimestamp, startTimestamp).TotalSeconds;
+            long intervalTicks = readyTimestamp - previousStartTimestamp;
+
+            batch.Reset(previousIntervalTicks is 0 ? intervalTicks : Math.Min(intervalTicks, previousIntervalTicks * MaxIntervalGrowth));
+            previousIntervalTicks = batch.IntervalTicks;
+            previousStartTimestamp = startTimestamp;
+
+            CommandBuffer commandBuffer = swapChain.Context.GraphicsQueue.CommandBuffer();
+
+            currentBatch = batch;
+            Render?.Invoke(commandBuffer, deltaSeconds);
+            currentBatch = null;
+
+            commandBuffer.Submit().Wait();
+
+            queuedBatches.Add(batch);
         }
 
-        DiscardQueued();
-
+        DiscardQueuedBatches();
         queuedBatches.CompleteAdding();
     }
 
     private void PresentLoop()
     {
-        long previousPresent = 0;
-        long start = Stopwatch.GetTimestamp();
-        int count = 0;
+        long previousPresentTimestamp = 0;
+        long sampleStartTimestamp = Stopwatch.GetTimestamp();
+        int presentedFrameCount = 0;
 
-        foreach (FrameBatch frame in queuedBatches.GetConsumingEnumerable())
+        foreach (FrameBatch batch in queuedBatches.GetConsumingEnumerable())
         {
-            long intervalTicks = frame.IntervalTicks / frame.Count;
-            for (int i = 0; i < frame.Count && !isStopping; i++)
+            ReadOnlySpan<Texture> frames = batch.Frames;
+            long intervalTicks = batch.IntervalTicks / frames.Length;
+
+            for (int i = 0; i < frames.Length && !isStopping; i++)
             {
                 CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
-                CopyFrame(commandBuffer, frame.Frames[i], swapChain.Drawable, TextureLayout.Present);
+                CopyFrame(commandBuffer, frames[i], swapChain.Drawable, TextureLayout.Present);
                 commandBuffer.Submit().Wait();
 
-                WaitForPresent(previousPresent + intervalTicks);
+                WaitForPresent(previousPresentTimestamp + intervalTicks);
 
                 if (isStopping)
                 {
                     break;
                 }
 
-                previousPresent = Stopwatch.GetTimestamp();
-
+                previousPresentTimestamp = Stopwatch.GetTimestamp();
                 swapChain.Present();
 
-                count++;
+                presentedFrameCount++;
 
-                long end = Stopwatch.GetTimestamp();
-                double elapsedSeconds = Stopwatch.GetElapsedTime(start, end).TotalSeconds;
+                long endTimestamp = Stopwatch.GetTimestamp();
+                double elapsedSeconds = Stopwatch.GetElapsedTime(sampleStartTimestamp, endTimestamp).TotalSeconds;
                 if (elapsedSeconds >= 1.0)
                 {
-                    Volatile.Write(ref framesPerSecond, count / elapsedSeconds);
+                    Volatile.Write(ref framesPerSecond, presentedFrameCount / elapsedSeconds);
 
-                    start = end;
-                    count = 0;
+                    sampleStartTimestamp = endTimestamp;
+                    presentedFrameCount = 0;
                 }
             }
 
-            freeBatches.Add(frame);
+            freeBatches.Add(batch);
         }
+    }
+
+    private (uint Width, uint Height) GetRequestedSize()
+    {
+        using Lock.Scope _ = @lock.EnterScope();
+
+        return requestedSize;
     }
 
     private void WaitForPresent(long timestamp)
@@ -223,7 +223,7 @@ internal class FramePresenter : DisposableObject
 
     private void ResizeResources(uint width, uint height)
     {
-        DiscardQueued();
+        DiscardQueuedBatches();
         DestroyBatches();
 
         swapChain.Resize(width, height);
@@ -233,11 +233,11 @@ internal class FramePresenter : DisposableObject
         Resize?.Invoke();
     }
 
-    private void DiscardQueued()
+    private void DiscardQueuedBatches()
     {
-        while (queuedBatches.TryTake(out FrameBatch? frame))
+        while (queuedBatches.TryTake(out FrameBatch? batch))
         {
-            freeBatches.Add(frame);
+            freeBatches.Add(batch);
         }
     }
 
@@ -257,7 +257,7 @@ internal class FramePresenter : DisposableObject
     {
         for (int i = 0; i < BatchCount; i++)
         {
-            freeBatches.Add(new());
+            freeBatches.Add(new(swapChain));
         }
     }
 
@@ -269,20 +269,45 @@ internal class FramePresenter : DisposableObject
         }
     }
 
-    private class FrameBatch : DisposableObject
+    private class FrameBatch(SwapChain swapChain) : DisposableObject
     {
-        public readonly List<Texture> Frames = [];
+        private readonly List<Texture> textures = [];
 
-        public int Count;
+        private int frameCount;
 
-        public long IntervalTicks;
+        public ReadOnlySpan<Texture> Frames => CollectionsMarshal.AsSpan(textures).Slice(0, frameCount);
+
+        public long IntervalTicks { get; private set; }
+
+        public void Reset(long intervalTicks)
+        {
+            frameCount = 0;
+            IntervalTicks = intervalTicks;
+        }
+
+        public Texture AddFrame()
+        {
+            if (frameCount == textures.Count)
+            {
+                textures.Add(swapChain.Context.CreateTexture(TextureDesc.Texture2D(swapChain.Desc.Format, swapChain.Desc.Surface.Width, swapChain.Desc.Surface.Height, 1, SampleCount.Count1) with
+                {
+                    Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
+                }));
+            }
+
+            Texture frame = textures[frameCount];
+            frameCount++;
+
+            return frame;
+        }
 
         protected override void Destroy()
         {
-            for (int i = Frames.Count - 1; i >= 0; i--)
+            for (int i = textures.Count - 1; i >= 0; i--)
             {
-                Frames[i].Dispose();
+                textures[i].Dispose();
             }
+            textures.Clear();
         }
     }
 }

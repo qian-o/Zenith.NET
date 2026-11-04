@@ -31,9 +31,10 @@ internal class FrameGenerationPass : DisposableObject
 
     public Texture Color { get; }
 
-    public void Record(CommandBuffer commandBuffer, Texture color, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffset, double deltaSeconds, bool reset)
+    public void Record(CommandBuffer commandBuffer, Texture color, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffsetInPixels, double deltaSeconds, bool reset)
     {
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
+
         frameGenerator.Dispatch(commandBuffer, new()
         {
             Color = color,
@@ -41,12 +42,13 @@ internal class FrameGenerationPass : DisposableObject
             MotionVectors = input.MotionVectors,
             Output = Color,
             DeltaTimeInSeconds = (float)deltaSeconds,
-            JitterOffset = -jitterOffset,
+            JitterOffset = -jitterOffsetInPixels,
             MotionVectorScale = Vector2.One,
             WorldToView = camera.View,
             ViewToClip = camera.Projection,
             Reset = reset
         });
+
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 

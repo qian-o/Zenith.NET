@@ -4,6 +4,7 @@ using CornellBox.Models;
 using CornellBox.Passes;
 using Zenith.NET;
 using Zenith.NET.Extensions.Upscaling;
+using ZenithUpscalingMode = Zenith.NET.Extensions.Upscaling.UpscalingMode;
 
 namespace CornellBox;
 
@@ -29,7 +30,7 @@ internal class Renderer : DisposableObject
 
     public bool IsPaused { get; set; }
 
-    public UpscalingMode? UpscalingMode
+    public ZenithUpscalingMode? UpscalingMode
     {
         get;
         set
@@ -41,7 +42,7 @@ internal class Renderer : DisposableObject
                 Resize();
             }
         }
-    } = App.Context.UpscalingCapabilities.TemporalUpscalerSupported ? Zenith.NET.Extensions.Upscaling.UpscalingMode.Quality : null;
+    } = App.Context.UpscalingCapabilities.TemporalUpscalerSupported ? ZenithUpscalingMode.Quality : null;
 
     public bool IsDenoisingEnabled
     {
@@ -80,22 +81,23 @@ internal class Renderer : DisposableObject
             elapsedSeconds += deltaSeconds;
         }
 
-        uint sample = frameIndex + 1u;
-        Vector2 jitterOffset = upscalingPass is null ? Vector2.Zero : new(Halton(sample, 2u) - 0.5f, Halton(sample, 3u) - 0.5f);
+        uint sampleIndex = frameIndex + 1u;
+        Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : new(GetHaltonSample(sampleIndex, 2u) - 0.5f, GetHaltonSample(sampleIndex, 3u) - 0.5f);
         bool reset = frameIndex is 0;
 
         scene.Update(commandBuffer, elapsedSeconds);
-        pathTracingPass.Record(commandBuffer, scene, camera, jitterOffset, frameIndex);
+        pathTracingPass.Record(commandBuffer, scene, camera, jitterOffsetInPixels, frameIndex);
 
         Texture color = pathTracingPass.Output.Color;
+
         if (upscalingPass is not null)
         {
-            upscalingPass.Record(commandBuffer, pathTracingPass.Output, camera, jitterOffset, reset);
+            upscalingPass.Record(commandBuffer, pathTracingPass.Output, camera, jitterOffsetInPixels, reset);
             color = upscalingPass.Color;
         }
 
         outputPass.Record(commandBuffer, color, frameIndex);
-        frameGenerationPass?.Record(commandBuffer, outputPass.Color, pathTracingPass.Output, camera, jitterOffset, deltaSeconds, reset);
+        frameGenerationPass?.Record(commandBuffer, outputPass.Color, pathTracingPass.Output, camera, jitterOffsetInPixels, deltaSeconds, reset);
 
         frameIndex++;
 
@@ -110,7 +112,12 @@ internal class Renderer : DisposableObject
     public void Resize()
     {
         upscalingPass?.Dispose();
-        upscalingPass = UpscalingMode is UpscalingMode mode ? new(mode, IsDenoisingEnabled) : null;
+        upscalingPass = null;
+
+        if (UpscalingMode is ZenithUpscalingMode mode)
+        {
+            upscalingPass = new(mode, IsDenoisingEnabled);
+        }
 
         UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(App.PhysicalWidth, App.PhysicalHeight);
 
@@ -118,7 +125,12 @@ internal class Renderer : DisposableObject
         outputPass.Resize(IsFrameGenerationEnabled ? 2 : 1);
 
         frameGenerationPass?.Dispose();
-        frameGenerationPass = IsFrameGenerationEnabled ? new(inputSize.Width, inputSize.Height) : null;
+        frameGenerationPass = null;
+
+        if (IsFrameGenerationEnabled)
+        {
+            frameGenerationPass = new(inputSize.Width, inputSize.Height);
+        }
 
         frameIndex = 0;
     }
@@ -132,7 +144,7 @@ internal class Renderer : DisposableObject
         scene?.Dispose();
     }
 
-    private static float Halton(uint index, uint radix)
+    private static float GetHaltonSample(uint index, uint radix)
     {
         float value = 0.0f;
         float weight = 1.0f;

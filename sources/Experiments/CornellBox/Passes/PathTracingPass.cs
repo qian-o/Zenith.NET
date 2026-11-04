@@ -9,14 +9,14 @@ namespace CornellBox.Passes;
 
 internal unsafe class PathTracingPass : DisposableObject
 {
-    private readonly Buffer buffer;
+    private readonly Buffer constants;
     private readonly ComputePipeline pipeline;
 
     private Matrix4x4 previousViewProjection;
 
     public PathTracingPass()
     {
-        buffer = App.Context.CreateBuffer(new()
+        constants = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(PathTracingConstants),
             Usages = BufferUsages.Constant,
@@ -30,7 +30,7 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public PathTracingOutput Output { get; private set; } = null!;
 
-    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Vector2 jitterOffset, uint frameIndex)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Vector2 jitterOffsetInPixels, uint frameIndex)
     {
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
@@ -38,7 +38,7 @@ internal unsafe class PathTracingPass : DisposableObject
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
-        PathTracingConstants constants = new()
+        PathTracingConstants pathTracingConstants = new()
         {
             InverseView = inverseView,
             InverseProjection = inverseProjection,
@@ -46,7 +46,7 @@ internal unsafe class PathTracingPass : DisposableObject
             PreviousViewProjection = frameIndex is 0 ? viewProjection : previousViewProjection,
             Position = new(camera.Position, 1.0f),
             RenderSize = new(Output.Width, Output.Height),
-            JitterOffset = jitterOffset,
+            JitterOffset = jitterOffsetInPixels,
             FrameIndex = frameIndex,
             Scene = scene.AccelerationStructure,
             Vertices = scene.Vertices,
@@ -63,9 +63,9 @@ internal unsafe class PathTracingPass : DisposableObject
             SpecularHitDistance = Output.SpecularHitDistance.StorageHandle
         };
 
-        buffer.Upload(0, new()
+        constants.Upload(0, new()
         {
-            Pointer = (nint)(&constants),
+            Pointer = (nint)(&pathTracingConstants),
             SizeInBytes = (uint)sizeof(PathTracingConstants)
         });
 
@@ -77,7 +77,7 @@ internal unsafe class PathTracingPass : DisposableObject
         ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(buffer, 0);
+        commandBuffer.SetConstantBuffer(constants, 0);
         commandBuffer.Dispatch((Output.Width + group.X - 1) / group.X, (Output.Height + group.Y - 1) / group.Y, 1);
 
         foreach (Texture texture in Output.Textures)
@@ -91,6 +91,8 @@ internal unsafe class PathTracingPass : DisposableObject
     public void Resize(uint width, uint height)
     {
         Output?.Dispose();
+        Output = null!;
+
         Output = new(width, height);
     }
 
@@ -98,7 +100,7 @@ internal unsafe class PathTracingPass : DisposableObject
     {
         Output?.Dispose();
         pipeline?.Dispose();
-        buffer?.Dispose();
+        constants?.Dispose();
     }
 }
 

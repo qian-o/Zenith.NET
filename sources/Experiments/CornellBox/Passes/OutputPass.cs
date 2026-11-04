@@ -6,9 +6,9 @@ namespace CornellBox.Passes;
 
 internal unsafe class OutputPass : DisposableObject
 {
-    private const uint ConstantsStride = 256;
+    private const uint ConstantsStrideInBytes = 256;
 
-    private readonly Buffer buffer;
+    private readonly Buffer constants;
     private readonly GraphicsPipeline toneMappingPipeline;
     private readonly GraphicsPipeline compositePipeline;
 
@@ -16,20 +16,20 @@ internal unsafe class OutputPass : DisposableObject
 
     public OutputPass()
     {
-        buffer = App.Context.CreateBuffer(new()
+        constants = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = ConstantsStride * 3,
+            SizeInBytes = ConstantsStrideInBytes * 3,
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
 
         string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang");
         using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "FullscreenVS"));
-        using Shader toneMappingShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "ToneMappingFS"));
-        using Shader compositeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "CompositeFS"));
+        using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "ToneMappingFS"));
+        using Shader compositeFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "CompositeFS"));
 
-        toneMappingPipeline = CreatePipeline(vertexShader, toneMappingShader, PixelFormat.R8G8B8A8UNorm);
-        compositePipeline = CreatePipeline(vertexShader, compositeShader, PixelFormat.B8G8R8A8UNorm);
+        toneMappingPipeline = CreatePipeline(vertexShader, toneMappingFragmentShader, PixelFormat.R8G8B8A8UNorm);
+        compositePipeline = CreatePipeline(vertexShader, compositeFragmentShader, PixelFormat.B8G8R8A8UNorm);
     }
 
     public Texture Color { get; private set; } = null!;
@@ -38,15 +38,15 @@ internal unsafe class OutputPass : DisposableObject
 
     public void Record(CommandBuffer commandBuffer, Texture input, uint frameIndex)
     {
-        OutputConstants constants = new()
+        OutputConstants toneMappingConstants = new()
         {
             Input = input.SampledHandle,
             FrameIndex = frameIndex
         };
 
-        buffer.Upload(0, new()
+        constants.Upload(0, new()
         {
-            Pointer = (nint)(&constants),
+            Pointer = (nint)(&toneMappingConstants),
             SizeInBytes = (uint)sizeof(OutputConstants)
         });
 
@@ -57,16 +57,17 @@ internal unsafe class OutputPass : DisposableObject
     {
         for (int i = 0; i < inputs.Length; i++)
         {
-            uint offsetInBytes = ConstantsStride * (uint)(i + 1);
-            OutputConstants constants = new()
+            uint offsetInBytes = ConstantsStrideInBytes * (uint)(i + 1);
+
+            OutputConstants compositeConstants = new()
             {
                 Input = inputs[i].SampledHandle,
                 Overlay = Overlay.SampledHandle
             };
 
-            buffer.Upload(offsetInBytes, new()
+            constants.Upload(offsetInBytes, new()
             {
-                Pointer = (nint)(&constants),
+                Pointer = (nint)(&compositeConstants),
                 SizeInBytes = (uint)sizeof(OutputConstants)
             });
 
@@ -85,32 +86,9 @@ internal unsafe class OutputPass : DisposableObject
     protected override void Destroy()
     {
         DestroyTextures();
-
         compositePipeline?.Dispose();
         toneMappingPipeline?.Dispose();
-        buffer?.Dispose();
-    }
-
-    private static GraphicsPipeline CreatePipeline(Shader vertexShader, Shader fragmentShader, PixelFormat format)
-    {
-        return App.Context.CreateGraphicsPipeline(new()
-        {
-            VertexShader = vertexShader,
-            FragmentShader = fragmentShader,
-            InputLayouts = [],
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
-            AttachmentFormats = new()
-            {
-                ColorFormats = [format],
-                SampleCount = SampleCount.Count1
-            },
-            RenderState = new()
-            {
-                Rasterizer = RasterizerState.CullNone(),
-                DepthStencil = DepthStencilState.DepthNone(),
-                Blend = BlendState.Opaque()
-            }
-        });
+        constants?.Dispose();
     }
 
     private void CreateTextures(int frameCount)
@@ -147,10 +125,32 @@ internal unsafe class OutputPass : DisposableObject
         commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(output)], null);
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(buffer, offsetInBytes);
+        commandBuffer.SetConstantBuffer(constants, offsetInBytes);
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
         commandBuffer.Transition(output, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+    }
+
+    private static GraphicsPipeline CreatePipeline(Shader vertexShader, Shader fragmentShader, PixelFormat format)
+    {
+        return App.Context.CreateGraphicsPipeline(new()
+        {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [format],
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
+        });
     }
 }
 

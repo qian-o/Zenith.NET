@@ -16,6 +16,7 @@ internal class UpscalingPass : DisposableObject
         if (isDenoisingEnabled)
         {
             InputSize = App.Context.GetDenoisingUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, mode);
+
             denoisingUpscaler = App.Context.CreateDenoisingUpscaler(new()
             {
                 ColorFormat = PixelFormat.R16G16B16A16Float,
@@ -36,6 +37,7 @@ internal class UpscalingPass : DisposableObject
         else
         {
             InputSize = App.Context.GetTemporalUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, mode);
+
             temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
             {
                 ColorFormat = PixelFormat.R16G16B16A16Float,
@@ -60,7 +62,7 @@ internal class UpscalingPass : DisposableObject
 
     public Texture Color { get; }
 
-    public void Record(CommandBuffer commandBuffer, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffset, bool reset)
+    public void Record(CommandBuffer commandBuffer, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffsetInPixels, bool reset)
     {
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
 
@@ -70,7 +72,7 @@ internal class UpscalingPass : DisposableObject
             Depth = input.Depth,
             MotionVectors = input.MotionVectors,
             Output = Color,
-            JitterOffset = -jitterOffset,
+            JitterOffset = -jitterOffsetInPixels,
             MotionVectorScale = Vector2.One,
             PreExposure = 1.0f,
             Reset = reset
@@ -87,7 +89,7 @@ internal class UpscalingPass : DisposableObject
             Roughness = input.Roughness,
             SpecularHitDistance = input.SpecularHitDistance,
             Output = Color,
-            JitterOffset = -jitterOffset,
+            JitterOffset = -jitterOffsetInPixels,
             MotionVectorScale = Vector2.One,
             WorldToView = camera.View,
             ViewToClip = camera.Projection,

@@ -6,8 +6,8 @@ namespace CornellBox.Models;
 internal class CornellBoxGeometry
 {
     private const int SculpturePartCount = 3;
-    private const int FirstCubeMesh = 5;
-    private const int FirstSphereMesh = FirstCubeMesh + SculpturePartCount;
+    private const int FirstCubeMeshIndex = 5;
+    private const int FirstSphereMeshIndex = FirstCubeMeshIndex + SculpturePartCount;
 
     private const int InitialVertexCapacity = 40_000;
     private const int InitialIndexCapacity = 200_000;
@@ -181,7 +181,6 @@ internal class CornellBoxGeometry
     {
         AddRoom();
         AddCourtyard();
-
         FinishMesh();
 
         AddSphere(Vector3.Zero, 45.0f, MaterialId.Mirror);
@@ -201,6 +200,7 @@ internal class CornellBoxGeometry
         for (int i = 0; i < SculpturePartCount; i++)
         {
             Vector3 halfSize = new(cubeSizes[i]);
+
             AddBox(-halfSize, halfSize, cubeMaterials[i]);
             FinishMesh();
         }
@@ -278,6 +278,7 @@ internal class CornellBoxGeometry
         {
             float z = -330.0f + (i * 100.0f);
             float y = -24.0f + (i * 8.0f);
+
             AddBox(new(60.0f, y, z), new(496.0f, y + 1.0f, z + 5.0f), MaterialId.Gold);
         }
 
@@ -349,6 +350,7 @@ internal class CornellBoxGeometry
             for (int i = 0; i < 3; i++)
             {
                 float z = -380.0f + (i * 380.0f);
+
                 AddBox(new(x - 125.0f, -32.0f, z - 125.0f), new(x + 125.0f, -30.0f, z + 125.0f), MaterialId.Limestone);
             }
         }
@@ -358,6 +360,7 @@ internal class CornellBoxGeometry
     {
         float x = center.X;
         float z = center.Y;
+
         ReadOnlySpan<float> endPositions = [-160.0f, 160.0f];
         foreach (float offset in endPositions)
         {
@@ -370,8 +373,9 @@ internal class CornellBoxGeometry
         for (int i = 0; i < 9; i++)
         {
             float slatZ = z - 176.0f + (i * 40.0f);
-            MaterialId material = (i % 3) is 1 ? MaterialId.LightWood : MaterialId.Wood;
-            AddBox(new(x - 86.0f, 55.0f, slatZ), new(x + 86.0f, 70.0f, slatZ + 32.0f), material);
+            MaterialId materialId = (i % 3) is 1 ? MaterialId.LightWood : MaterialId.Wood;
+
+            AddBox(new(x - 86.0f, 55.0f, slatZ), new(x + 86.0f, 70.0f, slatZ + 32.0f), materialId);
 
             foreach (float offset in fastenerPositions)
             {
@@ -382,6 +386,7 @@ internal class CornellBoxGeometry
         foreach (float offset in endPositions)
         {
             float armrestZ = z + offset;
+
             AddBox(new(x - 62.0f, 70.0f, armrestZ - 5.0f), new(x - 52.0f, 96.0f, armrestZ + 5.0f), MaterialId.DarkMetal);
             AddBox(new(x + 52.0f, 70.0f, armrestZ - 5.0f), new(x + 62.0f, 96.0f, armrestZ + 5.0f), MaterialId.DarkMetal);
             AddBox(new(x - 65.0f, 96.0f, armrestZ - 7.0f), new(x + 65.0f, 104.0f, armrestZ + 7.0f), MaterialId.Bronze);
@@ -392,6 +397,7 @@ internal class CornellBoxGeometry
     {
         float x = center.X;
         float z = center.Y;
+
         AddBox(new(x - 118.0f, -32.0f, z - 118.0f), new(x + 118.0f, -12.0f, z + 118.0f), MaterialId.DarkMetal);
         AddBox(new(x - 110.0f, -12.0f, z - 110.0f), new(x + 110.0f, 55.0f, z + 110.0f), MaterialId.Terracotta);
         AddBox(new(x - 96.0f, 55.0f, z - 96.0f), new(x + 96.0f, 58.0f, z + 96.0f), MaterialId.Soil);
@@ -399,6 +405,7 @@ internal class CornellBoxGeometry
         AddBox(new(x + 96.0f, 55.0f, z - 118.0f), new(x + 118.0f, 70.0f, z + 118.0f), MaterialId.Sandstone);
         AddBox(new(x - 96.0f, 55.0f, z - 118.0f), new(x + 96.0f, 70.0f, z - 96.0f), MaterialId.Sandstone);
         AddBox(new(x - 96.0f, 55.0f, z + 96.0f), new(x + 96.0f, 70.0f, z + 118.0f), MaterialId.Sandstone);
+
         AddSphere(new(x - 42.0f, 105.0f, z - 20.0f), 60.0f, MaterialId.Sage, 12, 8);
         AddSphere(new(x + 40.0f, 100.0f, z + 28.0f), 56.0f, MaterialId.Foliage, 12, 8);
         AddSphere(new(x, 145.0f, z + 5.0f), 62.0f, MaterialId.Foliage, 12, 8);
@@ -414,6 +421,7 @@ internal class CornellBoxGeometry
     {
         Vector3 minimum = new(center.X - halfSize, -32.0f, center.Y - halfSize);
         Vector3 maximum = new(center.X + halfSize, height, center.Y + halfSize);
+
         AddBox(new(minimum.X, -18.0f, minimum.Z), new(maximum.X, height - 10.0f, maximum.Z), MaterialId.DarkMetal);
         AddBox(minimum - new Vector3(8.0f, 0.0f, 8.0f), new(maximum.X + 8.0f, -18.0f, maximum.Z + 8.0f), MaterialId.Sandstone);
         AddBox(new(minimum.X - 5.0f, height - 10.0f, minimum.Z - 5.0f), new(maximum.X + 5.0f, height, maximum.Z + 5.0f), MaterialId.Sandstone);
@@ -426,6 +434,7 @@ internal class CornellBoxGeometry
             {
                 float cornerX = center.X + (x * (halfSize - 9.0f));
                 float cornerZ = center.Y + (z * (halfSize - 9.0f));
+
                 AddBox(new(cornerX - 2.0f, height, cornerZ - 2.0f), new(cornerX + 2.0f, height + 1.0f, cornerZ + 2.0f), MaterialId.Bronze);
             }
         }
@@ -444,7 +453,6 @@ internal class CornellBoxGeometry
     private void AddQuad(Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, MaterialId materialId)
     {
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
-
         uint startIndex = (uint)vertices.Count;
 
         ReadOnlySpan<Vector3> positions = [v0, v1, v2, v3];
@@ -466,25 +474,25 @@ internal class CornellBoxGeometry
         indices.Add(startIndex + 3);
     }
 
-    private void AddSphere(Vector3 center, float radius, MaterialId materialId, int segments = 64, int rings = 32)
+    private void AddSphere(Vector3 center, float radius, MaterialId materialId, int segmentCount = 64, int ringCount = 32)
     {
         uint startIndex = (uint)vertices.Count;
-        Span<Vector2> longitudeDirections = stackalloc Vector2[segments + 1];
-        for (int x = 0; x <= segments; x++)
+        Span<Vector2> longitudeDirections = stackalloc Vector2[segmentCount + 1];
+        for (int i = 0; i <= segmentCount; i++)
         {
-            float phi = x * MathF.Tau / segments;
-            longitudeDirections[x] = new(MathF.Cos(phi), MathF.Sin(phi));
+            float phi = i * MathF.Tau / segmentCount;
+            longitudeDirections[i] = new(MathF.Cos(phi), MathF.Sin(phi));
         }
 
-        for (int y = 0; y <= rings; y++)
+        for (int i = 0; i <= ringCount; i++)
         {
-            float theta = y * MathF.PI / rings;
+            float theta = i * MathF.PI / ringCount;
             float sinTheta = MathF.Sin(theta);
             float cosTheta = MathF.Cos(theta);
 
-            for (int x = 0; x <= segments; x++)
+            for (int j = 0; j <= segmentCount; j++)
             {
-                Vector2 longitude = longitudeDirections[x];
+                Vector2 longitude = longitudeDirections[j];
                 Vector3 normal = new(sinTheta * longitude.X, cosTheta, sinTheta * longitude.Y);
 
                 vertices.Add(new()
@@ -496,21 +504,21 @@ internal class CornellBoxGeometry
             }
         }
 
-        for (int y = 0; y < rings; y++)
+        for (int i = 0; i < ringCount; i++)
         {
-            for (int x = 0; x < segments; x++)
+            for (int j = 0; j < segmentCount; j++)
             {
-                uint top = startIndex + (uint)((y * (segments + 1)) + x);
-                uint bottom = top + (uint)segments + 1;
+                uint top = startIndex + (uint)((i * (segmentCount + 1)) + j);
+                uint bottom = top + (uint)segmentCount + 1;
 
-                if (y > 0)
+                if (i > 0)
                 {
                     indices.Add(top);
                     indices.Add(top + 1);
                     indices.Add(bottom + 1);
                 }
 
-                if (y < rings - 1)
+                if (i < (ringCount - 1))
                 {
                     indices.Add(top);
                     indices.Add(bottom + 1);
@@ -522,24 +530,24 @@ internal class CornellBoxGeometry
 
     private void AddTorus(float majorRadius, float minorRadius, MaterialId materialId)
     {
-        const int MajorSegments = 128;
-        const int MinorSegments = 16;
+        const int MajorSegmentCount = 128;
+        const int MinorSegmentCount = 16;
 
         uint startIndex = (uint)vertices.Count;
-        Span<Vector2> tubeDirections = stackalloc Vector2[MinorSegments + 1];
-        for (int j = 0; j <= MinorSegments; j++)
+        Span<Vector2> tubeDirections = stackalloc Vector2[MinorSegmentCount + 1];
+        for (int j = 0; j <= MinorSegmentCount; j++)
         {
-            float v = j * MathF.Tau / MinorSegments;
-            tubeDirections[j] = new(MathF.Cos(v), MathF.Sin(v));
+            float minorAngle = j * MathF.Tau / MinorSegmentCount;
+            tubeDirections[j] = new(MathF.Cos(minorAngle), MathF.Sin(minorAngle));
         }
 
-        for (int i = 0; i <= MajorSegments; i++)
+        for (int i = 0; i <= MajorSegmentCount; i++)
         {
-            float u = i * MathF.Tau / MajorSegments;
-            Vector3 direction = new(MathF.Cos(u), MathF.Sin(u), 0.0f);
+            float majorAngle = i * MathF.Tau / MajorSegmentCount;
+            Vector3 direction = new(MathF.Cos(majorAngle), MathF.Sin(majorAngle), 0.0f);
             Vector3 ringCenter = direction * majorRadius;
 
-            for (int j = 0; j <= MinorSegments; j++)
+            for (int j = 0; j <= MinorSegmentCount; j++)
             {
                 Vector2 tube = tubeDirections[j];
                 Vector3 normal = (direction * tube.X) + (Vector3.UnitZ * tube.Y);
@@ -553,12 +561,12 @@ internal class CornellBoxGeometry
             }
         }
 
-        for (int i = 0; i < MajorSegments; i++)
+        for (int i = 0; i < MajorSegmentCount; i++)
         {
-            for (int j = 0; j < MinorSegments; j++)
+            for (int j = 0; j < MinorSegmentCount; j++)
             {
-                uint current = startIndex + (uint)((i * (MinorSegments + 1)) + j);
-                uint next = current + MinorSegments + 1;
+                uint current = startIndex + (uint)((i * (MinorSegmentCount + 1)) + j);
+                uint next = current + MinorSegmentCount + 1;
 
                 indices.Add(current);
                 indices.Add(next);
@@ -592,14 +600,15 @@ internal class CornellBoxGeometry
         for (int i = 0; i < SculpturePartCount; i++)
         {
             float phase = i * 1.7f;
+
             float cubeBob = 8.0f * MathF.Sin((0.55f * elapsedSeconds) + phase);
             Vector3 cubePosition = Vector3.Transform(cubeOffsets[i], cubeOrbit) + new Vector3(-320.0f, cubeBob, 840.0f);
             Matrix4x4 cubeRotation = CubeTilts[i] * Matrix4x4.CreateRotationY((0.24f * elapsedSeconds) + phase);
-            transforms[FirstCubeMesh + i] = cubeRotation * Matrix4x4.CreateTranslation(cubePosition);
+            transforms[FirstCubeMeshIndex + i] = cubeRotation * Matrix4x4.CreateTranslation(cubePosition);
 
             float sphereBob = 7.0f * MathF.Sin((0.45f * elapsedSeconds) + phase + 0.8f);
             Vector3 spherePosition = Vector3.Transform(sphereOffsets[i], sphereOrbit) + new Vector3(876.0f, sphereBob, 840.0f);
-            transforms[FirstSphereMesh + i] = Matrix4x4.CreateTranslation(spherePosition);
+            transforms[FirstSphereMeshIndex + i] = Matrix4x4.CreateTranslation(spherePosition);
         }
     }
 

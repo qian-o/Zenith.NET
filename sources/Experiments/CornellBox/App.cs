@@ -70,21 +70,21 @@ internal static class App
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
 
-        uint width = (uint)window.FramebufferSize.X;
-        uint height = (uint)window.FramebufferSize.Y;
+        uint physicalWidth = (uint)window.FramebufferSize.X;
+        uint physicalHeight = (uint)window.FramebufferSize.Y;
 
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, width, height);
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, physicalWidth, physicalHeight);
         }
         else if (OperatingSystem.IsMacOS())
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), width, height);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), physicalWidth, physicalHeight);
         }
         else
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, width, height);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, physicalWidth, physicalHeight);
         }
 
         pendingLogicalSize = window.Size;
@@ -127,7 +127,7 @@ internal static class App
         window.Update += imGui.UpdateCursor;
         window.Resize += OnResize;
         window.FramebufferResize += OnFramebufferResize;
-        window.Closing += OnClosing;
+        window.Closing += presenter.Stop;
 
         presenter.Start();
 
@@ -136,7 +136,7 @@ internal static class App
             window.DoEvents();
         }
 
-        window.Closing -= OnClosing;
+        window.Closing -= presenter.Stop;
         window.FramebufferResize -= OnFramebufferResize;
         window.Resize -= OnResize;
         window.Update -= imGui.UpdateCursor;
@@ -155,8 +155,9 @@ internal static class App
 
     private static void OnRender(CommandBuffer commandBuffer, double deltaSeconds)
     {
-        using (Lock.Scope _ = sizeLock.EnterScope())
         {
+            using Lock.Scope _ = sizeLock.EnterScope();
+
             logicalSize = pendingLogicalSize;
         }
 
@@ -195,11 +196,6 @@ internal static class App
         presenter.RequestResize((uint)size.X, (uint)size.Y);
     }
 
-    private static void OnClosing()
-    {
-        presenter.Stop();
-    }
-
     private static void DrawOverlay()
     {
         ImGui.Text(Context.Capabilities.DeviceName);
@@ -217,10 +213,10 @@ internal static class App
 
         ImGui.BeginDisabled(!Context.UpscalingCapabilities.TemporalUpscalerSupported);
 
-        int upscalingMode = renderer.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
-        if (ImGui.Combo("Upscaling Mode", ref upscalingMode, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        int upscalingModeIndex = renderer.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
+        if (ImGui.Combo("Upscaling Mode", ref upscalingModeIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
         {
-            renderer.UpscalingMode = upscalingMode is 0 ? null : (UpscalingMode)(upscalingMode - 1);
+            renderer.UpscalingMode = upscalingModeIndex is 0 ? null : (UpscalingMode)(upscalingModeIndex - 1);
         }
 
         ImGui.EndDisabled();
