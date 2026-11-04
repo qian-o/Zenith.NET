@@ -111,8 +111,8 @@ internal static class App
         input.Mice[0].MouseUp -= OnMouseUp;
         input.Mice[0].MouseDown -= OnMouseDown;
 
-        window.Resize -= OnResize;
         window.FramebufferResize -= OnFramebufferResize;
+        window.Resize -= OnResize;
         window.Render -= OnRender;
 
         presenter.Dispose();
