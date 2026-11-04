@@ -32,6 +32,12 @@ internal class ImGuiHandler : DisposableObject, IImGuiPlatform
         window.Update += _ => mouse.Cursor.StandardCursor = cursor;
     }
 
+    public string ClipboardText
+    {
+        get => keyboard.ClipboardText;
+        set => keyboard.ClipboardText = value;
+    }
+
     public event EventHandler<ImGuiInputArgs>? Input;
 
     public void Initialize(ImGuiIOPtr io)
@@ -60,16 +66,6 @@ internal class ImGuiHandler : DisposableObject, IImGuiPlatform
             ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
             _ => StandardCursor.Default
         };
-    }
-
-    public string GetClipboardText()
-    {
-        return keyboard.ClipboardText;
-    }
-
-    public void SetClipboardText(string text)
-    {
-        keyboard.ClipboardText = text;
     }
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)

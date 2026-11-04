@@ -150,12 +150,12 @@ internal unsafe partial class ImGuiBridge : DisposableObject
         clipboardScope?.Dispose();
         clipboardScope = new();
 
-        return (byte*)ZenithMarshal.StringToPointer(clipboardScope, Platform.GetClipboardText(), StringEncoding.UTF8);
+        return (byte*)ZenithMarshal.StringToPointer(clipboardScope, Platform.ClipboardText, StringEncoding.UTF8);
     }
 
     private void PlatformSetClipboardText(ImGuiContext* context, byte* text)
     {
-        Platform.SetClipboardText(ZenithMarshal.StringFromPointer((nint)text, StringEncoding.UTF8));
+        Platform.ClipboardText = ZenithMarshal.StringFromPointer((nint)text, StringEncoding.UTF8);
     }
 
     private void PlatformSetImeData(ImGuiContext* context, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
