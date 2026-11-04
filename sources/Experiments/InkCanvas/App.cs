@@ -99,6 +99,7 @@ internal static class App
     {
         window.Render += OnRender;
         window.Resize += OnResize;
+        window.FramebufferResize += OnFramebufferResize;
 
         input.Mice[0].MouseDown += OnMouseDown;
         input.Mice[0].MouseUp += OnMouseUp;
@@ -111,6 +112,7 @@ internal static class App
         input.Mice[0].MouseDown -= OnMouseDown;
 
         window.Resize -= OnResize;
+        window.FramebufferResize -= OnFramebufferResize;
         window.Render -= OnRender;
 
         presenter.Dispose();
@@ -133,12 +135,21 @@ internal static class App
 
     private static void OnResize(Vector2D<int> size)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        if (LogicalWidth is 0 || LogicalHeight is 0)
         {
             return;
         }
 
         canvas.Resize();
+    }
+
+    private static void OnFramebufferResize(Vector2D<int> size)
+    {
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        {
+            return;
+        }
+
         presenter.Resize();
     }
 
