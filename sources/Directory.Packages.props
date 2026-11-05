@@ -6,10 +6,11 @@
 
     <ItemGroup>
         <PackageVersion Include="Avalonia" Version="12.1.5" />
+        <PackageVersion Include="FSR.NET" Version="2.4.0" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
         <PackageVersion Include="Metal.NET" Version="2.7.0" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.120" />
-        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
+        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
         <PackageVersion Include="NGX.NET" Version="310.9.16" />
         <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
         <PackageVersion Include="Silk.NET.Direct3D11" Version="2.23.0" />

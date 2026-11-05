@@ -9,6 +9,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="FSR.NET" />
         <PackageReference Include="Metal.NET" />
         <PackageReference Include="NGX.NET" />
     </ItemGroup>
