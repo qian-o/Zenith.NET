@@ -1,13 +1,13 @@
 # 超分扩展设计（DLSS / MetalFX / FSR）
 
-`Zenith.NET.Extensions.Upscaling` 提供超分、降噪 + 超分、帧生成与帧生成交换链，采用与后端无关、按语义定义参数的公共 API。
+`Zenith.NET.Extensions.Upscaling` 提供超分、光线重建（降噪 + 超分）、帧生成与帧生成交换链，采用与后端无关、按语义定义参数的公共 API。
 
 ## 1. 原则
 
 1. **参数按语义定义，不按厂商定义。** 字段名来自图形学概念（颜色、深度、运动向量、抖动），不出现 `NGX`、`MTLFX`、`ffx` 之类的名字。映射到原生结构的细节属于实现。
 2. **少量参数只有个别后端读取，是可以接受的。** 不为了参数的整齐把工作推给后端。
 3. **资源只传整体对象。** 只有 `Texture` 和整个资源的传入，没有子资源、层级、范围、矩形一类的再划分。
-4. **三种能力，不做纯降噪。** 超分、降噪 + 超分、帧生成。帧生成只生成一帧。
+4. **三种能力，不做纯降噪。** 超分、光线重建、帧生成。光线重建包含降噪与超分，帧生成只生成一帧。
 5. **公共类型不含厂商类型。** 厂商差异通过 `UpscalingApi` 选择和内部实现吸收。
 
 ## 2. 公共 API
@@ -45,21 +45,28 @@ public readonly struct UpscalingInputSize(uint width, uint height)
 }
 ```
 
-`UpscalingMode` 是给调用方在还没建对象时算渲染分辨率的：`GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode)`。真正决定行为的是 `Desc` 里的 `InputWidth/Height` 和 `OutputWidth/Height`，不是质量档。
+`UpscalingMode` 用于查询建议的渲染分辨率：`GetSuperResolutionInputSize(outputWidth, outputHeight, mode)`。超分对象的实际尺寸由 `Desc.InputWidth/Height` 与 `Desc.OutputWidth/Height` 指定。`Native` 表示原分辨率时域重建，只用于 `SuperResolution`；`GetRayReconstructionInputSize` 接受其余四个档位。
 
 ### 2.2 输入约定
 
-这些约定对所有后端一致，因此不进入 `Desc`，也不做成开关：
+这些约定对所有后端一致：
 
 | 输入 | 约定 |
 |---|---|
-| 运动向量 | UV 空间，`PreviousUV - CurrentUV`，与渲染分辨率同尺寸 |
-| 深度 | 硬件深度，非线性的视口深度 |
-| 颜色 | 线性空间，尺寸由各类型的 `Desc` 指定；超分与降噪时含已合成的 UI，帧生成时不含（见 §2.6） |
-| 反照度 | 线性空间，不含光照 |
-| 抖动 | 像素单位，相对于渲染分辨率 |
+| 运动向量 | UV 空间，`PreviousUV - CurrentUV`，包含相机与物体运动，不包含抖动；与深度同尺寸 |
+| 深度 | 硬件深度，非线性的视口深度；方向与远平面由 `Flags` 指定 |
+| 超分、光线重建颜色 | 线性场景颜色，不含 UI；`Color` 为渲染尺寸，`Output` 为超分尺寸 |
+| 帧生成颜色 | 已完成颜色处理的真实帧，编码见 §2.6；帧生成不执行超分 |
+| 反照度 | 线性反射率，不含光照；漫反射与镜面反射分别提供 |
+| 法线 | RGB 保存世界空间单位向量，不做打包或八面体编码 |
+| 粗糙度 | R 通道保存 `[0, 1]` 的材质粗糙度 |
+| 距离与矩阵 | 距离以米为单位；矩阵采用 `System.Numerics.Matrix4x4` 约定，投影矩阵不含抖动并与深度对应 |
+| 抖动 | 像素单位，相对于深度和运动向量的尺寸 |
+| 曝光 | `Exposure` 为 1×1 的 `R32Float` 纹理，保存当前曝光倍率；`PreExposure` 为已乘入线性颜色的预曝光倍率，未预曝光时传 `1.0f` |
 
-深度、运动向量、颜色、反照度、抖动这五项由字段语义和格式完全确定，所以不进 `Desc`。`IsHdr` 是个例外：`PixelFormat` 分不出 sRGB 编码与 PQ、scRGB 两种 HDR 表示，而这决定后端的传输函数。约定由 `Output` 格式与 `IsHdr` 共同推出——不置位时按 sRGB 处理；置位时 `R10G10B10A2UNorm` 按 PQ、`R16G16B16A16Float` 按 scRGB。
+超分与光线重建的 `IsHdr` 表示线性颜色包含 HDR 数值，不指定 sRGB、PQ 等传输函数；色调映射、呈现编码与 UI 合成在这些操作之后完成。帧生成的呈现颜色约定见 §2.6。
+
+纹理尺寸必须与对应描述一致，整张纹理参与处理。带有可空格式的纹理以 `Desc` 为准：格式为 `null` 时对应参数为 `null`，指定格式时每帧提供匹配的完整纹理。格式组合和所选后端必需的参数在创建时验证；每帧纹理与数值在调用时验证。
 
 ### 2.3 输入标志
 
@@ -71,17 +78,22 @@ public enum UpscalingInputFlags
 
     DepthReversed = 1 << 0,
 
-    AutoExposure = 1 << 1
+    AutoExposure = 1 << 1,
+
+    DepthInfinite = 1 << 2
 }
 ```
 
 - `DepthReversed`：深度为反向 Z。
-- `AutoExposure`：`Exposure` 纹理有效，后端自行从曝光纹理读取曝光值。不置该位时使用 `PreExposure` 标量。
+- `AutoExposure`：由后端根据线性场景颜色计算曝光，`Exposure` 为 `null`；不置该位时读取 `Exposure`，未提供纹理时使用曝光倍率 `1.0f`。`PreExposure` 独立描述颜色中已有的预曝光，不代替曝光纹理。
+- `DepthInfinite`：投影使用无限远平面。
+
+`AutoExposure` 用于超分与光线重建；帧生成及其交换链只接受两个深度标志。
 
 ### 2.4 超分
 
 ```csharp
-public struct TemporalUpscalerDesc
+public struct SuperResolutionDesc
 {
     public PixelFormat ColorFormat;
 
@@ -106,7 +118,7 @@ public struct TemporalUpscalerDesc
     public UpscalingInputFlags Flags;
 }
 
-public struct TemporalUpscalerArgs
+public struct SuperResolutionArgs
 {
     public Texture Color;
 
@@ -126,18 +138,22 @@ public struct TemporalUpscalerArgs
 
     public Matrix4x4 ViewToClip;
 
+    public float DeltaTimeInSeconds;
+
     public float PreExposure;
 
     public bool Reset;
 }
 ```
 
-`ReactiveMask` 是可选的反遮罩，用于抑制动态物体上的拖影。`Exposure` 仅在 `Flags` 含 `AutoExposure` 时读取。
+`InputWidth/Height` 不大于 `OutputWidth/Height`，相等时执行原分辨率时域重建。除 1×1 的 `Exposure` 外，输入纹理均为渲染尺寸。
 
-### 2.5 降噪 + 超分
+`ReactiveMask` 是可选的反应性遮罩，R 通道值为 `[0, 1]`，数值越大越减少对历史颜色的依赖。`DeltaTimeInSeconds` 是相邻真实帧的时间间隔；曝光遵循 §2.3。
+
+### 2.5 光线重建（降噪 + 超分）
 
 ```csharp
-public struct DenoisingUpscalerDesc
+public struct RayReconstructionDesc
 {
     public PixelFormat ColorFormat;
 
@@ -154,6 +170,16 @@ public struct DenoisingUpscalerDesc
     public PixelFormat RoughnessFormat;
 
     public PixelFormat SpecularHitDistanceFormat;
+
+    public PixelFormat? LinearDepthDeltaFormat;
+
+    public PixelFormat? DirectDiffuseRadianceFormat;
+
+    public PixelFormat? DirectSpecularRadianceFormat;
+
+    public PixelFormat? IndirectDiffuseRadianceFormat;
+
+    public PixelFormat? IndirectSpecularRadianceFormat;
 
     public PixelFormat? ReactiveMaskFormat;
 
@@ -174,7 +200,7 @@ public struct DenoisingUpscalerDesc
     public UpscalingInputFlags Flags;
 }
 
-public struct DenoisingUpscalerArgs
+public struct RayReconstructionArgs
 {
     public Texture Color;
 
@@ -192,6 +218,16 @@ public struct DenoisingUpscalerArgs
 
     public Texture SpecularHitDistance;
 
+    public Texture? LinearDepthDelta;
+
+    public Texture? DirectDiffuseRadiance;
+
+    public Texture? DirectSpecularRadiance;
+
+    public Texture? IndirectDiffuseRadiance;
+
+    public Texture? IndirectSpecularRadiance;
+
     public Texture? ReactiveMask;
 
     public Texture? TransparencyOverlay;
@@ -206,18 +242,34 @@ public struct DenoisingUpscalerArgs
 
     public Matrix4x4 ViewToClip;
 
+    public float DeltaTimeInSeconds;
+
     public float PreExposure;
 
     public bool Reset;
 }
 ```
 
-`InputWidth/Height` 必须小于 `OutputWidth/Height`；相等时创建期抛 `InvalidOperationException`——该类型是降噪 **加** 超分，不做纯降噪。
+`InputWidth/Height` 必须分别小于 `OutputWidth/Height`；相等或更大时创建期抛 `InvalidOperationException`。除 1×1 的 `Exposure` 外，输入纹理均为渲染尺寸，`Output` 为超分尺寸。
+
+`Color` 是待降噪的完整线性场景颜色。`SpecularHitDistance` 保存镜面反射射线的命中距离；`TransparencyOverlay` 是与场景对应的线性 RGBA 透明层，A 通道为不透明度。曝光与帧间隔的含义与 §2.4 相同。
+
+以下可选输入由渲染流程生成，FSR 降噪路径读取，DLSS 与 MetalFX 不读取：
+
+| 输入 | 语义 |
+|---|---|
+| `LinearDepthDelta` | 当前表面点在前后两帧的带符号视空间深度差：`PreviousLinearDepth - CurrentLinearDepth` |
+| `DirectDiffuseRadiance` | 直接漫反射辐射度 |
+| `DirectSpecularRadiance` | 直接镜面反射辐射度 |
+| `IndirectDiffuseRadiance` | 间接漫反射辐射度 |
+| `IndirectSpecularRadiance` | 间接镜面反射辐射度；命中距离来自 `SpecularHitDistance` |
+
+辐射度纹理的 RGB 不含首个反射点的反照度调制，预曝光倍率与 `Color` 一致。`Color` 包含这些信号乘以对应反照度后的贡献，也包含其余场景颜色。FSR 要求 `LinearDepthDelta` 和至少一种辐射度信号；所配置的信号每帧提供，未配置的场景贡献保持在 `Color` 中。
 
 ### 2.6 帧生成
 
 ```csharp
-public struct FrameGeneratorDesc
+public struct FrameGenerationDesc
 {
     public PixelFormat ColorFormat;
 
@@ -242,7 +294,7 @@ public struct FrameGeneratorDesc
     public UpscalingInputFlags Flags;
 }
 
-public struct FrameGeneratorArgs
+public struct FrameGenerationArgs
 {
     public Texture Color;
 
@@ -262,7 +314,9 @@ public struct FrameGeneratorArgs
 
     public float DeltaTimeInSeconds;
 
-    public float PreExposure;
+    public float MinLuminanceInNits;
+
+    public float MaxLuminanceInNits;
 
     public bool Reset;
 }
@@ -270,18 +324,22 @@ public struct FrameGeneratorArgs
 
 `Width/Height` 指定 `Color`、`Hudless` 与插值结果 `Output` 的帧尺寸；`AuxiliaryWidth/Height` 指定辅助纹理 `Depth`、`MotionVectors` 的共同尺寸。
 
-`Color` 是不含 UI 的场景颜色，`Hudless` 是含 UI 的合成结果；`HudlessFormat` 为 `null` 时后端把 `Color` 当作已含 UI 的图像。`DeltaTimeInSeconds` 是两帧之间的实际间隔，帧生成需要它把插值帧放到正确的时间点。
+`Color` 是最终呈现的真实帧，可以包含 UI；`Hudless` 是同一帧合成 UI 前的场景颜色。两者的非 UI 区域内容、曝光与编码一致。`HudlessFormat` 为 `null` 时只提供 `Color`。
+
+帧生成使用呈现颜色：`IsHdr = false` 时为 sRGB 编码的 SDR；`IsHdr = true` 时，`R10G10B10A2UNorm` 使用 PQ，`R16G16B16A16Float` 使用线性 scRGB。`Color`、`Hudless` 与 `Output` 使用相同的颜色编码。HDR 帧的 `MinLuminanceInNits`、`MaxLuminanceInNits` 给出显示亮度范围，满足 `0 ≤ MinLuminanceInNits < MaxLuminanceInNits`；SDR 不读取这两个值。
+
+`DeltaTimeInSeconds` 是相邻真实帧的实际时间间隔。每次 `Dispatch` 生成一张插值帧，前一帧状态由对象保存；首次调用或 `Reset` 为真时初始化历史，该次插值输出不用于呈现。
 
 ### 2.7 能力与入口
 
 ```csharp
 public class UpscalingCapabilities
 {
-    public bool TemporalUpscalerSupported { get; }
+    public bool SuperResolutionSupported { get; }
 
-    public bool DenoisingUpscalerSupported { get; }
+    public bool RayReconstructionSupported { get; }
 
-    public bool FrameGeneratorSupported { get; }
+    public bool FrameGenerationSupported { get; }
 }
 ```
 
@@ -296,26 +354,28 @@ public static class Extensions
 
         public UpscalingCapabilities UpscalingCapabilities { get; }
 
-        public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+        public UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-        public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+        public UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-        public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc);
+        public SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
 
-        public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc);
+        public RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
 
-        public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc);
+        public FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc);
 
         public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc);
     }
 }
 ```
 
+初始化按传入的 `UpscalingApi` 顺序分别选择三种能力的后端；能力查询反映当前 `GraphicsContext` 的实际支持情况。帧生成交换链使用所选帧生成后端。
+
 ## 3. 帧生成交换链
 
-使用者可以直接调用 `FrameGenerator`，自行安排插值帧的提交与呈现；也可以使用 `FrameGenerationSwapChain`，写入输入纹理并每帧调用一次 `Present(args)`。
+使用者可以直接调用 `FrameGeneration`，自行安排插值帧的提交与呈现；也可以使用 `FrameGenerationSwapChain`，写入输入纹理并每帧调用一次 `Present(args)`。
 
-`FrameGenerationSwapChain` 与 `SwapChain` 是两套独立的交换链。它根据自己的 `Desc` 创建呈现资源，内部创建并持有帧生成器；创建时只需要 `GraphicsContext` 和描述。
+`FrameGenerationSwapChain` 与 `SwapChain` 是两套独立的交换链。它根据自己的 `Desc` 创建呈现资源，内部创建并持有帧生成对象；创建时只需要 `GraphicsContext` 和描述。
 
 ```csharp
 public struct FrameGenerationSwapChainDesc
@@ -351,7 +411,9 @@ public struct FrameGenerationSwapChainArgs
 
     public float DeltaTimeInSeconds;
 
-    public float PreExposure;
+    public float MinLuminanceInNits;
+
+    public float MaxLuminanceInNits;
 
     public bool Reset;
 }
@@ -378,7 +440,7 @@ public class FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSw
 }
 ```
 
-创建入口是 §2.7 的 `context.CreateFrameGenerationSwapChain(desc)`。`Surface` 指定呈现目标，`IsVerticalSyncEnabled` 控制垂直同步；颜色尺寸取 `Surface.Width/Height`，`ColorFormat` 用于 `Color` 与插值输出。其余格式、辅助纹理尺寸、`IsHdr` 与 `Flags` 用于内部帧生成器。
+创建入口是 §2.7 的 `context.CreateFrameGenerationSwapChain(desc)`。`Surface` 指定呈现目标，`IsVerticalSyncEnabled` 控制垂直同步；颜色尺寸取 `Surface.Width/Height`，`ColorFormat` 用于 `Color` 与插值输出。其余格式、辅助纹理尺寸、`IsHdr` 与 `Flags` 用于内部帧生成对象。`Args` 中的帧间隔与 HDR 亮度范围遵循 §2.6。
 
 **输入纹理。** 交换链创建并拥有当前帧的整组纹理，调用方每帧获取并写入它们。对应关系如下，颜色与 UI 的语义见 §2.6：
 
@@ -395,7 +457,7 @@ public class FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSw
 
 后台生成上一真实帧与当前真实帧之间的一张插值帧，按“上一真实帧 → 插值帧 → 当前真实帧”的顺序呈现，并管理呈现节奏。首次提交或 `Reset` 为真时重置历史，只呈现当前真实帧。调用方负责渲染与命令提交，插帧与呈现调度由交换链内部完成。
 
-**尺寸与释放。** `Resize` 与 `Refresh` 分别更新呈现尺寸与 Surface，并由内部更新相关资源、重置历史。`Dispose` 负责结束后台任务并释放内部资源。
+**尺寸与释放。** `Resize` 与 `Refresh` 分别更新呈现尺寸与 Surface，并由内部更新相关资源、重置历史；辅助纹理尺寸保持为 `Desc.AuxiliaryWidth/Height`。辅助纹理尺寸或格式变化时重新创建交换链。`Dispose` 负责结束后台任务并释放内部资源。
 
 使用示例：
 
@@ -423,62 +485,79 @@ swapChain.Present(new()
     WorldToView = worldToView,
     ViewToClip = viewToClip,
     DeltaTimeInSeconds = deltaTimeInSeconds,
-    PreExposure = 1.0f,
     Reset = reset
 });
 ```
 
 ## 4. 后端映射
 
-公共参数与 DLSS、MetalFX、FSR 的映射如下：
+公共参数与 DLSS、MetalFX、FSR 的映射如下。下表描述后端可提供的能力，实际可用性由当前设备与图形 API 的能力查询确定。
 
 ### 4.1 能力
 
 | | DLSS | MetalFX | FSR |
 |---|---|---|---|
 | 超分 | 是 | 是 | 是 |
-| 降噪 + 超分 | 是 | 是 | 是（两段 pass） |
+| 光线重建 | 是 | 是 | 是（DirectX 12，降噪后超分） |
 | 帧生成 | 是 | 是 | 是 |
 
 ### 4.2 超分
 
 | 公共 | DLSS | MetalFX | FSR |
 |---|---|---|---|
-| `Desc` 尺寸 | `Width/Height` = 输出，`RenderWidth/Height` = 输入 | 输入/输出宽度 | `MaxRenderSize` / `MaxUpscaleSize` |
+| `Desc` 尺寸 | `Width/Height` = 输入，`TargetWidth/Height` = 输出 | 输入/输出宽度 | `MaxRenderSize` / `MaxUpscaleSize` |
 | `Color` | `Color` | `ColorTexture` | `Color` |
 | `Depth` | `Depth` | `DepthTexture` | `Depth` |
 | `MotionVectors` | `MotionVectors` | `MotionTexture` | `MotionVectors` |
-| `ReactiveMask` | `ReactiveMask` | `ReactiveMaskTexture` | `ReactiveMask` |
-| `Exposure` | `Exposure` | `ExposureTexture` | —— |
-| `PreExposure` | —— | `PreExposure` | `PreExposure`（曝光缩放） |
-| 抖动 | `JitterOffset` | `JitterOffsetX/Y` | `JitterOffset` |
-| 质量档 | `NGXPerfQualityValue` | `MTLFXScalingMode` | 由尺寸决定 |
+| `ReactiveMask` | `BiasCurrentColorMask` | `ReactiveMaskTexture` | `Reactive` |
+| `Exposure` | `ExposureTexture` | `ExposureTexture` | `Exposure` |
+| `PreExposure` | `PreExposure` | `PreExposure` | `PreExposure` |
+| `AutoExposure` | 自动曝光创建标志 | `IsAutoExposureEnabled` | 自动曝光创建标志 |
+| `IsHdr` | HDR 创建标志 | 读取线性颜色，无对应开关 | HDR 创建标志 |
+| `DepthInfinite` | 无对应创建标志 | 无对应创建标志 | 无限远深度创建标志 |
+| `JitterOffset` | `JitterOffsetX/Y` | `JitterOffsetX/Y` | `JitterOffset` |
+| `DeltaTimeInSeconds` | 不读取 | 不读取 | `FrameTimeDelta`，秒转换为毫秒 |
+| 质量档 | 查询建议尺寸并映射 `PerfQualityValue` | 根据支持的缩放范围计算尺寸 | 查询建议尺寸，由尺寸配置上下文 |
 
-运动向量统一是 UV 空间，三家后端各自乘以输入或输出尺寸，公共层不做换算。
+运动向量按 §2.2 的 UV 约定提供，后端转换为对应接口需要的单位。曝光纹理保持同一倍率语义；MetalFX 所需的 1×1 `R16Float` 表示由后端转换。[自动曝光与手动曝光](https://developer.apple.com/documentation/metalfx/mtlfxtemporalscalerdescriptor/isautoexposureenabled)互斥，`PreExposure` 始终描述线性颜色已有的倍率。
 
-### 4.3 降噪 + 超分
+### 4.3 光线重建
 
-DLSS 的 RR 与 MetalFX 的 Denoised Scaler 是一次调用完成降噪与超分，输入直接对应公共字段。
+DLSS Ray Reconstruction 与 MetalFX Denoised Scaler 在一次原生调用中完成降噪与超分，读取 `Color` 与对应的材质、深度、运动向量等输入。`TransparencyOverlay` 分别映射到透明层输入；曝光语义与 §2.3 一致。
 
-FSR 的降噪器（Ray Regeneration）与超分器是两个独立上下文，且降噪器只做降噪。因此 FSR 后端在内部按两段执行：
+FSR 使用独立的降噪与超分上下文，在同一个调用方命令缓冲中完成：
 
-1. 降噪上下文处理 G-buffer，输出与输入同尺寸的降噪结果；
-2. 超分上下文把降噪结果放大到输出尺寸。
+1. 使用 `LinearDepthDelta` 和已配置的直接、间接漫反射与镜面反射信号执行降噪。
+2. 将 `Color` 中这些信号的贡献替换为降噪结果乘以对应反照度后的贡献，其余场景颜色保持不变。
+3. 对合成后的线性颜色执行超分，写入 `Output`。
 
-两段都在调用方的命令缓冲里录制，对使用者表现为一次 `Dispatch`。FSR 降噪器需要按信号拆分的输入（漫反射、镜面反射等），后端内部用两到三次全屏 pass 把公共输入拆开与合回；公共 `Color` 始终是合成辐射度，与另外两家同义。
+`Color` 在三个后端都表示完整场景颜色；分离的辐射度信号由调用方提供，其含义遵循 [FSR Ray Regeneration 的信号输入约定](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/blob/main/Kits/FidelityFX/docs/techniques/denoising.md#12-signals)。FSR 后端将硬件深度转换为带符号线性深度，将 `MotionVectors` 与 `LinearDepthDelta` 合并为原生运动数据，将法线与粗糙度打包为原生表示。反照度使用线性输入模式，材质分类采用默认值；间接镜面信号的命中距离取 `SpecularHitDistance`。
 
-`DenoisingUpscalerArgs` 的字段集在三个后端完全相同。
+调用方使用一次 `RayReconstruction.Dispatch`，输出始终是完成降噪与超分的颜色纹理。
 
 ### 4.4 帧生成
 
-DLSS-G、MetalFX Frame Interpolator、FSR Frame Generation 都是单帧插值，公共字段一一对应：前两帧的视图矩阵决定相机运动，`JitterOffset` 与 `DeltaTimeInSeconds` 决定插值时刻，`Reset` 用于重新初始化历史。
+本扩展每次生成一张插值帧。后端按需读取当前帧的相机参数和帧间隔，保存必要的历史；`Reset` 同时重置相机与图像历史。
 
-三家的帧生成都不要求接管交换链。FSR 提供了交换链接管形式，本扩展不使用它——`FrameGenerationSwapChain` 由扩展自己实现，三个后端共用同一套呈现逻辑。
+| 公共 | DLSS | MetalFX | FSR |
+|---|---|---|---|
+| `Width/Height` | `Width/Height` | `OutputWidth/Height` | `DisplaySize` |
+| `AuxiliaryWidth/Height` | `RenderWidth/Height` 及深度、运动向量尺寸 | `InputWidth/Height` | `MaxRenderSize` 与当前 `RenderSize` |
+| `Color` | `Backbuffer` | 有 `Hudless` 时为已合成的 `UiTexture`，否则为 `ColorTexture` | `PresentColor` |
+| `Hudless` | `Hudless` | `ColorTexture`，启用 `IsUITextureComposited` | `HUDLessColor` |
+| `Output` | `OutputInterpFrame` | `OutputTexture` | 唯一的生成帧输出纹理 |
+| `IsHdr` | `ColorBuffersHDR` | 无对应开关 | HDR 创建标志与颜色传输函数 |
+| `DeltaTimeInSeconds` | 不直接读取 | `DeltaTime` | `FrameTimeDelta`，秒转换为毫秒 |
+| HDR 亮度范围 | 不读取 | 不读取 | `MinMaxLuminance` |
+
+不提供 `Hudless` 时，MetalFX 的 `UiTexture` 为空，`IsUITextureComposited` 为假；颜色与 UI 的映射遵循其[已合成 UI 纹理约定](https://developer.apple.com/documentation/metalfx/mtlfxframeinterpolatorbase/isuitexturecomposited)。FSR 的传输函数由 §2.6 的颜色约定确定，HDR 转换读取调用方提供的亮度范围。
+
+`FrameGeneration` 负责命令录制；`FrameGenerationSwapChain` 负责输入纹理、后台提交与呈现。交换链由扩展独立实现，三个帧生成后端使用同一套公共呈现流程。
 
 ## 5. 取舍
 
-1. **不做纯降噪。** 与 MetalFX 的能力面对齐，`DenoisingUpscaler` 始终包含超分。
-2. **帧生成只做单帧。** 多帧生成会把 `Args` 变成数组语义，收益不抵复杂度。
-3. **运动向量固定 UV 空间。** 尺寸换算由后端完成。
-4. **FSR 的信号拆分放在后端内部。** 公共参数不暴露 G-buffer 的信号结构，代价是 FSR 降噪路径多两次全屏 pass。
+1. **不做纯降噪。** `RayReconstruction` 始终输出完成降噪与超分的图像。
+2. **帧生成只做单帧。** 每次调用生成一张插值帧。
+3. **运动向量固定 UV 空间。** 单位与原生表示的转换由后端完成。
+4. **必要的降噪信号由调用方提供。** 公共参数包含语义明确的辐射度与深度变化纹理，后端负责读取所需输入并完成格式适配。
 5. **两套独立交换链。** `FrameGenerationSwapChain` 从 Surface 创建，拥有整组输入纹理和后台提交任务；调用方完成渲染后每帧调用一次 `Present`，由扩展负责插值帧和真实帧的呈现。
