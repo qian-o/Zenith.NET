@@ -2,9 +2,7 @@
 
 public abstract class RayReconstruction(RayReconstructionDesc desc) : DisposableObject
 {
-    private readonly RayReconstructionDesc desc = desc;
-
-    public ref readonly RayReconstructionDesc Desc => ref desc;
+    public RayReconstructionDesc Desc { get; } = desc;
 
     public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {

@@ -2,9 +2,7 @@
 
 public abstract class SuperResolution(SuperResolutionDesc desc) : DisposableObject
 {
-    private readonly SuperResolutionDesc desc = desc;
-
-    public ref readonly SuperResolutionDesc Desc => ref desc;
+    public SuperResolutionDesc Desc { get; } = desc;
 
     public void Dispatch(CommandBuffer commandBuffer, SuperResolutionArgs args)
     {
