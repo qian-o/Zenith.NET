@@ -15,7 +15,6 @@ internal class Renderer : DisposableObject
     private readonly OutputPass outputPass;
 
     private UpscalingPass? upscalingPass;
-    private FrameGenerationPass? frameGenerationPass;
     private double elapsedSeconds;
     private uint frameIndex;
 
@@ -58,29 +57,18 @@ internal class Renderer : DisposableObject
         }
     } = App.Context.UpscalingCapabilities.DenoisingUpscalerSupported;
 
-    public bool IsFrameGenerationEnabled
-    {
-        get;
-        set
-        {
-            if (field != value)
-            {
-                field = value;
+    public Texture Color => outputPass.Color;
 
-                Resize();
-            }
-        }
-    } = App.Context.UpscalingCapabilities.FrameGeneratorSupported;
-
-    public Texture Overlay => outputPass.Overlay;
-
-    public ReadOnlySpan<Texture> Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
+    public void Update(double deltaSeconds)
     {
         if (!IsPaused)
         {
             elapsedSeconds += deltaSeconds;
         }
+    }
 
+    public void Render(CommandBuffer commandBuffer, CameraHandler camera)
+    {
         uint sampleIndex = frameIndex + 1u;
         Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : new(GetHaltonSample(sampleIndex, 2u) - 0.5f, GetHaltonSample(sampleIndex, 3u) - 0.5f);
         bool reset = frameIndex is 0;
@@ -97,47 +85,40 @@ internal class Renderer : DisposableObject
         }
 
         outputPass.Record(commandBuffer, color, frameIndex);
-        frameGenerationPass?.Record(commandBuffer, outputPass.Color, pathTracingPass.Output, camera, jitterOffsetInPixels, deltaSeconds, reset);
 
         frameIndex++;
-
-        if (frameGenerationPass is null || reset)
-        {
-            return outputPass.Composite(commandBuffer, [outputPass.Color]);
-        }
-
-        return outputPass.Composite(commandBuffer, [frameGenerationPass.Color, outputPass.Color]);
     }
 
     public void Resize()
     {
-        upscalingPass?.Dispose();
-        upscalingPass = null;
-
         if (UpscalingMode is ZenithUpscalingMode mode)
         {
-            upscalingPass = new(mode, IsDenoisingEnabled);
+            if (upscalingPass is null || upscalingPass.Mode != mode || upscalingPass.IsDenoisingEnabled != IsDenoisingEnabled)
+            {
+                upscalingPass?.Dispose();
+                upscalingPass = new(mode, IsDenoisingEnabled);
+            }
+            else
+            {
+                upscalingPass.Resize();
+            }
+        }
+        else
+        {
+            upscalingPass?.Dispose();
+            upscalingPass = null;
         }
 
         UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(App.PhysicalWidth, App.PhysicalHeight);
 
         pathTracingPass.Resize(inputSize.Width, inputSize.Height);
-        outputPass.Resize(IsFrameGenerationEnabled ? 2 : 1);
-
-        frameGenerationPass?.Dispose();
-        frameGenerationPass = null;
-
-        if (IsFrameGenerationEnabled)
-        {
-            frameGenerationPass = new(inputSize.Width, inputSize.Height);
-        }
+        outputPass.Resize();
 
         frameIndex = 0;
     }
 
     protected override void Destroy()
     {
-        frameGenerationPass?.Dispose();
         upscalingPass?.Dispose();
         outputPass?.Dispose();
         pathTracingPass?.Dispose();

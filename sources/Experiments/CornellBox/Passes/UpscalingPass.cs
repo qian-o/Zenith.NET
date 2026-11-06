@@ -8,59 +8,24 @@ namespace CornellBox.Passes;
 
 internal class UpscalingPass : DisposableObject
 {
-    private readonly TemporalUpscaler? temporalUpscaler;
-    private readonly DenoisingUpscaler? denoisingUpscaler;
+    private TemporalUpscaler? temporalUpscaler;
+    private DenoisingUpscaler? denoisingUpscaler;
 
     public UpscalingPass(UpscalingMode mode, bool isDenoisingEnabled)
     {
-        if (isDenoisingEnabled)
-        {
-            InputSize = App.Context.GetDenoisingUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, mode);
+        Mode = mode;
+        IsDenoisingEnabled = isDenoisingEnabled;
 
-            denoisingUpscaler = App.Context.CreateDenoisingUpscaler(new()
-            {
-                ColorFormat = PixelFormat.R16G16B16A16Float,
-                DepthFormat = PixelFormat.R32Float,
-                MotionVectorsFormat = PixelFormat.R32G32Float,
-                DiffuseAlbedoFormat = PixelFormat.R16G16B16A16Float,
-                SpecularAlbedoFormat = PixelFormat.R16G16B16A16Float,
-                NormalsFormat = PixelFormat.R16G16B16A16Float,
-                RoughnessFormat = PixelFormat.R16Float,
-                SpecularHitDistanceFormat = PixelFormat.R32Float,
-                OutputFormat = PixelFormat.R16G16B16A16Float,
-                InputWidth = InputSize.Width,
-                InputHeight = InputSize.Height,
-                OutputWidth = App.PhysicalWidth,
-                OutputHeight = App.PhysicalHeight
-            });
-        }
-        else
-        {
-            InputSize = App.Context.GetTemporalUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, mode);
-
-            temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
-            {
-                ColorFormat = PixelFormat.R16G16B16A16Float,
-                DepthFormat = PixelFormat.R32Float,
-                MotionVectorsFormat = PixelFormat.R32G32Float,
-                OutputFormat = PixelFormat.R16G16B16A16Float,
-                InputWidth = InputSize.Width,
-                InputHeight = InputSize.Height,
-                OutputWidth = App.PhysicalWidth,
-                OutputHeight = App.PhysicalHeight,
-                Flags = UpscalingInputFlags.AutoExposure
-            });
-        }
-
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
-        });
+        CreateResources();
     }
 
-    public UpscalingInputSize InputSize { get; }
+    public UpscalingMode Mode { get; }
 
-    public Texture Color { get; }
+    public bool IsDenoisingEnabled { get; }
+
+    public UpscalingInputSize InputSize { get; private set; }
+
+    public Texture Color { get; private set; } = null!;
 
     public void Record(CommandBuffer commandBuffer, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffsetInPixels, bool reset)
     {
@@ -100,10 +65,71 @@ internal class UpscalingPass : DisposableObject
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
+    public void Resize()
+    {
+        DestroyResources();
+        CreateResources();
+    }
+
     protected override void Destroy()
     {
+        DestroyResources();
+    }
+
+    private void CreateResources()
+    {
+        if (IsDenoisingEnabled)
+        {
+            InputSize = App.Context.GetDenoisingUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
+
+            denoisingUpscaler = App.Context.CreateDenoisingUpscaler(new()
+            {
+                ColorFormat = PixelFormat.R16G16B16A16Float,
+                DepthFormat = PixelFormat.R32Float,
+                MotionVectorsFormat = PixelFormat.R32G32Float,
+                DiffuseAlbedoFormat = PixelFormat.R16G16B16A16Float,
+                SpecularAlbedoFormat = PixelFormat.R16G16B16A16Float,
+                NormalsFormat = PixelFormat.R16G16B16A16Float,
+                RoughnessFormat = PixelFormat.R16Float,
+                SpecularHitDistanceFormat = PixelFormat.R32Float,
+                OutputFormat = PixelFormat.R16G16B16A16Float,
+                InputWidth = InputSize.Width,
+                InputHeight = InputSize.Height,
+                OutputWidth = App.PhysicalWidth,
+                OutputHeight = App.PhysicalHeight
+            });
+        }
+        else
+        {
+            InputSize = App.Context.GetTemporalUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
+
+            temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
+            {
+                ColorFormat = PixelFormat.R16G16B16A16Float,
+                DepthFormat = PixelFormat.R32Float,
+                MotionVectorsFormat = PixelFormat.R32G32Float,
+                OutputFormat = PixelFormat.R16G16B16A16Float,
+                InputWidth = InputSize.Width,
+                InputHeight = InputSize.Height,
+                OutputWidth = App.PhysicalWidth,
+                OutputHeight = App.PhysicalHeight,
+                Flags = UpscalingInputFlags.AutoExposure
+            });
+        }
+
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
+        });
+    }
+
+    private void DestroyResources()
+    {
         Color?.Dispose();
+        Color = null!;
         denoisingUpscaler?.Dispose();
+        denoisingUpscaler = null;
         temporalUpscaler?.Dispose();
+        temporalUpscaler = null;
     }
 }

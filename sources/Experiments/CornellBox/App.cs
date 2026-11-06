@@ -18,8 +18,8 @@ internal static class App
 {
     private static readonly IWindow window;
     private static readonly IInputContext input;
+    private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
-    private static readonly FramePresenter presenter;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
 
@@ -49,7 +49,6 @@ internal static class App
 
         window = Window.Create(WindowOptions.Default with
         {
-            IsEventDriven = true,
             Size = new(1280, 720),
             API = GraphicsAPI.None,
             Title = "Cornell Box - Zenith.NET"
@@ -57,7 +56,8 @@ internal static class App
         window.Initialize();
         window.Center();
 
-        imGui = new(input = window.CreateInput());
+        input = window.CreateInput();
+        imGui = new(input);
 
         Context.InitializeImGui(imGui, new()
         {
@@ -65,32 +65,27 @@ internal static class App
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
 
-        uint physicalWidth = (uint)window.FramebufferSize.X;
-        uint physicalHeight = (uint)window.FramebufferSize.Y;
-
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, physicalWidth, physicalHeight);
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, PhysicalWidth, PhysicalHeight);
         }
         else if (OperatingSystem.IsMacOS())
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), physicalWidth, physicalHeight);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), PhysicalWidth, PhysicalHeight);
         }
         else
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, physicalWidth, physicalHeight);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, PhysicalWidth, PhysicalHeight);
         }
 
-        presenter = new(Context, new()
+        swapChain = Context.CreateSwapChain(new()
         {
             Surface = surface,
-            Format = PixelFormat.B8G8R8A8UNorm,
-            IsVerticalSyncEnabled = false,
-            IsPresentQueueEnabled = true
+            Format = PixelFormat.B8G8R8A8UNorm
         });
 
-        camera = new(new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
+        camera = new(input, new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
         {
             FarPlane = 8000.0f,
             Speed = 240.0f
@@ -113,27 +108,19 @@ internal static class App
 
     public static void Run()
     {
-        presenter.Render += OnRender;
-        presenter.Resize += renderer.Resize;
-
+        window.Update += OnUpdate;
+        window.Render += OnRender;
         window.FramebufferResize += OnFramebufferResize;
-        window.Closing += presenter.Stop;
 
-        presenter.Start();
+        window.Run();
 
-        while (!window.IsClosing)
-        {
-            window.DoEvents();
-        }
-
-        window.Closing -= presenter.Stop;
         window.FramebufferResize -= OnFramebufferResize;
-
-        presenter.Resize -= renderer.Resize;
-        presenter.Render -= OnRender;
+        window.Render -= OnRender;
+        window.Update -= OnUpdate;
 
         renderer.Dispose();
-        presenter.Dispose();
+        camera.Dispose();
+        swapChain.Dispose();
         imGui.Dispose();
         input.Dispose();
         window.Dispose();
@@ -141,36 +128,60 @@ internal static class App
         Context.Dispose();
     }
 
-    private static void OnRender(CommandBuffer commandBuffer, double deltaSeconds)
+    private static void OnUpdate(double deltaSeconds)
     {
-        imGui.Update();
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        {
+            return;
+        }
+
         camera.Update(deltaSeconds);
+        renderer.Update(deltaSeconds);
 
         Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
 
         ImGuiHelper.Overlay(DrawOverlay);
         ImGuiHelper.Settings(DrawSettings);
 
-        commandBuffer.Transition(renderer.Overlay, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(renderer.Overlay, Vector4.Zero));
-        commandBuffer.Transition(renderer.Overlay, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(LogicalWidth, LogicalHeight));
+    }
 
-        foreach (Texture frame in renderer.Render(commandBuffer, camera, deltaSeconds))
+    private static void OnRender(double deltaSeconds)
+    {
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
-            presenter.Submit(commandBuffer, frame);
+            return;
         }
+
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+        renderer.Render(commandBuffer, camera);
+
+        Texture drawable = swapChain.Drawable;
+        commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+        commandBuffer.Submit().Wait();
+
+        swapChain.Present();
     }
 
     private static void OnFramebufferResize(Vector2D<int> size)
     {
-        presenter.RequestResize(PhysicalWidth, PhysicalHeight);
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        {
+            return;
+        }
+
+        renderer.Resize();
+        swapChain.Resize(PhysicalWidth, PhysicalHeight);
     }
 
     private static void DrawOverlay()
     {
         ImGui.Text(Context.Capabilities.DeviceName);
         ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-        ImGui.Text($"FPS: {presenter.FramesPerSecond:F1}");
+        ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
     }
 
     private static void DrawSettings()
@@ -180,6 +191,8 @@ internal static class App
         {
             renderer.IsPaused = isPaused;
         }
+
+        ImGui.Separator();
 
         ImGui.BeginDisabled(!Context.UpscalingCapabilities.TemporalUpscalerSupported);
 
@@ -197,16 +210,6 @@ internal static class App
         if (ImGui.Checkbox("Denoising", ref isDenoisingEnabled))
         {
             renderer.IsDenoisingEnabled = isDenoisingEnabled;
-        }
-
-        ImGui.EndDisabled();
-
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.FrameGeneratorSupported);
-
-        bool isFrameGenerationEnabled = renderer.IsFrameGenerationEnabled;
-        if (ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled))
-        {
-            renderer.IsFrameGenerationEnabled = isFrameGenerationEnabled;
         }
 
         ImGui.EndDisabled();

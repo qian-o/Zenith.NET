@@ -1,12 +1,29 @@
 ﻿using System.Numerics;
-using Hexa.NET.ImGui;
+using Silk.NET.Input;
+using Zenith.NET;
 
 namespace CornellBox.Handlers;
 
-internal class CameraHandler
+internal class CameraHandler : DisposableObject
 {
-    public CameraHandler(Vector3 position, Vector3 target)
+    private readonly IMouse mouse;
+    private readonly IKeyboard keyboard;
+    private readonly HashSet<Key> keyDowns = [];
+
+    private Vector2? lastMousePosition;
+    private Vector2? clickPosition;
+
+    public CameraHandler(IInputContext input, Vector3 position, Vector3 target)
     {
+        mouse = input.Mice[0];
+        keyboard = input.Keyboards[0];
+
+        mouse.MouseDown += OnMouseDown;
+        mouse.MouseUp += OnMouseUp;
+        mouse.MouseMove += OnMouseMove;
+        keyboard.KeyDown += OnKeyDown;
+        keyboard.KeyUp += OnKeyUp;
+
         Position = position;
         Forward = Vector3.Normalize(target - position);
         Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
@@ -35,50 +52,121 @@ internal class CameraHandler
 
     public void Update(double deltaSeconds)
     {
-        if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
-        {
-            Rotate(ImGui.GetIO().MouseDelta);
-        }
-
         float distance = Speed * (float)deltaSeconds;
 
-        if (ImGui.IsKeyDown(ImGuiKey.W))
+        if (keyDowns.Contains(Key.W))
         {
             Position += Forward * distance;
         }
 
-        if (ImGui.IsKeyDown(ImGuiKey.S))
+        if (keyDowns.Contains(Key.S))
         {
             Position -= Forward * distance;
         }
 
-        if (ImGui.IsKeyDown(ImGuiKey.A))
+        if (keyDowns.Contains(Key.A))
         {
             Position -= Right * distance;
         }
 
-        if (ImGui.IsKeyDown(ImGuiKey.D))
+        if (keyDowns.Contains(Key.D))
         {
             Position += Right * distance;
         }
 
-        if (ImGui.IsKeyDown(ImGuiKey.Q))
+        if (keyDowns.Contains(Key.Q))
         {
             Position -= Up * distance;
         }
 
-        if (ImGui.IsKeyDown(ImGuiKey.E))
+        if (keyDowns.Contains(Key.E))
         {
             Position += Up * distance;
         }
     }
 
-    private void Rotate(Vector2 delta)
+    public bool TryConsumeClickRay(out Vector3 origin, out Vector3 direction)
+    {
+        if (!clickPosition.HasValue)
+        {
+            origin = default;
+            direction = default;
+
+            return false;
+        }
+
+        Vector2 position = clickPosition.Value;
+        clickPosition = null;
+
+        float x = (position.X / App.LogicalWidth * 2.0f) - 1.0f;
+        float y = 1.0f - (position.Y / App.LogicalHeight * 2.0f);
+
+        Matrix4x4.Invert(Projection, out Matrix4x4 inverseProjection);
+        Matrix4x4.Invert(View, out Matrix4x4 inverseView);
+
+        Vector4 target = Vector4.Transform(new Vector4(x, y, 1.0f, 1.0f), inverseProjection);
+        Vector3 localDirection = Vector3.Normalize(new(target.X / target.W, target.Y / target.W, target.Z / target.W));
+
+        origin = Position;
+        direction = Vector3.Normalize(Vector3.TransformNormal(localDirection, inverseView));
+
+        return true;
+    }
+
+    protected override void Destroy()
+    {
+        if (keyboard is not null)
+        {
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
+        }
+
+        if (mouse is not null)
+        {
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
+        }
+
+        keyDowns.Clear();
+        clickPosition = null;
+        lastMousePosition = null;
+    }
+
+    private void OnMouseDown(IMouse mouse, MouseButton button)
+    {
+        if (button is MouseButton.Right)
+        {
+            lastMousePosition = mouse.Position;
+        }
+        else if (button is MouseButton.Left)
+        {
+            clickPosition = mouse.Position;
+        }
+    }
+
+    private void OnMouseUp(IMouse mouse, MouseButton button)
+    {
+        if (button is MouseButton.Right)
+        {
+            lastMousePosition = null;
+        }
+    }
+
+    private void OnMouseMove(IMouse mouse, Vector2 position)
     {
         const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
-        float yaw = -(delta.X * MathF.PI / App.LogicalWidth);
-        float pitch = -(delta.Y * MathF.PI / App.LogicalHeight);
+        if (!lastMousePosition.HasValue)
+        {
+            return;
+        }
+
+        float pixelToRadianX = MathF.PI / App.LogicalWidth;
+        float pixelToRadianY = MathF.PI / App.LogicalHeight;
+        Vector2 delta = position - lastMousePosition.Value;
+        float yaw = -(delta.X * pixelToRadianX);
+        float pitch = -(delta.Y * pixelToRadianY);
         float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
 
         pitch = newPitch - MathF.Asin(Forward.Y);
@@ -88,5 +176,17 @@ internal class CameraHandler
         Forward = Vector3.Normalize(Forward);
         Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
+
+        lastMousePosition = position;
+    }
+
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
+    {
+        keyDowns.Add(key);
+    }
+
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
+    {
+        keyDowns.Remove(key);
     }
 }

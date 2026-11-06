@@ -10,8 +10,6 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
-    private readonly Lock @lock = new();
-    private readonly List<ImGuiInputArgs> inputs = [];
 
     public ImGuiHandler(IInputContext input)
     {
@@ -63,17 +61,6 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
     {
     }
 
-    public void Update()
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        foreach (ImGuiInputArgs args in inputs)
-        {
-            Input?.Invoke(this, args);
-        }
-        inputs.Clear();
-    }
-
     protected override void Destroy()
     {
         if (keyboard is not null)
@@ -92,18 +79,11 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
         }
     }
 
-    private void AddInput(ImGuiInputArgs args)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        inputs.Add(args);
-    }
-
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
         if (button is >= MouseButton.Left and <= MouseButton.Button5)
         {
-            AddInput(new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)button });
+            Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)button });
         }
     }
 
@@ -111,35 +91,35 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
     {
         if (button is >= MouseButton.Left and <= MouseButton.Button5)
         {
-            AddInput(new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)button });
+            Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)button });
         }
     }
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        AddInput(new(ImGuiInput.MouseMove) { Position = position });
+        Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = position });
     }
 
     private void OnMouseScroll(IMouse mouse, ScrollWheel offset)
     {
-        AddInput(new(ImGuiInput.MouseWheel) { Offset = new(offset.X, offset.Y) });
+        Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = new(offset.X, offset.Y) });
     }
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
-        AddInput(new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(key) });
-        AddInput(new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
-        AddInput(new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(key) });
-        AddInput(new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private void OnKeyChar(IKeyboard keyboard, char c)
     {
-        AddInput(new(ImGuiInput.TextInput) { Character = c });
+        Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = c });
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
