@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling;
 
-public struct FrameGeneratorArgs
+public struct FrameGenerationArgs
 {
     public Texture Color;
 
@@ -10,19 +10,21 @@ public struct FrameGeneratorArgs
 
     public Texture MotionVectors;
 
-    public Texture? UI;
+    public Texture? Hudless;
 
     public Texture Output;
 
-    public float DeltaTimeInSeconds;
-
     public Vector2 JitterOffset;
-
-    public Vector2 MotionVectorScale;
 
     public Matrix4x4 WorldToView;
 
     public Matrix4x4 ViewToClip;
+
+    public float DeltaTimeInSeconds;
+
+    public float MinLuminanceInNits;
+
+    public float MaxLuminanceInNits;
 
     public bool Reset;
 }

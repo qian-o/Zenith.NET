@@ -1,4 +1,5 @@
 ﻿using Zenith.NET.Extensions.Upscaling.DLSS;
+using Zenith.NET.Extensions.Upscaling.FSR;
 using Zenith.NET.Extensions.Upscaling.MetalFX;
 
 namespace Zenith.NET.Extensions.Upscaling;
@@ -6,15 +7,17 @@ namespace Zenith.NET.Extensions.Upscaling;
 internal class UpscalingBridge : DisposableObject
 {
     private readonly List<Vendor> vendors = [];
-    private readonly Vendor? temporalUpscalerVendor;
-    private readonly Vendor? denoisingUpscalerVendor;
-    private readonly Vendor? frameGeneratorVendor;
+    private readonly Vendor? superResolutionVendor;
+    private readonly Vendor? rayReconstructionVendor;
+    private readonly Vendor? frameGenerationVendor;
 
     public UpscalingBridge(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
     {
+        Context = context;
+
         foreach (UpscalingApi api in apis.ToArray().Distinct())
         {
-            if (temporalUpscalerVendor is not null && denoisingUpscalerVendor is not null && frameGeneratorVendor is not null)
+            if (superResolutionVendor is not null && rayReconstructionVendor is not null && frameGenerationVendor is not null)
             {
                 break;
             }
@@ -25,11 +28,11 @@ internal class UpscalingBridge : DisposableObject
             }
 
             UpscalingCapabilities capabilities = vendor.Capabilities;
-            temporalUpscalerVendor ??= capabilities.TemporalUpscalerSupported ? vendor : null;
-            denoisingUpscalerVendor ??= capabilities.DenoisingUpscalerSupported ? vendor : null;
-            frameGeneratorVendor ??= capabilities.FrameGeneratorSupported ? vendor : null;
+            superResolutionVendor ??= capabilities.SuperResolutionSupported ? vendor : null;
+            rayReconstructionVendor ??= capabilities.RayReconstructionSupported ? vendor : null;
+            frameGenerationVendor ??= capabilities.FrameGenerationSupported ? vendor : null;
 
-            if (vendor == temporalUpscalerVendor || vendor == denoisingUpscalerVendor || vendor == frameGeneratorVendor)
+            if (vendor == superResolutionVendor || vendor == rayReconstructionVendor || vendor == frameGenerationVendor)
             {
                 vendors.Add(vendor);
             }
@@ -44,34 +47,41 @@ internal class UpscalingBridge : DisposableObject
             throw new NotSupportedException("This device does not support any of the specified upscaling APIs.");
         }
 
-        Capabilities = new(temporalUpscalerVendor is not null, denoisingUpscalerVendor is not null, frameGeneratorVendor is not null);
+        Capabilities = new(superResolutionVendor is not null, rayReconstructionVendor is not null, frameGenerationVendor is not null);
     }
+
+    public GraphicsContext Context { get; }
 
     public UpscalingCapabilities Capabilities { get; }
 
-    public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return GetVendor(temporalUpscalerVendor, "temporal upscaler").GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode);
+        return GetVendor(superResolutionVendor, "super resolution").GetSuperResolutionInputSize(outputWidth, outputHeight, mode);
     }
 
-    public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return GetVendor(denoisingUpscalerVendor, "denoising upscaler").GetDenoisingUpscalerInputSize(outputWidth, outputHeight, mode);
+        return GetVendor(rayReconstructionVendor, "ray reconstruction").GetRayReconstructionInputSize(outputWidth, outputHeight, mode);
     }
 
-    public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
+    public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
-        return GetVendor(temporalUpscalerVendor, "temporal upscaler").CreateTemporalUpscaler(desc);
+        return GetVendor(superResolutionVendor, "super resolution").CreateSuperResolution(desc);
     }
 
-    public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
+    public RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc)
     {
-        return GetVendor(denoisingUpscalerVendor, "denoising upscaler").CreateDenoisingUpscaler(desc);
+        return GetVendor(rayReconstructionVendor, "ray reconstruction").CreateRayReconstruction(desc);
     }
 
-    public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
+    public FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc)
     {
-        return GetVendor(frameGeneratorVendor, "frame generator").CreateFrameGenerator(desc);
+        return GetVendor(frameGenerationVendor, "frame generation").CreateFrameGeneration(desc);
+    }
+
+    public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc)
+    {
+        return new(Context, desc);
     }
 
     protected override void Destroy()
@@ -86,8 +96,9 @@ internal class UpscalingBridge : DisposableObject
     {
         return api switch
         {
-            UpscalingApi.DLSS when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => DLSSVendor.TryCreate(context, out DLSSVendor? dlssVendor) ? dlssVendor : null,
-            UpscalingApi.MetalFX when context.GraphicsApi is GraphicsApi.Metal => MetalFXVendor.TryCreate(context, out MetalFXVendor? metalFXVendor) ? metalFXVendor : null,
+            UpscalingApi.DLSS when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => new DLSSVendor(context),
+            UpscalingApi.FSR when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => new FSRVendor(context),
+            UpscalingApi.MetalFX when context.GraphicsApi is GraphicsApi.Metal => new MetalFXVendor(context),
             _ => default
         };
     }
@@ -102,13 +113,13 @@ internal abstract class Vendor : DisposableObject
 {
     public abstract UpscalingCapabilities Capabilities { get; }
 
-    public abstract UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+    public abstract UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-    public abstract UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+    public abstract UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
 
-    public abstract TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc);
+    public abstract SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
 
-    public abstract DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc);
+    public abstract RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
 
-    public abstract FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc);
+    public abstract FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc);
 }

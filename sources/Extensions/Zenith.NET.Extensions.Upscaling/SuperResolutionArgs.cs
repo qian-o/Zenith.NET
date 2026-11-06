@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling;
 
-public struct TemporalUpscalerArgs
+public struct SuperResolutionArgs
 {
     public Texture Color;
 
@@ -10,15 +10,19 @@ public struct TemporalUpscalerArgs
 
     public Texture MotionVectors;
 
-    public Texture? Exposure;
-
     public Texture? ReactiveMask;
+
+    public Texture? Exposure;
 
     public Texture Output;
 
     public Vector2 JitterOffset;
 
-    public Vector2 MotionVectorScale;
+    public Matrix4x4 WorldToView;
+
+    public Matrix4x4 ViewToClip;
+
+    public float DeltaTimeInSeconds;
 
     public float PreExposure;
 

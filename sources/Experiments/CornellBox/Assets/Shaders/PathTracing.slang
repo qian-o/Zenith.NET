@@ -574,7 +574,7 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
     return radiance;
 }
 
-// Environment BRDF approximation for the denoising upscaler specular albedo guide.
+// Environment BRDF approximation for the ray reconstruction specular albedo guide.
 float3 SpecularReflectance(float3 specularColor, float roughness, float NdotV)
 {
     float alpha = roughness * roughness;
@@ -597,7 +597,7 @@ float2 MotionVector(float4 currentClip, float4 previousClip)
     float2 currentNdc = currentClip.xy / currentClip.w;
     float2 previousNdc = previousClip.xy / previousClip.w;
 
-    return (previousNdc - currentNdc) * float2(0.5, -0.5) * pathTracing.RenderSize;
+    return (previousNdc - currentNdc) * float2(0.5, -0.5);
 }
 
 void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, float specularHitDistance)

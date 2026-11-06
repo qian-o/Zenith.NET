@@ -9,7 +9,5 @@ public enum UpscalingInputFlags
 
     AutoExposure = 1 << 1,
 
-    JitteredMotionVectors = 1 << 2,
-
-    OutputResolutionMotionVectors = 1 << 3
+    DepthInfinite = 1 << 2
 }

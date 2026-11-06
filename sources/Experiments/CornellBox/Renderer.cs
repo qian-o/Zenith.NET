@@ -41,9 +41,9 @@ internal class Renderer : DisposableObject
                 Resize();
             }
         }
-    } = App.Context.UpscalingCapabilities.TemporalUpscalerSupported ? ZenithUpscalingMode.Quality : null;
+    } = App.Context.UpscalingCapabilities.SuperResolutionSupported ? ZenithUpscalingMode.Quality : null;
 
-    public bool IsDenoisingEnabled
+    public bool IsRayReconstructionEnabled
     {
         get;
         set
@@ -55,7 +55,7 @@ internal class Renderer : DisposableObject
                 Resize();
             }
         }
-    } = App.Context.UpscalingCapabilities.DenoisingUpscalerSupported;
+    } = App.Context.UpscalingCapabilities.RayReconstructionSupported;
 
     public Texture Color => outputPass.Color;
 
@@ -67,7 +67,7 @@ internal class Renderer : DisposableObject
         }
     }
 
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera)
+    public void Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
         uint sampleIndex = frameIndex + 1u;
         Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : new(GetHaltonSample(sampleIndex, 2u) - 0.5f, GetHaltonSample(sampleIndex, 3u) - 0.5f);
@@ -80,7 +80,7 @@ internal class Renderer : DisposableObject
 
         if (upscalingPass is not null)
         {
-            upscalingPass.Record(commandBuffer, pathTracingPass.Output, camera, jitterOffsetInPixels, reset);
+            upscalingPass.Record(commandBuffer, pathTracingPass.Output, camera, jitterOffsetInPixels, (float)deltaSeconds, reset);
             color = upscalingPass.Color;
         }
 
@@ -93,10 +93,10 @@ internal class Renderer : DisposableObject
     {
         if (UpscalingMode is ZenithUpscalingMode mode)
         {
-            if (upscalingPass is null || upscalingPass.Mode != mode || upscalingPass.IsDenoisingEnabled != IsDenoisingEnabled)
+            if (upscalingPass is null || upscalingPass.Mode != mode || upscalingPass.IsRayReconstructionEnabled != IsRayReconstructionEnabled)
             {
                 upscalingPass?.Dispose();
-                upscalingPass = new(mode, IsDenoisingEnabled);
+                upscalingPass = new(mode, IsRayReconstructionEnabled);
             }
             else
             {

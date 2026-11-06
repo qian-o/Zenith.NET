@@ -4,5 +4,7 @@ public enum UpscalingApi
 {
     DLSS,
 
+    FSR,
+
     MetalFX
 }

@@ -43,7 +43,7 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.MetalFX]);
+        Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.FSR, UpscalingApi.MetalFX]);
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
@@ -155,7 +155,7 @@ internal static class App
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        renderer.Render(commandBuffer, camera);
+        renderer.Render(commandBuffer, camera, deltaSeconds);
 
         Texture drawable = swapChain.Drawable;
         commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
@@ -194,7 +194,7 @@ internal static class App
 
         ImGui.Separator();
 
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.TemporalUpscalerSupported);
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.SuperResolutionSupported);
 
         int upscalingModeIndex = renderer.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
         if (ImGui.Combo("Upscaling Mode", ref upscalingModeIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
@@ -204,12 +204,12 @@ internal static class App
 
         ImGui.EndDisabled();
 
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.DenoisingUpscalerSupported || renderer.UpscalingMode is null);
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.RayReconstructionSupported || renderer.UpscalingMode is null);
 
-        bool isDenoisingEnabled = renderer.IsDenoisingEnabled;
-        if (ImGui.Checkbox("Denoising", ref isDenoisingEnabled))
+        bool isRayReconstructionEnabled = renderer.IsRayReconstructionEnabled;
+        if (ImGui.Checkbox("Ray Reconstruction", ref isRayReconstructionEnabled))
         {
-            renderer.IsDenoisingEnabled = isDenoisingEnabled;
+            renderer.IsRayReconstructionEnabled = isRayReconstructionEnabled;
         }
 
         ImGui.EndDisabled();

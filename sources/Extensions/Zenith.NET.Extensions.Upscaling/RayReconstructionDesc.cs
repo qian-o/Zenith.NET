@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public struct DenoisingUpscalerDesc
+public struct RayReconstructionDesc
 {
     public PixelFormat ColorFormat;
 
@@ -18,11 +18,23 @@ public struct DenoisingUpscalerDesc
 
     public PixelFormat SpecularHitDistanceFormat;
 
+    public PixelFormat? LinearDepthDeltaFormat;
+
+    public PixelFormat? DirectDiffuseRadianceFormat;
+
+    public PixelFormat? DirectSpecularRadianceFormat;
+
+    public PixelFormat? IndirectDiffuseRadianceFormat;
+
+    public PixelFormat? IndirectSpecularRadianceFormat;
+
     public PixelFormat? ReactiveMaskFormat;
 
     public PixelFormat? TransparencyOverlayFormat;
 
     public PixelFormat OutputFormat;
+
+    public bool IsHdr;
 
     public uint InputWidth;
 

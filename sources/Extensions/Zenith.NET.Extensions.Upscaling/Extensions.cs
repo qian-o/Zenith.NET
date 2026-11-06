@@ -29,29 +29,34 @@ public static class Extensions
 
         public UpscalingCapabilities UpscalingCapabilities => GetBridge(context).Capabilities;
 
-        public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+        public UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
         {
-            return GetBridge(context).GetTemporalUpscalerInputSize(outputWidth, outputHeight, mode);
+            return GetBridge(context).GetSuperResolutionInputSize(outputWidth, outputHeight, mode);
         }
 
-        public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+        public UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
         {
-            return GetBridge(context).GetDenoisingUpscalerInputSize(outputWidth, outputHeight, mode);
+            return GetBridge(context).GetRayReconstructionInputSize(outputWidth, outputHeight, mode);
         }
 
-        public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc)
+        public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
         {
-            return GetBridge(context).CreateTemporalUpscaler(desc);
+            return GetBridge(context).CreateSuperResolution(desc);
         }
 
-        public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc)
+        public RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc)
         {
-            return GetBridge(context).CreateDenoisingUpscaler(desc);
+            return GetBridge(context).CreateRayReconstruction(desc);
         }
 
-        public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc)
+        public FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc)
         {
-            return GetBridge(context).CreateFrameGenerator(desc);
+            return GetBridge(context).CreateFrameGeneration(desc);
+        }
+
+        public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc)
+        {
+            return GetBridge(context).CreateFrameGenerationSwapChain(desc);
         }
     }
 

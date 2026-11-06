@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public struct TemporalUpscalerDesc
+public struct SuperResolutionDesc
 {
     public PixelFormat ColorFormat;
 
@@ -11,6 +11,8 @@ public struct TemporalUpscalerDesc
     public PixelFormat? ReactiveMaskFormat;
 
     public PixelFormat OutputFormat;
+
+    public bool IsHdr;
 
     public uint InputWidth;
 

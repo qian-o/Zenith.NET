@@ -8,42 +8,44 @@ namespace CornellBox.Passes;
 
 internal class UpscalingPass : DisposableObject
 {
-    private TemporalUpscaler? temporalUpscaler;
-    private DenoisingUpscaler? denoisingUpscaler;
+    private SuperResolution? superResolution;
+    private RayReconstruction? rayReconstruction;
 
-    public UpscalingPass(UpscalingMode mode, bool isDenoisingEnabled)
+    public UpscalingPass(UpscalingMode mode, bool isRayReconstructionEnabled)
     {
         Mode = mode;
-        IsDenoisingEnabled = isDenoisingEnabled;
+        IsRayReconstructionEnabled = isRayReconstructionEnabled;
 
         CreateResources();
     }
 
     public UpscalingMode Mode { get; }
 
-    public bool IsDenoisingEnabled { get; }
+    public bool IsRayReconstructionEnabled { get; }
 
     public UpscalingInputSize InputSize { get; private set; }
 
     public Texture Color { get; private set; } = null!;
 
-    public void Record(CommandBuffer commandBuffer, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffsetInPixels, bool reset)
+    public void Record(CommandBuffer commandBuffer, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffsetInPixels, float deltaTimeInSeconds, bool reset)
     {
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
 
-        temporalUpscaler?.Dispatch(commandBuffer, new()
+        superResolution?.Dispatch(commandBuffer, new()
         {
             Color = input.Color,
             Depth = input.Depth,
             MotionVectors = input.MotionVectors,
             Output = Color,
             JitterOffset = -jitterOffsetInPixels,
-            MotionVectorScale = Vector2.One,
+            WorldToView = camera.View,
+            ViewToClip = camera.Projection,
+            DeltaTimeInSeconds = deltaTimeInSeconds,
             PreExposure = 1.0f,
             Reset = reset
         });
 
-        denoisingUpscaler?.Dispatch(commandBuffer, new()
+        rayReconstruction?.Dispatch(commandBuffer, new()
         {
             Color = input.Color,
             Depth = input.Depth,
@@ -55,9 +57,9 @@ internal class UpscalingPass : DisposableObject
             SpecularHitDistance = input.SpecularHitDistance,
             Output = Color,
             JitterOffset = -jitterOffsetInPixels,
-            MotionVectorScale = Vector2.One,
             WorldToView = camera.View,
             ViewToClip = camera.Projection,
+            DeltaTimeInSeconds = deltaTimeInSeconds,
             PreExposure = 1.0f,
             Reset = reset
         });
@@ -78,11 +80,11 @@ internal class UpscalingPass : DisposableObject
 
     private void CreateResources()
     {
-        if (IsDenoisingEnabled)
+        if (IsRayReconstructionEnabled)
         {
-            InputSize = App.Context.GetDenoisingUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
+            InputSize = App.Context.GetRayReconstructionInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
 
-            denoisingUpscaler = App.Context.CreateDenoisingUpscaler(new()
+            rayReconstruction = App.Context.CreateRayReconstruction(new()
             {
                 ColorFormat = PixelFormat.R16G16B16A16Float,
                 DepthFormat = PixelFormat.R32Float,
@@ -93,22 +95,25 @@ internal class UpscalingPass : DisposableObject
                 RoughnessFormat = PixelFormat.R16Float,
                 SpecularHitDistanceFormat = PixelFormat.R32Float,
                 OutputFormat = PixelFormat.R16G16B16A16Float,
+                IsHdr = true,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
                 OutputWidth = App.PhysicalWidth,
-                OutputHeight = App.PhysicalHeight
+                OutputHeight = App.PhysicalHeight,
+                Flags = UpscalingInputFlags.AutoExposure
             });
         }
         else
         {
-            InputSize = App.Context.GetTemporalUpscalerInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
+            InputSize = App.Context.GetSuperResolutionInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
 
-            temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
+            superResolution = App.Context.CreateSuperResolution(new()
             {
                 ColorFormat = PixelFormat.R16G16B16A16Float,
                 DepthFormat = PixelFormat.R32Float,
                 MotionVectorsFormat = PixelFormat.R32G32Float,
                 OutputFormat = PixelFormat.R16G16B16A16Float,
+                IsHdr = true,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
                 OutputWidth = App.PhysicalWidth,
@@ -127,9 +132,9 @@ internal class UpscalingPass : DisposableObject
     {
         Color?.Dispose();
         Color = null!;
-        denoisingUpscaler?.Dispose();
-        denoisingUpscaler = null;
-        temporalUpscaler?.Dispose();
-        temporalUpscaler = null;
+        rayReconstruction?.Dispose();
+        rayReconstruction = null;
+        superResolution?.Dispose();
+        superResolution = null;
     }
 }
