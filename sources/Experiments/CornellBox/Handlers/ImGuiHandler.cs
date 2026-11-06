@@ -81,7 +81,7 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        if (button is >= MouseButton.Left and <= MouseButton.Button5)
+        if (button >= MouseButton.Left && button <= MouseButton.Button5)
         {
             Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)button });
         }
@@ -89,7 +89,7 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        if (button is >= MouseButton.Left and <= MouseButton.Button5)
+        if (button >= MouseButton.Left && button <= MouseButton.Button5)
         {
             Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)button });
         }

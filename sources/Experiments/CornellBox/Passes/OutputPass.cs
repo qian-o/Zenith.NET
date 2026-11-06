@@ -6,12 +6,12 @@ namespace CornellBox.Passes;
 
 internal unsafe class OutputPass : DisposableObject
 {
-    private readonly Buffer constants;
+    private readonly Buffer constantBuffer;
     private readonly GraphicsPipeline toneMappingPipeline;
 
     public OutputPass()
     {
-        constants = App.Context.CreateBuffer(new()
+        constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = 256,
             Usages = BufferUsages.Constant,
@@ -29,7 +29,7 @@ internal unsafe class OutputPass : DisposableObject
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             AttachmentFormats = new()
             {
-                ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+                ColorFormats = [App.ColorFormat],
                 SampleCount = SampleCount.Count1
             },
             RenderState = new()
@@ -40,7 +40,7 @@ internal unsafe class OutputPass : DisposableObject
             }
         });
 
-        CreateTextures();
+        CreateOutput();
     }
 
     public Texture Color { get; private set; } = null!;
@@ -53,51 +53,46 @@ internal unsafe class OutputPass : DisposableObject
             FrameIndex = frameIndex
         };
 
-        constants.Upload(0, new()
+        constantBuffer.Upload(0, new()
         {
             Pointer = (nint)(&toneMappingConstants),
             SizeInBytes = (uint)sizeof(OutputConstants)
         });
 
-        Draw(commandBuffer, toneMappingPipeline, Color);
+        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.DontCare(Color)], null);
+        commandBuffer.SetPipeline(toneMappingPipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
+        commandBuffer.Draw(3, 1, 0, 0);
+        commandBuffer.EndRenderPass();
+        commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 
     public void Resize()
     {
-        DestroyTextures();
-        CreateTextures();
+        DestroyOutput();
+        CreateOutput();
     }
 
     protected override void Destroy()
     {
-        DestroyTextures();
+        DestroyOutput();
         toneMappingPipeline?.Dispose();
-        constants?.Dispose();
+        constantBuffer?.Dispose();
     }
 
-    private void CreateTextures()
+    private void CreateOutput()
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled | TextureUsages.TransferSrc
         });
     }
 
-    private void DestroyTextures()
+    private void DestroyOutput()
     {
         Color?.Dispose();
         Color = null!;
-    }
-
-    private void Draw(CommandBuffer commandBuffer, GraphicsPipeline pipeline, Texture output)
-    {
-        commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        commandBuffer.BeginRenderPass([ColorAttachment.DontCare(output)], null);
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constants, 0);
-        commandBuffer.Draw(3, 1, 0, 0);
-        commandBuffer.EndRenderPass();
-        commandBuffer.Transition(output, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 }
 

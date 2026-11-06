@@ -48,6 +48,7 @@ internal unsafe class PathTracingPass : DisposableObject
             RenderSize = new(Output.Width, Output.Height),
             JitterOffset = jitterOffsetInPixels,
             FrameIndex = frameIndex,
+            IsRayReconstructionEnabled = Output.LinearDepthDelta is not null ? 1u : 0u,
             Scene = scene.AccelerationStructure,
             Vertices = scene.Vertices,
             Indices = scene.Indices,
@@ -60,7 +61,12 @@ internal unsafe class PathTracingPass : DisposableObject
             SpecularAlbedo = Output.SpecularAlbedo.StorageHandle,
             Normals = Output.Normals.StorageHandle,
             Roughness = Output.Roughness.StorageHandle,
-            SpecularHitDistance = Output.SpecularHitDistance.StorageHandle
+            SpecularHitDistance = Output.SpecularHitDistance.StorageHandle,
+            LinearDepthDelta = Output.LinearDepthDelta?.StorageHandle ?? default,
+            DirectDiffuseRadiance = Output.DirectDiffuseRadiance?.StorageHandle ?? default,
+            DirectSpecularRadiance = Output.DirectSpecularRadiance?.StorageHandle ?? default,
+            IndirectDiffuseRadiance = Output.IndirectDiffuseRadiance?.StorageHandle ?? default,
+            IndirectSpecularRadiance = Output.IndirectSpecularRadiance?.StorageHandle ?? default
         };
 
         constantBuffer.Upload(0, new()
@@ -88,22 +94,32 @@ internal unsafe class PathTracingPass : DisposableObject
         previousViewProjection = viewProjection;
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize(uint width, uint height, bool isRayReconstructionEnabled)
     {
-        Output?.Dispose();
-
-        Output = new(width, height);
+        DestroyOutput();
+        CreateOutput(width, height, isRayReconstructionEnabled);
     }
 
     protected override void Destroy()
     {
-        Output?.Dispose();
+        DestroyOutput();
         pipeline?.Dispose();
         constantBuffer?.Dispose();
     }
+
+    private void CreateOutput(uint width, uint height, bool isRayReconstructionEnabled)
+    {
+        Output = new(width, height, isRayReconstructionEnabled);
+    }
+
+    private void DestroyOutput()
+    {
+        Output?.Dispose();
+        Output = null!;
+    }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 400)]
+[StructLayout(LayoutKind.Explicit, Size = 448)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -129,6 +145,9 @@ file struct PathTracingConstants
 
     [FieldOffset(288)]
     public uint FrameIndex;
+
+    [FieldOffset(292)]
+    public uint IsRayReconstructionEnabled;
 
     [FieldOffset(296)]
     public ResourceHandle Scene;
@@ -168,4 +187,19 @@ file struct PathTracingConstants
 
     [FieldOffset(392)]
     public ResourceHandle SpecularHitDistance;
+
+    [FieldOffset(400)]
+    public ResourceHandle LinearDepthDelta;
+
+    [FieldOffset(408)]
+    public ResourceHandle DirectDiffuseRadiance;
+
+    [FieldOffset(416)]
+    public ResourceHandle DirectSpecularRadiance;
+
+    [FieldOffset(424)]
+    public ResourceHandle IndirectDiffuseRadiance;
+
+    [FieldOffset(432)]
+    public ResourceHandle IndirectSpecularRadiance;
 }

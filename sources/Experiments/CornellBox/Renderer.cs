@@ -4,7 +4,6 @@ using CornellBox.Models;
 using CornellBox.Passes;
 using Zenith.NET;
 using Zenith.NET.Extensions.Upscaling;
-using ZenithUpscalingMode = Zenith.NET.Extensions.Upscaling.UpscalingMode;
 
 namespace CornellBox;
 
@@ -18,8 +17,10 @@ internal class Renderer : DisposableObject
     private double elapsedSeconds;
     private uint frameIndex;
 
-    public Renderer()
+    public Renderer(RenderSettings settings)
     {
+        Settings = settings;
+
         scene = new();
         pathTracingPass = new();
         outputPass = new();
@@ -27,76 +28,80 @@ internal class Renderer : DisposableObject
         Resize();
     }
 
-    public bool IsPaused { get; set; }
-
-    public ZenithUpscalingMode? UpscalingMode
-    {
-        get;
-        set
-        {
-            if (field != value)
-            {
-                field = value;
-
-                Resize();
-            }
-        }
-    } = App.Context.UpscalingCapabilities.SuperResolutionSupported ? ZenithUpscalingMode.Quality : null;
-
-    public bool IsRayReconstructionEnabled
-    {
-        get;
-        set
-        {
-            if (field != value)
-            {
-                field = value;
-
-                Resize();
-            }
-        }
-    } = App.Context.UpscalingCapabilities.RayReconstructionSupported;
+    public RenderSettings Settings { get; private set; }
 
     public Texture Color => outputPass.Color;
 
+    public UpscalingInputSize InputSize => new(pathTracingPass.Output.Width, pathTracingPass.Output.Height);
+
+    public void ApplySettings(RenderSettings settings)
+    {
+        bool hasRenderChanges = Settings.UpscalingMode != settings.UpscalingMode || Settings.IsRayReconstructionEnabled != settings.IsRayReconstructionEnabled;
+
+        Settings = settings;
+
+        if (hasRenderChanges)
+        {
+            Resize();
+        }
+    }
+
     public void Update(double deltaSeconds)
     {
-        if (!IsPaused)
+        if (!Settings.IsPaused)
         {
             elapsedSeconds += deltaSeconds;
         }
     }
 
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
+    public RenderedFrame Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
         uint sampleIndex = frameIndex + 1u;
         Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : new(GetHaltonSample(sampleIndex, 2u) - 0.5f, GetHaltonSample(sampleIndex, 3u) - 0.5f);
+        float deltaTimeInSeconds = (float)deltaSeconds;
         bool reset = frameIndex is 0;
 
         scene.Update(commandBuffer, elapsedSeconds);
         pathTracingPass.Record(commandBuffer, scene, camera, jitterOffsetInPixels, frameIndex);
 
-        Texture color = pathTracingPass.Output.Color;
+        PathTracingOutput output = pathTracingPass.Output;
+        Texture color = output.Color;
 
         if (upscalingPass is not null)
         {
-            upscalingPass.Record(commandBuffer, pathTracingPass.Output, camera, jitterOffsetInPixels, (float)deltaSeconds, reset);
+            upscalingPass.Record(commandBuffer, output, camera, jitterOffsetInPixels, deltaTimeInSeconds, reset);
             color = upscalingPass.Color;
         }
 
         outputPass.Record(commandBuffer, color, frameIndex);
 
+        RenderedFrame frame = new()
+        {
+            Color = outputPass.Color,
+            Depth = output.Depth,
+            MotionVectors = output.MotionVectors,
+            JitterOffset = -jitterOffsetInPixels,
+            WorldToView = camera.View,
+            ViewToClip = camera.Projection,
+            DeltaTimeInSeconds = deltaTimeInSeconds,
+            Reset = reset
+        };
+
         frameIndex++;
+
+        return frame;
     }
 
     public void Resize()
     {
-        if (UpscalingMode is ZenithUpscalingMode mode)
+        if (Settings.UpscalingMode is UpscalingMode mode)
         {
-            if (upscalingPass is null || upscalingPass.Mode != mode || upscalingPass.IsRayReconstructionEnabled != IsRayReconstructionEnabled)
+            if (upscalingPass is null || upscalingPass.Mode != mode || upscalingPass.IsRayReconstructionEnabled != Settings.IsRayReconstructionEnabled)
             {
                 upscalingPass?.Dispose();
-                upscalingPass = new(mode, IsRayReconstructionEnabled);
+                upscalingPass = null;
+
+                upscalingPass = new(mode, Settings.IsRayReconstructionEnabled);
             }
             else
             {
@@ -111,7 +116,7 @@ internal class Renderer : DisposableObject
 
         UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(App.PhysicalWidth, App.PhysicalHeight);
 
-        pathTracingPass.Resize(inputSize.Width, inputSize.Height);
+        pathTracingPass.Resize(inputSize.Width, inputSize.Height, upscalingPass?.IsRayReconstructionEnabled is true);
         outputPass.Resize();
 
         frameIndex = 0;

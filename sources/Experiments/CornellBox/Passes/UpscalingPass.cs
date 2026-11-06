@@ -55,6 +55,11 @@ internal class UpscalingPass : DisposableObject
             Normals = input.Normals,
             Roughness = input.Roughness,
             SpecularHitDistance = input.SpecularHitDistance,
+            LinearDepthDelta = input.LinearDepthDelta,
+            DirectDiffuseRadiance = input.DirectDiffuseRadiance,
+            DirectSpecularRadiance = input.DirectSpecularRadiance,
+            IndirectDiffuseRadiance = input.IndirectDiffuseRadiance,
+            IndirectSpecularRadiance = input.IndirectSpecularRadiance,
             Output = Color,
             JitterOffset = -jitterOffsetInPixels,
             WorldToView = camera.View,
@@ -86,15 +91,20 @@ internal class UpscalingPass : DisposableObject
 
             rayReconstruction = App.Context.CreateRayReconstruction(new()
             {
-                ColorFormat = PixelFormat.R16G16B16A16Float,
-                DepthFormat = PixelFormat.R32Float,
-                MotionVectorsFormat = PixelFormat.R32G32Float,
-                DiffuseAlbedoFormat = PixelFormat.R16G16B16A16Float,
-                SpecularAlbedoFormat = PixelFormat.R16G16B16A16Float,
-                NormalsFormat = PixelFormat.R16G16B16A16Float,
-                RoughnessFormat = PixelFormat.R16Float,
-                SpecularHitDistanceFormat = PixelFormat.R32Float,
-                OutputFormat = PixelFormat.R16G16B16A16Float,
+                ColorFormat = PathTracingOutput.ColorFormat,
+                DepthFormat = PathTracingOutput.DepthFormat,
+                MotionVectorsFormat = PathTracingOutput.MotionVectorsFormat,
+                DiffuseAlbedoFormat = PathTracingOutput.DiffuseAlbedoFormat,
+                SpecularAlbedoFormat = PathTracingOutput.SpecularAlbedoFormat,
+                NormalsFormat = PathTracingOutput.NormalsFormat,
+                RoughnessFormat = PathTracingOutput.RoughnessFormat,
+                SpecularHitDistanceFormat = PathTracingOutput.SpecularHitDistanceFormat,
+                LinearDepthDeltaFormat = PathTracingOutput.LinearDepthDeltaFormat,
+                DirectDiffuseRadianceFormat = PathTracingOutput.RadianceFormat,
+                DirectSpecularRadianceFormat = PathTracingOutput.RadianceFormat,
+                IndirectDiffuseRadianceFormat = PathTracingOutput.RadianceFormat,
+                IndirectSpecularRadianceFormat = PathTracingOutput.RadianceFormat,
+                OutputFormat = PathTracingOutput.ColorFormat,
                 IsHdr = true,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
@@ -109,10 +119,10 @@ internal class UpscalingPass : DisposableObject
 
             superResolution = App.Context.CreateSuperResolution(new()
             {
-                ColorFormat = PixelFormat.R16G16B16A16Float,
-                DepthFormat = PixelFormat.R32Float,
-                MotionVectorsFormat = PixelFormat.R32G32Float,
-                OutputFormat = PixelFormat.R16G16B16A16Float,
+                ColorFormat = PathTracingOutput.ColorFormat,
+                DepthFormat = PathTracingOutput.DepthFormat,
+                MotionVectorsFormat = PathTracingOutput.MotionVectorsFormat,
+                OutputFormat = PathTracingOutput.ColorFormat,
                 IsHdr = true,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
@@ -122,7 +132,7 @@ internal class UpscalingPass : DisposableObject
             });
         }
 
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
         });

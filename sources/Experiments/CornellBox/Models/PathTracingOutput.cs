@@ -4,51 +4,44 @@ namespace CornellBox.Models;
 
 internal class PathTracingOutput : DisposableObject
 {
+    public const PixelFormat ColorFormat = PixelFormat.R16G16B16A16Float;
+    public const PixelFormat DepthFormat = PixelFormat.R32Float;
+    public const PixelFormat MotionVectorsFormat = PixelFormat.R32G32Float;
+    public const PixelFormat DiffuseAlbedoFormat = PixelFormat.R16G16B16A16Float;
+    public const PixelFormat SpecularAlbedoFormat = PixelFormat.R16G16B16A16Float;
+    public const PixelFormat NormalsFormat = PixelFormat.R16G16B16A16Float;
+    public const PixelFormat RoughnessFormat = PixelFormat.R16Float;
+    public const PixelFormat SpecularHitDistanceFormat = PixelFormat.R32Float;
+    public const PixelFormat LinearDepthDeltaFormat = PixelFormat.R32Float;
+    public const PixelFormat RadianceFormat = PixelFormat.R16G16B16A16Float;
+
     private readonly Texture[] textures = [];
 
-    public PathTracingOutput(uint width, uint height)
+    public PathTracingOutput(uint width, uint height, bool isRayReconstructionEnabled)
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
+        Color = CreateTexture(ColorFormat, width, height);
+        Depth = CreateTexture(DepthFormat, width, height, TextureUsages.TransferSrc);
+        MotionVectors = CreateTexture(MotionVectorsFormat, width, height, TextureUsages.TransferSrc);
+        DiffuseAlbedo = CreateTexture(DiffuseAlbedoFormat, width, height);
+        SpecularAlbedo = CreateTexture(SpecularAlbedoFormat, width, height);
+        Normals = CreateTexture(NormalsFormat, width, height);
+        Roughness = CreateTexture(RoughnessFormat, width, height);
+        SpecularHitDistance = CreateTexture(SpecularHitDistanceFormat, width, height);
 
-        Depth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        if (isRayReconstructionEnabled)
         {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
+            LinearDepthDelta = CreateTexture(LinearDepthDeltaFormat, width, height);
+            DirectDiffuseRadiance = CreateTexture(RadianceFormat, width, height);
+            DirectSpecularRadiance = CreateTexture(RadianceFormat, width, height);
+            IndirectDiffuseRadiance = CreateTexture(RadianceFormat, width, height);
+            IndirectSpecularRadiance = CreateTexture(RadianceFormat, width, height);
 
-        MotionVectors = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32G32Float, width, height, 1, SampleCount.Count1) with
+            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, LinearDepthDelta, DirectDiffuseRadiance, DirectSpecularRadiance, IndirectDiffuseRadiance, IndirectSpecularRadiance];
+        }
+        else
         {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-
-        DiffuseAlbedo = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-
-        SpecularAlbedo = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-
-        Normals = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-
-        Roughness = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-
-        SpecularHitDistance = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
-
-        textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance];
+            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance];
+        }
     }
 
     public uint Width => Color.Desc.Width;
@@ -71,10 +64,25 @@ internal class PathTracingOutput : DisposableObject
 
     public Texture SpecularHitDistance { get; }
 
+    public Texture? LinearDepthDelta { get; }
+
+    public Texture? DirectDiffuseRadiance { get; }
+
+    public Texture? DirectSpecularRadiance { get; }
+
+    public Texture? IndirectDiffuseRadiance { get; }
+
+    public Texture? IndirectSpecularRadiance { get; }
+
     public ReadOnlySpan<Texture> Textures => textures;
 
     protected override void Destroy()
     {
+        IndirectSpecularRadiance?.Dispose();
+        IndirectDiffuseRadiance?.Dispose();
+        DirectSpecularRadiance?.Dispose();
+        DirectDiffuseRadiance?.Dispose();
+        LinearDepthDelta?.Dispose();
         SpecularHitDistance?.Dispose();
         Roughness?.Dispose();
         Normals?.Dispose();
@@ -83,5 +91,13 @@ internal class PathTracingOutput : DisposableObject
         MotionVectors?.Dispose();
         Depth?.Dispose();
         Color?.Dispose();
+    }
+
+    private static Texture CreateTexture(PixelFormat format, uint width, uint height, TextureUsages additionalUsages = TextureUsages.None)
+    {
+        return App.Context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | additionalUsages
+        });
     }
 }

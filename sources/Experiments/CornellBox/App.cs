@@ -1,89 +1,43 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
-using Hexa.NET.ImGui;
+using CornellBox.Models;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
-using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
 using Zenith.NET.Extensions.Upscaling;
-using Zenith.NET.Metal;
-using Zenith.NET.Vulkan;
 
 namespace CornellBox;
 
 internal static class App
 {
+    public const PixelFormat ColorFormat = PixelFormat.B8G8R8A8UNorm;
+
     private static readonly IWindow window;
     private static readonly IInputContext input;
-    private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
+    private static readonly UserInterface userInterface;
     private static readonly Renderer renderer;
+    private static readonly Presentation presentation;
 
     static App()
     {
-        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
-        {
-            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
-        }
-        else
-        {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
-        }
-
+        Context = PlatformHelper.CreateContext();
         Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.FSR, UpscalingApi.MetalFX]);
-
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
-        window = Window.Create(WindowOptions.Default with
-        {
-            Size = new(1280, 720),
-            API = GraphicsAPI.None,
-            Title = "Cornell Box - Zenith.NET"
-        });
-        window.Initialize();
-        window.Center();
-
+        window = CreateWindow();
         input = window.CreateInput();
         imGui = new(input);
 
         Context.InitializeImGui(imGui, new()
         {
-            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+            ColorFormats = [ColorFormat],
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
-
-        Surface surface;
-        if (OperatingSystem.IsWindows())
-        {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, PhysicalWidth, PhysicalHeight);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), PhysicalWidth, PhysicalHeight);
-        }
-        else
-        {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, PhysicalWidth, PhysicalHeight);
-        }
-
-        swapChain = Context.CreateSwapChain(new()
-        {
-            Surface = surface,
-            Format = PixelFormat.B8G8R8A8UNorm
-        });
 
         camera = new(input, new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
         {
@@ -91,7 +45,9 @@ internal static class App
             Speed = 240.0f
         };
 
-        renderer = new();
+        userInterface = new();
+        renderer = new(userInterface.RenderSettings);
+        presentation = new(PlatformHelper.CreateSurface(window), renderer.InputSize);
     }
 
     public static GraphicsContext Context { get; }
@@ -118,9 +74,9 @@ internal static class App
         window.Render -= OnRender;
         window.Update -= OnUpdate;
 
+        presentation.Dispose();
         renderer.Dispose();
         camera.Dispose();
-        swapChain.Dispose();
         imGui.Dispose();
         input.Dispose();
         window.Dispose();
@@ -137,13 +93,10 @@ internal static class App
 
         camera.Update(deltaSeconds);
         renderer.Update(deltaSeconds);
+        userInterface.Update(deltaSeconds);
 
-        Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
-
-        ImGuiHelper.Overlay(DrawOverlay);
-        ImGuiHelper.Settings(DrawSettings);
-
-        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(LogicalWidth, LogicalHeight));
+        renderer.ApplySettings(userInterface.RenderSettings);
+        presentation.Configure(renderer.InputSize, userInterface.IsFrameGenerationEnabled);
     }
 
     private static void OnRender(double deltaSeconds)
@@ -154,16 +107,9 @@ internal static class App
         }
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+        RenderedFrame frame = renderer.Render(commandBuffer, camera, deltaSeconds);
 
-        renderer.Render(commandBuffer, camera, deltaSeconds);
-
-        Texture drawable = swapChain.Drawable;
-        commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
-        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
-        commandBuffer.Submit().Wait();
-
-        swapChain.Present();
+        presentation.Present(commandBuffer, frame);
     }
 
     private static void OnFramebufferResize(Vector2D<int> size)
@@ -174,44 +120,20 @@ internal static class App
         }
 
         renderer.Resize();
-        swapChain.Resize(PhysicalWidth, PhysicalHeight);
+        presentation.Configure(renderer.InputSize, userInterface.IsFrameGenerationEnabled);
     }
 
-    private static void DrawOverlay()
+    private static IWindow CreateWindow()
     {
-        ImGui.Text(Context.Capabilities.DeviceName);
-        ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-        ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
-    }
-
-    private static void DrawSettings()
-    {
-        bool isPaused = renderer.IsPaused;
-        if (ImGui.Checkbox("Pause", ref isPaused))
+        IWindow window = Window.Create(WindowOptions.Default with
         {
-            renderer.IsPaused = isPaused;
-        }
+            Size = new(1280, 720),
+            API = GraphicsAPI.None,
+            Title = "Cornell Box - Zenith.NET"
+        });
+        window.Initialize();
+        window.Center();
 
-        ImGui.Separator();
-
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.SuperResolutionSupported);
-
-        int upscalingModeIndex = renderer.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
-        if (ImGui.Combo("Upscaling Mode", ref upscalingModeIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
-        {
-            renderer.UpscalingMode = upscalingModeIndex is 0 ? null : (UpscalingMode)(upscalingModeIndex - 1);
-        }
-
-        ImGui.EndDisabled();
-
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.RayReconstructionSupported || renderer.UpscalingMode is null);
-
-        bool isRayReconstructionEnabled = renderer.IsRayReconstructionEnabled;
-        if (ImGui.Checkbox("Ray Reconstruction", ref isRayReconstructionEnabled))
-        {
-            renderer.IsRayReconstructionEnabled = isRayReconstructionEnabled;
-        }
-
-        ImGui.EndDisabled();
+        return window;
     }
 }

@@ -11,7 +11,6 @@ internal class CameraHandler : DisposableObject
     private readonly HashSet<Key> keyDowns = [];
 
     private Vector2? lastMousePosition;
-    private Vector2? clickPosition;
 
     public CameraHandler(IInputContext input, Vector3 position, Vector3 target)
     {
@@ -85,34 +84,6 @@ internal class CameraHandler : DisposableObject
         }
     }
 
-    public bool TryConsumeClickRay(out Vector3 origin, out Vector3 direction)
-    {
-        if (!clickPosition.HasValue)
-        {
-            origin = default;
-            direction = default;
-
-            return false;
-        }
-
-        Vector2 position = clickPosition.Value;
-        clickPosition = null;
-
-        float x = (position.X / App.LogicalWidth * 2.0f) - 1.0f;
-        float y = 1.0f - (position.Y / App.LogicalHeight * 2.0f);
-
-        Matrix4x4.Invert(Projection, out Matrix4x4 inverseProjection);
-        Matrix4x4.Invert(View, out Matrix4x4 inverseView);
-
-        Vector4 target = Vector4.Transform(new Vector4(x, y, 1.0f, 1.0f), inverseProjection);
-        Vector3 localDirection = Vector3.Normalize(new(target.X / target.W, target.Y / target.W, target.Z / target.W));
-
-        origin = Position;
-        direction = Vector3.Normalize(Vector3.TransformNormal(localDirection, inverseView));
-
-        return true;
-    }
-
     protected override void Destroy()
     {
         if (keyboard is not null)
@@ -129,7 +100,6 @@ internal class CameraHandler : DisposableObject
         }
 
         keyDowns.Clear();
-        clickPosition = null;
         lastMousePosition = null;
     }
 
@@ -138,10 +108,6 @@ internal class CameraHandler : DisposableObject
         if (button is MouseButton.Right)
         {
             lastMousePosition = mouse.Position;
-        }
-        else if (button is MouseButton.Left)
-        {
-            clickPosition = mouse.Position;
         }
     }
 

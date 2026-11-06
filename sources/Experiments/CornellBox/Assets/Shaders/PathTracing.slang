@@ -72,6 +72,26 @@ struct Surface
     float Padding;
 };
 
+struct Lighting
+{
+    float3 Diffuse;
+
+    float3 Specular;
+};
+
+struct PathRadiance
+{
+    float3 Color;
+
+    float3 DirectDiffuse;
+
+    float3 DirectSpecular;
+
+    float3 IndirectDiffuse;
+
+    float3 IndirectSpecular;
+};
+
 struct PathTracingConstants
 {
     float4x4 InverseView;
@@ -90,7 +110,7 @@ struct PathTracingConstants
 
     uint FrameIndex;
 
-    uint Padding;
+    uint IsRayReconstructionEnabled;
 
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
 
@@ -117,6 +137,16 @@ struct PathTracingConstants
     DescriptorHandle<RWTexture2D<float>> Roughness;
 
     DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
+
+    DescriptorHandle<RWTexture2D<float>> LinearDepthDelta;
+
+    DescriptorHandle<RWTexture2D<float4>> DirectDiffuseRadiance;
+
+    DescriptorHandle<RWTexture2D<float4>> DirectSpecularRadiance;
+
+    DescriptorHandle<RWTexture2D<float4>> IndirectDiffuseRadiance;
+
+    DescriptorHandle<RWTexture2D<float4>> IndirectSpecularRadiance;
 };
 
 ConstantBuffer<PathTracingConstants> pathTracing;
@@ -148,7 +178,7 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
-float3 EvaluateBRDF(float3 N, float3 V, float3 L, Surface surface, float roughness)
+void EvaluateBRDF(float3 N, float3 V, float3 L, Surface surface, float roughness, out float3 diffuse, out float3 specular)
 {
     float NdotL = max(dot(N, L), 0.0);
     float NdotV = max(dot(N, V), 0.001);
@@ -162,12 +192,10 @@ float3 EvaluateBRDF(float3 N, float3 V, float3 L, Surface surface, float roughne
     float G = GeometrySmith(NdotV, NdotL, roughness);
     float3 F = FresnelSchlick(HdotV, F0);
 
-    float3 specular = D * G * F / (4.0 * NdotV * NdotL + 0.0001);
+    specular = D * G * F / (4.0 * NdotV * NdotL + 0.0001);
 
     float3 kD = (1.0 - F) * (1.0 - surface.Metallic);
-    float3 diffuse = kD * surface.Albedo / PI;
-
-    return diffuse + specular;
+    diffuse = kD * surface.Albedo / PI;
 }
 
 float PowerHeuristic(float pdfA, float pdfB)
@@ -274,7 +302,7 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
     return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
 
-float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specProb, inout uint rng)
+Lighting SampleLightDirect(Surface surface, float3 V, float roughness, float specProb, inout uint rng)
 {
     float r1 = RandomFloat(rng);
     float r2 = RandomFloat(rng);
@@ -289,14 +317,14 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
 
     if (NdotL <= 0.0)
     {
-        return float3(0.0, 0.0, 0.0);
+        return (Lighting)0;
     }
 
     float lightCosine = max(dot(LightNormal, -L), 0.0);
 
     if (lightCosine <= 0.0)
     {
-        return float3(0.0, 0.0, 0.0);
+        return (Lighting)0;
     }
 
     float3 shadowOrigin =
@@ -304,7 +332,7 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
 
     if (TraceShadowRay(shadowOrigin, L, dist))
     {
-        return float3(0.0, 0.0, 0.0);
+        return (Lighting)0;
     }
 
     Material lightMat = pathTracing.Materials[LightMaterial];
@@ -314,12 +342,19 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
     float pdfBrdf = ComputeBRDFPDF(surface.Normal, V, L, roughness, specProb);
     float misWeight = PowerHeuristic(pdfLight, pdfBrdf);
 
-    float3 brdf = EvaluateBRDF(surface.Normal, V, L, surface, roughness);
+    float3 diffuse;
+    float3 specular;
+    EvaluateBRDF(surface.Normal, V, L, surface, roughness, diffuse, specular);
 
-    return lightEmission * brdf * NdotL * misWeight / pdfLight;
+    float3 weight = lightEmission * NdotL * misWeight / pdfLight;
+    Lighting lighting;
+    lighting.Diffuse = weight * diffuse;
+    lighting.Specular = weight * specular;
+
+    return lighting;
 }
 
-float3 SampleSunDirect(Surface surface, float3 V, float roughness, inout uint rng)
+Lighting SampleSunDirect(Surface surface, float3 V, float roughness, inout uint rng)
 {
     const float AngularRadius = 0.1;
 
@@ -334,7 +369,7 @@ float3 SampleSunDirect(Surface surface, float3 V, float roughness, inout uint rn
 
     if (NdotL <= 0.0)
     {
-        return float3(0.0);
+        return (Lighting)0;
     }
 
     float3 shadowOrigin =
@@ -342,10 +377,19 @@ float3 SampleSunDirect(Surface surface, float3 V, float roughness, inout uint rn
 
     if (TraceShadowRay(shadowOrigin, L, RayMaxDistance))
     {
-        return float3(0.0);
+        return (Lighting)0;
     }
 
-    return float3(2.5, 2.25, 1.95) * EvaluateBRDF(surface.Normal, V, L, surface, roughness) * NdotL;
+    float3 diffuse;
+    float3 specular;
+    EvaluateBRDF(surface.Normal, V, L, surface, roughness, diffuse, specular);
+
+    float3 weight = float3(2.5, 2.25, 1.95) * NdotL;
+    Lighting lighting;
+    lighting.Diffuse = weight * diffuse;
+    lighting.Specular = weight * specular;
+
+    return lighting;
 }
 
 float3 PatternAlbedo(Material material, float3 position, float3 normal)
@@ -441,13 +485,57 @@ bool TraceSurface(float3 origin, float3 direction, out Surface surface, out floa
     return true;
 }
 
-float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float firstDistance, bool hasFirstHit,
-                 inout uint rng, out float specularHitDistance)
+void AccumulateRadiance(inout PathRadiance radiance, float3 contribution, bool isSpecular, bool isDirect)
+{
+    radiance.Color += contribution;
+
+    if (isSpecular)
+    {
+        if (isDirect)
+        {
+            radiance.DirectSpecular += contribution;
+        }
+        else
+        {
+            radiance.IndirectSpecular += contribution;
+        }
+    }
+    else
+    {
+        if (isDirect)
+        {
+            radiance.DirectDiffuse += contribution;
+        }
+        else
+        {
+            radiance.IndirectDiffuse += contribution;
+        }
+    }
+}
+
+void AccumulateLighting(inout PathRadiance radiance, Lighting lighting, float3 throughput, int bounce, bool primarySpecularSample)
+{
+    float3 diffuse = throughput * lighting.Diffuse;
+    float3 specular = throughput * lighting.Specular;
+
+    if (bounce == 0)
+    {
+        radiance.Color += diffuse + specular;
+        radiance.DirectDiffuse += diffuse;
+        radiance.DirectSpecular += specular;
+    }
+    else
+    {
+        AccumulateRadiance(radiance, diffuse + specular, primarySpecularSample, false);
+    }
+}
+
+PathRadiance TracePath(float3 origin, float3 direction, Surface firstSurface, float firstDistance, bool hasFirstHit, inout uint rng, out float specularHitDistance)
 {
     specularHitDistance = hasFirstHit ? 0.0 : SpecularMissDistance;
     bool primarySpecularSample = false;
     float3 throughput = float3(1.0, 1.0, 1.0);
-    float3 radiance = float3(0.0, 0.0, 0.0);
+    PathRadiance radiance = (PathRadiance)0;
     float previousPdf = 0.0;
 
     for (int bounce = 0; bounce < MaxBounces; bounce++)
@@ -470,7 +558,15 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
         {
             float3 skyColor =
                 lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
-            radiance += throughput * skyColor;
+
+            if (bounce == 0)
+            {
+                radiance.Color += throughput * skyColor;
+            }
+            else
+            {
+                AccumulateRadiance(radiance, throughput * skyColor, primarySpecularSample, bounce == 1);
+            }
 
             break;
         }
@@ -487,12 +583,12 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
 
             if (bounce == 0)
             {
-                radiance += throughput * emission;
+                radiance.Color += throughput * emission;
             }
             else if (lightCosine > 0.0)
             {
                 float pdfLight = (t * t) / (lightCosine * LightArea);
-                radiance += throughput * emission * PowerHeuristic(previousPdf, pdfLight);
+                AccumulateRadiance(radiance, throughput * emission * PowerHeuristic(previousPdf, pdfLight), primarySpecularSample, bounce == 1);
             }
 
             break;
@@ -503,8 +599,10 @@ float3 TracePath(float3 origin, float3 direction, Surface firstSurface, float fi
         float total = specWeight + diffWeight;
         float specProb = specWeight / total;
 
-        radiance += throughput * SampleLightDirect(surface, V, roughness, specProb, rng);
-        radiance += throughput * SampleSunDirect(surface, V, roughness, rng);
+        Lighting light = SampleLightDirect(surface, V, roughness, specProb, rng);
+        Lighting sun = SampleSunDirect(surface, V, roughness, rng);
+        AccumulateLighting(radiance, light, throughput, bounce, primarySpecularSample);
+        AccumulateLighting(radiance, sun, throughput, bounce, primarySpecularSample);
 
         if (bounce == MaxBounces - 1)
         {
@@ -600,7 +698,28 @@ float2 MotionVector(float4 currentClip, float4 previousClip)
     return (previousNdc - currentNdc) * float2(0.5, -0.5);
 }
 
-void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, float specularHitDistance)
+float3 DemodulateRadiance(float3 radiance, float3 albedo)
+{
+    float3 divisor = select(albedo > 0.0, albedo, 1.0);
+
+    return select(albedo > 0.0, radiance / divisor, 0.0);
+}
+
+void WriteReconstructionSignals(uint2 pixel, PathRadiance radiance, float3 scale, float3 diffuseAlbedo, float3 specularAlbedo, float linearDepthDelta)
+{
+    if (pathTracing.IsRayReconstructionEnabled == 0)
+    {
+        return;
+    }
+
+    pathTracing.LinearDepthDelta[pixel] = linearDepthDelta;
+    pathTracing.DirectDiffuseRadiance[pixel] = float4(DemodulateRadiance(radiance.DirectDiffuse * scale, diffuseAlbedo), 0.0);
+    pathTracing.DirectSpecularRadiance[pixel] = float4(DemodulateRadiance(radiance.DirectSpecular * scale, specularAlbedo), 0.0);
+    pathTracing.IndirectDiffuseRadiance[pixel] = float4(DemodulateRadiance(radiance.IndirectDiffuse * scale, diffuseAlbedo), 0.0);
+    pathTracing.IndirectSpecularRadiance[pixel] = float4(DemodulateRadiance(radiance.IndirectSpecular * scale, specularAlbedo), 0.0);
+}
+
+void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, float specularHitDistance, PathRadiance radiance, float3 scale)
 {
     if (!hasHit)
     {
@@ -611,9 +730,11 @@ void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, fl
 
         pathTracing.DiffuseAlbedo[pixel] = float4(0.5, 0.5, 0.5, 1.0);
         pathTracing.SpecularAlbedo[pixel] = float4(0.0);
-        pathTracing.Normals[pixel] = float4(0.0);
+        pathTracing.Normals[pixel] = float4(-direction, 0.0);
         pathTracing.Roughness[pixel] = 0.0;
         pathTracing.SpecularHitDistance[pixel] = SpecularMissDistance;
+
+        WriteReconstructionSignals(pixel, radiance, scale, float3(0.5), float3(0.0), 0.0);
 
         return;
     }
@@ -630,11 +751,14 @@ void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, fl
     float3 F0 = lerp(float3(0.04), surface.Albedo, surface.Metallic);
     float3 specularAlbedo = SpecularReflectance(F0, roughness, dot(surface.Normal, -direction));
 
-    pathTracing.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
+    float3 diffuseAlbedo = surface.Albedo * (1.0 - surface.Metallic);
+    pathTracing.DiffuseAlbedo[pixel] = float4(diffuseAlbedo, 1.0);
     pathTracing.SpecularAlbedo[pixel] = float4(specularAlbedo, 1.0);
     pathTracing.Normals[pixel] = float4(surface.Normal, 0.0);
     pathTracing.Roughness[pixel] = roughness;
     pathTracing.SpecularHitDistance[pixel] = specularHitDistance;
+
+    WriteReconstructionSignals(pixel, radiance, scale, diffuseAlbedo, specularAlbedo, currentClip.w - previousClip.w);
 }
 
 [shader("compute")]
@@ -659,11 +783,11 @@ void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     bool hasFirstHit = TraceSurface(pathTracing.Position.xyz, direction, firstSurface, firstDistance);
     float specularHitDistance;
 
-    float3 color = min(TracePath(pathTracing.Position.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed,
-                                 specularHitDistance),
-                       float3(30.0));
+    PathRadiance radiance = TracePath(pathTracing.Position.xyz, direction, firstSurface, firstDistance, hasFirstHit, seed, specularHitDistance);
+    float3 color = min(radiance.Color, float3(30.0));
+    float3 scale = float3(30.0) / max(radiance.Color, float3(30.0));
 
-    WriteGuides(pixel, direction, firstSurface, hasFirstHit, specularHitDistance);
+    WriteGuides(pixel, direction, firstSurface, hasFirstHit, specularHitDistance, radiance, scale);
 
     pathTracing.Color[pixel] = float4(color, 1.0);
 }

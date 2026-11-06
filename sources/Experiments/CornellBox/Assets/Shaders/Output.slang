@@ -34,7 +34,8 @@ float4 ToneMappingFS(float4 position: SV_POSITION) : SV_TARGET
     float3 color = max(output.Input.Load(int3(pixel, 0)).rgb, 0.0);
     float3 numerator = color * (color * 2.51 + 0.03);
     float3 denominator = color * (color * 2.43 + 0.59) + 0.14;
-    color = pow(saturate(numerator / denominator), 1.0 / 2.2);
+    color = saturate(numerator / denominator);
+    color = select(color <= 0.0031308, color * 12.92, 1.055 * pow(color, 1.0 / 2.4) - 0.055);
 
     uint seed = Hash(pixel.x + pixel.y * width + output.FrameIndexPadding.x * 1664525u);
     float first = float(seed >> 8u) * (1.0 / 16777216.0);
