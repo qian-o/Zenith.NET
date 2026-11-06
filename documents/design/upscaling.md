@@ -19,12 +19,11 @@ public enum UpscalingApi
 {
     DLSS,
 
-    MetalFX,
+    FSR,
 
-    FSR
+    MetalFX
 }
 
-// 仅用于创建前的尺寸查询，不进入 Desc。
 public enum UpscalingMode
 {
     Native,
@@ -41,6 +40,7 @@ public enum UpscalingMode
 public readonly struct UpscalingInputSize(uint width, uint height)
 {
     public readonly uint Width = width;
+
     public readonly uint Height = height;
 }
 ```
@@ -84,16 +84,23 @@ public enum UpscalingInputFlags
 public struct TemporalUpscalerDesc
 {
     public PixelFormat ColorFormat;
+
     public PixelFormat DepthFormat;
+
     public PixelFormat MotionVectorsFormat;
+
     public PixelFormat? ReactiveMaskFormat;
+
     public PixelFormat OutputFormat;
 
     public bool IsHdr;
 
     public uint InputWidth;
+
     public uint InputHeight;
+
     public uint OutputWidth;
+
     public uint OutputHeight;
 
     public UpscalingInputFlags Flags;
@@ -102,15 +109,21 @@ public struct TemporalUpscalerDesc
 public struct TemporalUpscalerArgs
 {
     public Texture Color;
+
     public Texture Depth;
+
     public Texture MotionVectors;
+
     public Texture? ReactiveMask;
+    
     public Texture? Exposure;
 
     public Texture Output;
 
     public Vector2 JitterOffset;
+
     public Matrix4x4 WorldToView;
+
     public Matrix4x4 ViewToClip;
 
     public float PreExposure;
@@ -127,22 +140,35 @@ public struct TemporalUpscalerArgs
 public struct DenoisingUpscalerDesc
 {
     public PixelFormat ColorFormat;
+
     public PixelFormat DepthFormat;
+
     public PixelFormat MotionVectorsFormat;
+
     public PixelFormat DiffuseAlbedoFormat;
+
     public PixelFormat SpecularAlbedoFormat;
+
     public PixelFormat NormalsFormat;
+
     public PixelFormat RoughnessFormat;
+
     public PixelFormat SpecularHitDistanceFormat;
+
     public PixelFormat? ReactiveMaskFormat;
+
     public PixelFormat? TransparencyOverlayFormat;
+
     public PixelFormat OutputFormat;
 
     public bool IsHdr;
 
     public uint InputWidth;
+
     public uint InputHeight;
+
     public uint OutputWidth;
+
     public uint OutputHeight;
 
     public UpscalingInputFlags Flags;
@@ -151,21 +177,33 @@ public struct DenoisingUpscalerDesc
 public struct DenoisingUpscalerArgs
 {
     public Texture Color;
+
     public Texture Depth;
+
     public Texture MotionVectors;
+
     public Texture DiffuseAlbedo;
+
     public Texture SpecularAlbedo;
+
     public Texture Normals;
+
     public Texture Roughness;
+
     public Texture SpecularHitDistance;
+
     public Texture? ReactiveMask;
+
     public Texture? TransparencyOverlay;
+
     public Texture? Exposure;
 
     public Texture Output;
 
     public Vector2 JitterOffset;
+
     public Matrix4x4 WorldToView;
+
     public Matrix4x4 ViewToClip;
 
     public float PreExposure;
@@ -182,16 +220,23 @@ public struct DenoisingUpscalerArgs
 public struct FrameGeneratorDesc
 {
     public PixelFormat ColorFormat;
+
     public PixelFormat DepthFormat;
+
     public PixelFormat MotionVectorsFormat;
+
     public PixelFormat? HudlessFormat;
+
     public PixelFormat OutputFormat;
 
     public bool IsHdr;
 
     public uint InputWidth;
+
     public uint InputHeight;
+
     public uint OutputWidth;
+
     public uint OutputHeight;
 
     public UpscalingInputFlags Flags;
@@ -200,14 +245,19 @@ public struct FrameGeneratorDesc
 public struct FrameGeneratorArgs
 {
     public Texture Color;
+
     public Texture Depth;
+
     public Texture MotionVectors;
+
     public Texture? Hudless;
 
     public Texture Output;
 
     public Vector2 JitterOffset;
+
     public Matrix4x4 WorldToView;
+
     public Matrix4x4 ViewToClip;
 
     public float DeltaTimeInSeconds;
@@ -226,7 +276,9 @@ public struct FrameGeneratorArgs
 public class UpscalingCapabilities
 {
     public bool TemporalUpscalerSupported { get; }
+
     public bool DenoisingUpscalerSupported { get; }
+
     public bool FrameGeneratorSupported { get; }
 }
 ```
@@ -239,11 +291,17 @@ public static class Extensions
     extension(GraphicsContext context)
     {
         public void InitializeUpscaling(params ReadOnlySpan<UpscalingApi> apis);
+
         public UpscalingCapabilities UpscalingCapabilities { get; }
+
         public UpscalingInputSize GetTemporalUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+
         public UpscalingInputSize GetDenoisingUpscalerInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+
         public TemporalUpscaler CreateTemporalUpscaler(TemporalUpscalerDesc desc);
+
         public DenoisingUpscaler CreateDenoisingUpscaler(DenoisingUpscalerDesc desc);
+
         public FrameGenerator CreateFrameGenerator(FrameGeneratorDesc desc);
     }
 }
@@ -257,10 +315,13 @@ public static class Extensions
 public struct FrameGenerationSwapChainDesc
 {
     public PixelFormat DepthFormat;
+
     public PixelFormat MotionVectorsFormat;
+
     public PixelFormat? HudlessFormat;
 
     public uint InputWidth;
+
     public uint InputHeight;
 
     public bool IsHdr;
@@ -269,10 +330,13 @@ public struct FrameGenerationSwapChainDesc
 public struct FrameGenerationSwapChainArgs
 {
     public Texture Depth;
+
     public Texture MotionVectors;
+
     public Texture? Hudless;
 
     public Matrix4x4 WorldToView;
+
     public Matrix4x4 ViewToClip;
 
     public Vector2 JitterOffset;
@@ -285,14 +349,19 @@ public struct FrameGenerationSwapChainArgs
 public class FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSwapChainDesc desc, SwapChain swapChain, FrameGenerator frameGenerator) : DisposableObject
 {
     public GraphicsContext Context { get; }
+
     public ref readonly FrameGenerationSwapChainDesc Desc { get; }
+
     public CommandQueue Queue { get; }
 
     public Texture Drawable { get; }
+
     public SwapChain SwapChain { get; }
 
     public void Present(FrameGenerationSwapChainArgs args);
+
     public void Resize(uint width, uint height);
+    
     public void Refresh(Surface surface);
 }
 ```
