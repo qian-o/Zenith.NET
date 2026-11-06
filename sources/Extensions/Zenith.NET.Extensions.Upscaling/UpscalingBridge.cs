@@ -42,11 +42,6 @@ internal class UpscalingBridge : DisposableObject
             }
         }
 
-        if (vendors.Count is 0)
-        {
-            throw new NotSupportedException("This device does not support any of the specified upscaling APIs.");
-        }
-
         Capabilities = new(superResolutionVendor is not null, rayReconstructionVendor is not null, frameGenerationVendor is not null);
     }
 
