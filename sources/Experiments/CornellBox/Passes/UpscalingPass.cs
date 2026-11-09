@@ -24,15 +24,13 @@ internal unsafe class UpscalingPass : DisposableObject
         });
 
         Half unitExposure = (Half)1.0f;
-        CommandBuffer commandBuffer = App.Context.GraphicsQueue.CommandBuffer();
-        commandBuffer.Upload(exposure, default, default, new() { Width = 1, Height = 1, Depth = 1 }, new()
+        exposure.Upload(default, TextureLayout.Undefined, TextureLayout.Sampled, default, new() { Width = 1, Height = 1, Depth = 1 }, new()
         {
             Pointer = (nint)(&unitExposure),
+            SizeInBytes = (uint)sizeof(Half),
             RowStrideInBytes = (uint)sizeof(Half),
             SliceStrideInBytes = (uint)sizeof(Half)
         });
-        commandBuffer.Transition(exposure, default, TextureLayout.CopyDst, TextureLayout.Sampled);
-        commandBuffer.Submit().Wait();
 
         CreateResources();
     }
