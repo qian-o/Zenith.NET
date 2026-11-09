@@ -63,20 +63,14 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     protected override void Destroy()
     {
-        if (keyboard is not null)
-        {
-            keyboard.KeyChar -= OnKeyChar;
-            keyboard.KeyUp -= OnKeyUp;
-            keyboard.KeyDown -= OnKeyDown;
-        }
+        keyboard.KeyChar -= OnKeyChar;
+        keyboard.KeyUp -= OnKeyUp;
+        keyboard.KeyDown -= OnKeyDown;
 
-        if (mouse is not null)
-        {
-            mouse.Scroll -= OnMouseScroll;
-            mouse.MouseMove -= OnMouseMove;
-            mouse.MouseUp -= OnMouseUp;
-            mouse.MouseDown -= OnMouseDown;
-        }
+        mouse.Scroll -= OnMouseScroll;
+        mouse.MouseMove -= OnMouseMove;
+        mouse.MouseUp -= OnMouseUp;
+        mouse.MouseDown -= OnMouseDown;
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)

@@ -125,9 +125,9 @@ internal class Renderer : DisposableObject
     protected override void Destroy()
     {
         upscalingPass?.Dispose();
-        outputPass?.Dispose();
-        pathTracingPass?.Dispose();
-        scene?.Dispose();
+        outputPass.Dispose();
+        pathTracingPass.Dispose();
+        scene.Dispose();
     }
 
     private static float GetHaltonSample(uint index, uint radix)

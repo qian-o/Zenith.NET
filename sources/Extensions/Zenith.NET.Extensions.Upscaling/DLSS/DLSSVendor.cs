@@ -1,40 +1,249 @@
-﻿namespace Zenith.NET.Extensions.Upscaling.DLSS;
+﻿using NGX.NET;
 
-internal class DLSSVendor : Vendor
+namespace Zenith.NET.Extensions.Upscaling.DLSS;
+
+internal unsafe partial class DLSSVendor : Vendor
 {
+    private readonly NGXParameter parameters;
+
+    public readonly nint Device;
+
     public DLSSVendor(GraphicsContext context)
     {
-        throw new NotImplementedException("The DLSS backend is not implemented.");
+        Context = context;
+
+        nint device = context.GetNativeObject(context.GraphicsApi is GraphicsApi.DirectX12 ? NativeObjectType.D3D12Device : NativeObjectType.VulkanDevice);
+
+        using ZenithMarshal.Scope scope = new();
+
+        void* path = (void*)ZenithMarshal.StringToPointer(scope, Ngx.RuntimeDirectory, StringEncoding.UTF16);
+        NGXFeatureCommonInfo featureInfo = new()
+        {
+            PathListInfo = new()
+            {
+                Path = &path,
+                Length = 1
+            }
+        };
+
+        byte* projectId = (byte*)ZenithMarshal.StringToPointer(scope, typeof(GraphicsContext).GUID.ToString(), StringEncoding.UTF8);
+        byte* engineVersion = (byte*)ZenithMarshal.StringToPointer(scope, typeof(GraphicsContext).Assembly.GetName().Version!.ToString(), StringEncoding.UTF8);
+        void* applicationDataPath = (void*)ZenithMarshal.StringToPointer(scope, Path.GetTempPath(), StringEncoding.UTF16);
+
+        NGXResult result = context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, applicationDataPath, device, &featureInfo, NGXVersion.Api) : InitializeVulkan(context, device, projectId, engineVersion, applicationDataPath, &featureInfo);
+        result.Success();
+
+        if (!result.IsSuccess())
+        {
+            Capabilities = new(false, false, false);
+
+            return;
+        }
+
+        Device = device;
+
+        fixed (NGXParameter* pointer = &parameters)
+        {
+            result = context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.GetCapabilityParameters(pointer) : Ngx.Vulkan.GetCapabilityParameters(pointer);
+            result.Success();
+        }
+
+        if (!result.IsSuccess())
+        {
+            Capabilities = new(false, false, false);
+
+            return;
+        }
+
+        Capabilities = new(IsAvailable(Ngx.ParameterSuperSamplingAvailable), IsAvailable(Ngx.ParameterSuperSamplingDenoisingAvailable), IsAvailable(Ngx.ParameterFrameGenerationAvailable));
+
+        if (context.GraphicsApi is GraphicsApi.Vulkan && (Capabilities.SuperResolutionSupported || Capabilities.RayReconstructionSupported || Capabilities.FrameGenerationSupported) && !CreateVulkanResources())
+        {
+            Capabilities = new(false, false, false);
+        }
     }
 
-    public override UpscalingCapabilities Capabilities => throw new NotImplementedException();
+    public GraphicsContext Context { get; }
+
+    public override UpscalingCapabilities Capabilities { get; }
+
+    public NGXParameter AllocateParameters()
+    {
+        NGXParameter parameters = default;
+
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.AllocateParameters(&parameters) : Ngx.Vulkan.AllocateParameters(&parameters);
+        result.Success();
+
+        fixed (byte* name = Ngx.ParameterFreeMemOnReleaseFeature)
+        {
+            Ngx.Parameter.SetUI(parameters, name, 1);
+        }
+
+        return parameters;
+    }
+
+    public void DestroyParameters(NGXParameter parameters)
+    {
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.DestroyParameters(parameters) : Ngx.Vulkan.DestroyParameters(parameters);
+        result.Success();
+    }
+
+    public void ReleaseFeature(NGXHandle handle)
+    {
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.ReleaseFeature(handle) : Ngx.Vulkan.ReleaseFeature(handle);
+        result.Success();
+    }
+
+    public NGXPerfQualityValue FindPerfQualityValue(NGXFeature feature, uint inputWidth, uint inputHeight, uint outputWidth, uint outputHeight)
+    {
+        foreach (UpscalingMode mode in Enum.GetValues<UpscalingMode>())
+        {
+            NGXPerfQualityValue perfQualityValue = DLSSFormats.NGX(mode);
+            UpscalingInputSize inputSize = GetOptimalInputSize(feature, outputWidth, outputHeight, perfQualityValue);
+            if (inputSize.Width == inputWidth && inputSize.Height == inputHeight)
+            {
+                return perfQualityValue;
+            }
+        }
+
+        return DLSSFormats.NGX(UpscalingMode.Native);
+    }
+
+    public void Create(DLSSFeature feature, NGXDLSSCreateParams createParams)
+    {
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+        nint commandList = GetCommandList(commandBuffer);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? CreateDirectX12(commandList, feature, &createParams) : CreateVulkan(commandList, feature, &createParams);
+
+        CompleteCreation(commandBuffer, result);
+    }
+
+    public void Create(DLSSFeature feature, NGXDLSSDCreateParams createParams)
+    {
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+        nint commandList = GetCommandList(commandBuffer);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? CreateDirectX12(commandList, feature, &createParams) : CreateVulkan(commandList, feature, &createParams);
+
+        CompleteCreation(commandBuffer, result);
+    }
+
+    public void Create(DLSSFeature feature, NGXDLSSGCreateParams createParams)
+    {
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+        nint commandList = GetCommandList(commandBuffer);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? CreateDirectX12(commandList, feature, &createParams) : CreateVulkan(commandList, feature, &createParams);
+
+        CompleteCreation(commandBuffer, result);
+    }
+
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, SuperResolutionArgs args)
+    {
+        nint commandList = GetCommandList(commandBuffer);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args) : EvaluateVulkan(commandList, feature, args);
+        result.Success();
+    }
+
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, RayReconstructionArgs args)
+    {
+        nint commandList = GetCommandList(commandBuffer);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args) : EvaluateVulkan(commandList, feature, args);
+        result.Success();
+    }
+
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, FrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
+    {
+        nint commandList = GetCommandList(commandBuffer);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args, optEvalParams) : EvaluateVulkan(commandList, feature, args, optEvalParams);
+        result.Success();
+    }
 
     public override UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        throw new NotImplementedException();
+        return GetOptimalInputSize(NGXFeature.SuperSampling, outputWidth, outputHeight, DLSSFormats.NGX(mode));
     }
 
     public override UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        throw new NotImplementedException();
+        if (mode is UpscalingMode.Native)
+        {
+            return default;
+        }
+
+        return GetOptimalInputSize(NGXFeature.RayReconstruction, outputWidth, outputHeight, DLSSFormats.NGX(mode));
     }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
-        throw new NotImplementedException();
+        return new DLSSSuperResolution(this, desc);
     }
 
     public override RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc)
     {
-        throw new NotImplementedException();
+        return new DLSSRayReconstruction(this, desc);
     }
 
     public override FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc)
     {
-        throw new NotImplementedException();
+        return new DLSSFrameGeneration(this, desc);
     }
 
     protected override void Destroy()
     {
+        if (Device is 0)
+        {
+            return;
+        }
+
+        if (Context.GraphicsApi is GraphicsApi.Vulkan)
+        {
+            DestroyVulkanResources();
+        }
+
+        if (!parameters.IsNull)
+        {
+            DestroyParameters(parameters);
+        }
+
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.Shutdown1(Device) : Ngx.Vulkan.Shutdown1(Device);
+        result.Success();
+    }
+
+    private nint GetCommandList(CommandBuffer commandBuffer)
+    {
+        return commandBuffer.GetNativeObject(Context.GraphicsApi is GraphicsApi.DirectX12 ? NativeObjectType.D3D12GraphicsCommandList : NativeObjectType.VulkanCommandBuffer);
+    }
+
+    private bool IsAvailable(ReadOnlySpan<byte> name)
+    {
+        fixed (byte* pointer = name)
+        {
+            int value = 0;
+            NGXResult result = Ngx.Parameter.GetI(parameters, pointer, &value);
+            result.Success();
+
+            return result.IsSuccess() && value is not 0;
+        }
+    }
+
+    private UpscalingInputSize GetOptimalInputSize(NGXFeature feature, uint outputWidth, uint outputHeight, NGXPerfQualityValue perfQualityValue)
+    {
+        uint inputWidth = 0;
+        uint inputHeight = 0;
+        NGXResult result = feature switch
+        {
+            NGXFeature.SuperSampling => Ngx.DLSS.GetOptimalSettings(parameters, outputWidth, outputHeight, perfQualityValue, out inputWidth, out inputHeight, out _, out _, out _, out _, out _),
+            NGXFeature.RayReconstruction => Ngx.DLSSD.GetOptimalSettings(parameters, outputWidth, outputHeight, perfQualityValue, out inputWidth, out inputHeight, out _, out _, out _, out _, out _),
+            _ => default
+        };
+        result.Success();
+
+        return result.IsSuccess() ? new(inputWidth, inputHeight) : default;
+    }
+
+    private static void CompleteCreation(CommandBuffer commandBuffer, NGXResult result)
+    {
+        result.Success();
+
+        commandBuffer.Submit().Wait();
     }
 }

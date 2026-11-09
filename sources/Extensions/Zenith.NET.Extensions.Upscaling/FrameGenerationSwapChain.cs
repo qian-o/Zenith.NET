@@ -96,7 +96,7 @@ public class FrameGenerationSwapChain : DisposableObject
         DestroyPresenter();
         WaitForResources();
 
-        swapChain?.Dispose();
+        swapChain.Dispose();
 
         DestroyResources();
     }
@@ -125,10 +125,10 @@ public class FrameGenerationSwapChain : DisposableObject
 
     private void WaitForResources()
     {
-        if (resources is not null || swapChain is not null)
+        if (resources is not null)
         {
             Context.GraphicsQueue.Timeline.Signal().Wait();
-            swapChain?.Queue.Timeline.Signal().Wait();
+            swapChain.Queue.Timeline.Signal().Wait();
         }
     }
 
@@ -161,7 +161,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
             Output = context.CreateTexture(TextureDesc.Texture2D(desc.ColorFormat, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
             {
-                Usages = TextureUsages.Storage | TextureUsages.TransferSrc
+                Usages = TextureUsages.ColorAttachment | TextureUsages.Storage | TextureUsages.TransferSrc
             });
 
             for (int i = 0; i < frames.Length; i++)
@@ -181,13 +181,13 @@ public class FrameGenerationSwapChain : DisposableObject
 
         protected override void Destroy()
         {
-            for (int i = frames.Length - 1; i >= 0; i--)
+            for (int i = 0; i < frames.Length; i++)
             {
-                frames[i]?.Dispose();
+                frames[i].Dispose();
             }
 
-            Output?.Dispose();
-            FrameGeneration?.Dispose();
+            Output.Dispose();
+            FrameGeneration.Dispose();
         }
     }
 
@@ -240,7 +240,7 @@ public class FrameGenerationSwapChain : DisposableObject
         {
             tokenSource.Cancel();
             available.Set();
-            completionHandles[1]?.WaitOne();
+            completionHandles[1].WaitOne();
         }
 
         protected override void Destroy()
@@ -249,7 +249,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
             submitteds.Clear();
 
-            Completion?.Dispose();
+            Completion.Dispose();
             available.Dispose();
             tokenSource.Dispose();
         }
@@ -267,7 +267,6 @@ public class FrameGenerationSwapChain : DisposableObject
                 while (TryTake(out Submitted submitted))
                 {
                     ProcessFrame(submitted);
-                    submitted.Frame.Completion.Set();
                 }
 
                 if (tokenSource.IsCancellationRequested)
@@ -314,19 +313,32 @@ public class FrameGenerationSwapChain : DisposableObject
             commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
             commandBuffer.Submit(submitted.Rendered).Wait();
 
-            TimeSpan interval = reset ? TimeSpan.Zero : TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5);
-
             if (!reset)
             {
-                PresentTexture(resources.Output, interval);
+                CopyToDrawable(resources.Output);
+                lastPresentationTimestamp = Stopwatch.GetTimestamp();
+                swapChain.Present();
             }
 
-            PresentTexture(frame.Color, interval);
+            CopyToDrawable(frame.Color);
+            frame.Completion.Set();
+
+            if (!reset && lastPresentationTimestamp is not 0)
+            {
+                TimeSpan delay = TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5) - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
+                if (delay > TimeSpan.Zero)
+                {
+                    stopping.WaitOne(delay);
+                }
+            }
+
+            lastPresentationTimestamp = Stopwatch.GetTimestamp();
+            swapChain.Present();
 
             hasHistory = true;
         }
 
-        private void PresentTexture(Texture texture, TimeSpan interval)
+        private void CopyToDrawable(Texture texture)
         {
             Texture drawable = swapChain.Drawable;
             CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
@@ -342,18 +354,6 @@ public class FrameGenerationSwapChain : DisposableObject
             commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
             commandBuffer.Transition(texture, default, TextureLayout.CopySrc, TextureLayout.Present);
             commandBuffer.Submit().Wait();
-
-            if (lastPresentationTimestamp is not 0)
-            {
-                TimeSpan delay = interval - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
-                if (delay > TimeSpan.Zero)
-                {
-                    stopping.WaitOne(delay);
-                }
-            }
-
-            lastPresentationTimestamp = Stopwatch.GetTimestamp();
-            swapChain.Present();
         }
 
         private readonly struct Submitted(Frame frame, FrameGenerationSwapChainArgs args, TimelineValue rendered)
@@ -405,9 +405,9 @@ public class FrameGenerationSwapChain : DisposableObject
         protected override void Destroy()
         {
             Hudless?.Dispose();
-            MotionVectors?.Dispose();
-            Depth?.Dispose();
-            Color?.Dispose();
+            MotionVectors.Dispose();
+            Depth.Dispose();
+            Color.Dispose();
             Completion.Dispose();
         }
 

@@ -86,18 +86,12 @@ internal class CameraHandler : DisposableObject
 
     protected override void Destroy()
     {
-        if (keyboard is not null)
-        {
-            keyboard.KeyUp -= OnKeyUp;
-            keyboard.KeyDown -= OnKeyDown;
-        }
+        keyboard.KeyUp -= OnKeyUp;
+        keyboard.KeyDown -= OnKeyDown;
 
-        if (mouse is not null)
-        {
-            mouse.MouseMove -= OnMouseMove;
-            mouse.MouseUp -= OnMouseUp;
-            mouse.MouseDown -= OnMouseDown;
-        }
+        mouse.MouseMove -= OnMouseMove;
+        mouse.MouseUp -= OnMouseUp;
+        mouse.MouseDown -= OnMouseDown;
 
         keyDowns.Clear();
         lastMousePosition = null;

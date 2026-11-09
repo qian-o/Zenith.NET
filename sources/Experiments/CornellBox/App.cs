@@ -41,6 +41,7 @@ internal static class App
 
         camera = new(input, new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
         {
+            NearPlane = 10.0f,
             FarPlane = 8000.0f,
             Speed = 240.0f
         };

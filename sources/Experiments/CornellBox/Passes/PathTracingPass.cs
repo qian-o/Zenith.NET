@@ -12,6 +12,8 @@ internal unsafe class PathTracingPass : DisposableObject
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline pipeline;
 
+    private Texture previousLinearDepth = null!;
+    private Texture currentLinearDepth = null!;
     private Matrix4x4 previousViewProjection;
 
     public PathTracingPass()
@@ -62,6 +64,9 @@ internal unsafe class PathTracingPass : DisposableObject
             Normals = Output.Normals.StorageHandle,
             Roughness = Output.Roughness.StorageHandle,
             SpecularHitDistance = Output.SpecularHitDistance.StorageHandle,
+            ReactiveMask = Output.ReactiveMask.StorageHandle,
+            PreviousLinearDepth = previousLinearDepth.SampledHandle,
+            CurrentLinearDepth = currentLinearDepth.StorageHandle,
             LinearDepthDelta = Output.LinearDepthDelta?.StorageHandle ?? default,
             DirectDiffuseRadiance = Output.DirectDiffuseRadiance?.StorageHandle ?? default,
             DirectSpecularRadiance = Output.DirectSpecularRadiance?.StorageHandle ?? default,
@@ -80,6 +85,13 @@ internal unsafe class PathTracingPass : DisposableObject
             commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
+        commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Undefined, TextureLayout.Storage);
+
+        if (frameIndex is 0)
+        {
+            commandBuffer.Transition(previousLinearDepth, default, TextureLayout.Undefined, TextureLayout.Sampled);
+        }
+
         ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
 
         commandBuffer.SetPipeline(pipeline);
@@ -90,6 +102,16 @@ internal unsafe class PathTracingPass : DisposableObject
         {
             commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
+
+        commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Storage, TextureLayout.CopySrc);
+        commandBuffer.Transition(previousLinearDepth, default, TextureLayout.Sampled, TextureLayout.CopyDst);
+        commandBuffer.CopyTexture(currentLinearDepth, default, default, previousLinearDepth, default, default, new()
+        {
+            Width = Output.Width,
+            Height = Output.Height,
+            Depth = 1
+        });
+        commandBuffer.Transition(previousLinearDepth, default, TextureLayout.CopyDst, TextureLayout.Sampled);
 
         previousViewProjection = viewProjection;
     }
@@ -103,23 +125,35 @@ internal unsafe class PathTracingPass : DisposableObject
     protected override void Destroy()
     {
         DestroyOutput();
-        pipeline?.Dispose();
-        constantBuffer?.Dispose();
+        pipeline.Dispose();
+        constantBuffer.Dispose();
     }
 
     private void CreateOutput(uint width, uint height, bool isRayReconstructionEnabled)
     {
         Output = new(width, height, isRayReconstructionEnabled);
+        previousLinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
+        });
+        currentLinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Storage | TextureUsages.TransferSrc
+        });
     }
 
     private void DestroyOutput()
     {
+        currentLinearDepth?.Dispose();
+        currentLinearDepth = null!;
+        previousLinearDepth?.Dispose();
+        previousLinearDepth = null!;
         Output?.Dispose();
         Output = null!;
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 448)]
+[StructLayout(LayoutKind.Explicit, Size = 464)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -189,17 +223,26 @@ file struct PathTracingConstants
     public ResourceHandle SpecularHitDistance;
 
     [FieldOffset(400)]
-    public ResourceHandle LinearDepthDelta;
+    public ResourceHandle ReactiveMask;
 
     [FieldOffset(408)]
-    public ResourceHandle DirectDiffuseRadiance;
+    public ResourceHandle PreviousLinearDepth;
 
     [FieldOffset(416)]
-    public ResourceHandle DirectSpecularRadiance;
+    public ResourceHandle CurrentLinearDepth;
 
     [FieldOffset(424)]
-    public ResourceHandle IndirectDiffuseRadiance;
+    public ResourceHandle LinearDepthDelta;
 
     [FieldOffset(432)]
+    public ResourceHandle DirectDiffuseRadiance;
+
+    [FieldOffset(440)]
+    public ResourceHandle DirectSpecularRadiance;
+
+    [FieldOffset(448)]
+    public ResourceHandle IndirectDiffuseRadiance;
+
+    [FieldOffset(456)]
     public ResourceHandle IndirectSpecularRadiance;
 }

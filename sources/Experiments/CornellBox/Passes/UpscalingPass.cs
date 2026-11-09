@@ -6,8 +6,10 @@ using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Passes;
 
-internal class UpscalingPass : DisposableObject
+internal unsafe class UpscalingPass : DisposableObject
 {
+    private readonly Texture exposure;
+
     private SuperResolution? superResolution;
     private RayReconstruction? rayReconstruction;
 
@@ -15,6 +17,22 @@ internal class UpscalingPass : DisposableObject
     {
         Mode = mode;
         IsRayReconstructionEnabled = isRayReconstructionEnabled;
+
+        exposure = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, 1, 1, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
+        });
+
+        Half unitExposure = (Half)1.0f;
+        CommandBuffer commandBuffer = App.Context.GraphicsQueue.CommandBuffer();
+        commandBuffer.Upload(exposure, default, default, new() { Width = 1, Height = 1, Depth = 1 }, new()
+        {
+            Pointer = (nint)(&unitExposure),
+            RowStrideInBytes = (uint)sizeof(Half),
+            SliceStrideInBytes = (uint)sizeof(Half)
+        });
+        commandBuffer.Transition(exposure, default, TextureLayout.CopyDst, TextureLayout.Sampled);
+        commandBuffer.Submit().Wait();
 
         CreateResources();
     }
@@ -36,6 +54,8 @@ internal class UpscalingPass : DisposableObject
             Color = input.Color,
             Depth = input.Depth,
             MotionVectors = input.MotionVectors,
+            ReactiveMask = input.ReactiveMask,
+            Exposure = exposure,
             Output = Color,
             JitterOffset = -jitterOffsetInPixels,
             WorldToView = camera.View,
@@ -55,6 +75,8 @@ internal class UpscalingPass : DisposableObject
             Normals = input.Normals,
             Roughness = input.Roughness,
             SpecularHitDistance = input.SpecularHitDistance,
+            ReactiveMask = input.ReactiveMask,
+            Exposure = exposure,
             LinearDepthDelta = input.LinearDepthDelta,
             DirectDiffuseRadiance = input.DirectDiffuseRadiance,
             DirectSpecularRadiance = input.DirectSpecularRadiance,
@@ -81,6 +103,7 @@ internal class UpscalingPass : DisposableObject
     protected override void Destroy()
     {
         DestroyResources();
+        exposure.Dispose();
     }
 
     private void CreateResources()
@@ -99,6 +122,7 @@ internal class UpscalingPass : DisposableObject
                 NormalsFormat = PathTracingOutput.NormalsFormat,
                 RoughnessFormat = PathTracingOutput.RoughnessFormat,
                 SpecularHitDistanceFormat = PathTracingOutput.SpecularHitDistanceFormat,
+                ReactiveMaskFormat = PathTracingOutput.ReactiveMaskFormat,
                 LinearDepthDeltaFormat = PathTracingOutput.LinearDepthDeltaFormat,
                 DirectDiffuseRadianceFormat = PathTracingOutput.RadianceFormat,
                 DirectSpecularRadianceFormat = PathTracingOutput.RadianceFormat,
@@ -110,7 +134,7 @@ internal class UpscalingPass : DisposableObject
                 InputHeight = InputSize.Height,
                 OutputWidth = App.PhysicalWidth,
                 OutputHeight = App.PhysicalHeight,
-                Flags = UpscalingInputFlags.AutoExposure
+                Flags = UpscalingInputFlags.None
             });
         }
         else
@@ -122,13 +146,14 @@ internal class UpscalingPass : DisposableObject
                 ColorFormat = PathTracingOutput.ColorFormat,
                 DepthFormat = PathTracingOutput.DepthFormat,
                 MotionVectorsFormat = PathTracingOutput.MotionVectorsFormat,
+                ReactiveMaskFormat = PathTracingOutput.ReactiveMaskFormat,
                 OutputFormat = PathTracingOutput.ColorFormat,
                 IsHdr = true,
                 InputWidth = InputSize.Width,
                 InputHeight = InputSize.Height,
                 OutputWidth = App.PhysicalWidth,
                 OutputHeight = App.PhysicalHeight,
-                Flags = UpscalingInputFlags.AutoExposure
+                Flags = UpscalingInputFlags.None
             });
         }
 

@@ -12,6 +12,7 @@ internal class PathTracingOutput : DisposableObject
     public const PixelFormat NormalsFormat = PixelFormat.R16G16B16A16Float;
     public const PixelFormat RoughnessFormat = PixelFormat.R16Float;
     public const PixelFormat SpecularHitDistanceFormat = PixelFormat.R32Float;
+    public const PixelFormat ReactiveMaskFormat = PixelFormat.R16Float;
     public const PixelFormat LinearDepthDeltaFormat = PixelFormat.R32Float;
     public const PixelFormat RadianceFormat = PixelFormat.R16G16B16A16Float;
 
@@ -27,6 +28,7 @@ internal class PathTracingOutput : DisposableObject
         Normals = CreateTexture(NormalsFormat, width, height);
         Roughness = CreateTexture(RoughnessFormat, width, height);
         SpecularHitDistance = CreateTexture(SpecularHitDistanceFormat, width, height);
+        ReactiveMask = CreateTexture(ReactiveMaskFormat, width, height);
 
         if (isRayReconstructionEnabled)
         {
@@ -36,11 +38,11 @@ internal class PathTracingOutput : DisposableObject
             IndirectDiffuseRadiance = CreateTexture(RadianceFormat, width, height);
             IndirectSpecularRadiance = CreateTexture(RadianceFormat, width, height);
 
-            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, LinearDepthDelta, DirectDiffuseRadiance, DirectSpecularRadiance, IndirectDiffuseRadiance, IndirectSpecularRadiance];
+            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, ReactiveMask, LinearDepthDelta, DirectDiffuseRadiance, DirectSpecularRadiance, IndirectDiffuseRadiance, IndirectSpecularRadiance];
         }
         else
         {
-            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance];
+            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, ReactiveMask];
         }
     }
 
@@ -64,6 +66,8 @@ internal class PathTracingOutput : DisposableObject
 
     public Texture SpecularHitDistance { get; }
 
+    public Texture ReactiveMask { get; }
+
     public Texture? LinearDepthDelta { get; }
 
     public Texture? DirectDiffuseRadiance { get; }
@@ -78,19 +82,10 @@ internal class PathTracingOutput : DisposableObject
 
     protected override void Destroy()
     {
-        IndirectSpecularRadiance?.Dispose();
-        IndirectDiffuseRadiance?.Dispose();
-        DirectSpecularRadiance?.Dispose();
-        DirectDiffuseRadiance?.Dispose();
-        LinearDepthDelta?.Dispose();
-        SpecularHitDistance?.Dispose();
-        Roughness?.Dispose();
-        Normals?.Dispose();
-        SpecularAlbedo?.Dispose();
-        DiffuseAlbedo?.Dispose();
-        MotionVectors?.Dispose();
-        Depth?.Dispose();
-        Color?.Dispose();
+        for (int i = 0; i < textures.Length; i++)
+        {
+            textures[i].Dispose();
+        }
     }
 
     private static Texture CreateTexture(PixelFormat format, uint width, uint height, TextureUsages additionalUsages = TextureUsages.None)

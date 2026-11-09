@@ -81,7 +81,7 @@ internal class UpscalingBridge : DisposableObject
 
     protected override void Destroy()
     {
-        for (int i = vendors.Count - 1; i >= 0; i--)
+        for (int i = 0; i < vendors.Count; i++)
         {
             vendors[i].Dispose();
         }

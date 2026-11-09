@@ -124,17 +124,17 @@ internal unsafe class SceneResources : DisposableObject
 
     protected override void Destroy()
     {
-        topLevel?.Dispose();
+        topLevel.Dispose();
 
-        for (int i = bottomLevels.Length - 1; i >= 0; i--)
+        for (int i = 0; i < bottomLevels.Length; i++)
         {
-            bottomLevels[i]?.Dispose();
+            bottomLevels[i].Dispose();
         }
 
-        instanceBuffer?.Dispose();
-        materialBuffer?.Dispose();
-        indexBuffer?.Dispose();
-        vertexBuffer?.Dispose();
+        instanceBuffer.Dispose();
+        materialBuffer.Dispose();
+        indexBuffer.Dispose();
+        vertexBuffer.Dispose();
     }
 
     private static Buffer CreateBuffer<T>(ReadOnlySpan<T> data) where T : unmanaged

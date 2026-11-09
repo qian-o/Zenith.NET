@@ -62,7 +62,7 @@ public readonly struct UpscalingInputSize(uint width, uint height)
 | 粗糙度 | R 通道保存 `[0, 1]` 的材质粗糙度 |
 | 距离与矩阵 | 距离以米为单位；矩阵采用 `System.Numerics.Matrix4x4` 约定，投影矩阵不含抖动并与深度对应 |
 | 抖动 | 像素单位，相对于深度和运动向量的尺寸 |
-| 曝光 | `Exposure` 为 1×1 的 `R32Float` 纹理，保存当前曝光倍率；`PreExposure` 为已乘入线性颜色的预曝光倍率，未预曝光时传 `1.0f` |
+| 曝光 | `Exposure` 为 1×1 的 `R16Float` 纹理，保存当前曝光倍率；`PreExposure` 为已乘入线性颜色的预曝光倍率，未预曝光时传 `1.0f` |
 
 超分与光线重建的 `IsHdr` 表示线性颜色包含 HDR 数值，不指定 sRGB、PQ 等传输函数；色调映射、呈现编码与 UI 合成在这些操作之后完成。帧生成的呈现颜色约定见 §2.6。
 
@@ -261,8 +261,8 @@ public struct RayReconstructionArgs
 | `LinearDepthDelta` | 当前表面点在前后两帧的带符号视空间深度差：`PreviousLinearDepth - CurrentLinearDepth` |
 | `DirectDiffuseRadiance` | 直接漫反射辐射度 |
 | `DirectSpecularRadiance` | 直接镜面反射辐射度 |
-| `IndirectDiffuseRadiance` | 间接漫反射辐射度 |
-| `IndirectSpecularRadiance` | 间接镜面反射辐射度；命中距离来自 `SpecularHitDistance` |
+| `IndirectDiffuseRadiance` | 间接漫反射辐射度；A 通道保存间接漫反射射线的命中距离 |
+| `IndirectSpecularRadiance` | 间接镜面反射辐射度；A 通道保存镜面反射射线的命中距离 |
 
 辐射度纹理的 RGB 不含首个反射点的反照度调制，预曝光倍率与 `Color` 一致。`Color` 包含这些信号乘以对应反照度后的贡献，也包含其余场景颜色。FSR 要求 `LinearDepthDelta` 和至少一种辐射度信号；所配置的信号每帧提供，未配置的场景贡献保持在 `Color` 中。
 
@@ -516,10 +516,10 @@ swapChain.Present(new()
 | `IsHdr` | HDR 创建标志 | 读取线性颜色，无对应开关 | HDR 创建标志 |
 | `DepthInfinite` | 无对应创建标志 | 无对应创建标志 | 无限远深度创建标志 |
 | `JitterOffset` | `JitterOffsetX/Y` | `JitterOffsetX/Y` | `JitterOffset` |
-| `DeltaTimeInSeconds` | 不读取 | 不读取 | `FrameTimeDelta`，秒转换为毫秒 |
+| `DeltaTimeInSeconds` | `FrameTimeDeltaInMsec`，秒转换为毫秒 | 不读取 | `FrameTimeDelta`，秒转换为毫秒 |
 | 质量档 | 查询建议尺寸并映射 `PerfQualityValue` | 根据支持的缩放范围计算尺寸 | 查询建议尺寸，由尺寸配置上下文 |
 
-运动向量按 §2.2 的 UV 约定提供，后端转换为对应接口需要的单位。曝光纹理保持同一倍率语义；MetalFX 所需的 1×1 `R16Float` 表示由后端转换。[自动曝光与手动曝光](https://developer.apple.com/documentation/metalfx/mtlfxtemporalscalerdescriptor/isautoexposureenabled)互斥，`PreExposure` 始终描述线性颜色已有的倍率。
+运动向量按 §2.2 的 UV 约定提供，后端转换为对应接口需要的单位。曝光纹理保持同一倍率语义。[自动曝光与手动曝光](https://developer.apple.com/documentation/metalfx/mtlfxtemporalscalerdescriptor/isautoexposureenabled)互斥，`PreExposure` 始终描述线性颜色已有的倍率。
 
 ### 4.3 光线重建
 
@@ -531,7 +531,7 @@ FSR 使用独立的降噪与超分上下文，在同一个调用方命令缓冲�
 2. 将 `Color` 中这些信号的贡献替换为降噪结果乘以对应反照度后的贡献，其余场景颜色保持不变。
 3. 对合成后的线性颜色执行超分，写入 `Output`。
 
-`Color` 在三个后端都表示完整场景颜色；分离的辐射度信号由调用方提供，其含义遵循 [FSR Ray Regeneration 的信号输入约定](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/blob/main/Kits/FidelityFX/docs/techniques/denoising.md#12-signals)。FSR 后端将硬件深度转换为带符号线性深度，将 `MotionVectors` 与 `LinearDepthDelta` 合并为原生运动数据，将法线与粗糙度打包为原生表示。反照度使用线性输入模式，材质分类采用默认值；间接镜面信号的命中距离取 `SpecularHitDistance`。
+`Color` 在三个后端都表示完整场景颜色；分离的辐射度信号由调用方提供，其含义遵循 [FSR Ray Regeneration 的信号输入约定](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/blob/main/Kits/FidelityFX/docs/techniques/denoising.md#12-signals)。FSR 后端将硬件深度转换为带符号线性深度，将 `MotionVectors` 与 `LinearDepthDelta` 合并为原生运动数据，将法线与粗糙度打包为原生表示。反照度使用线性输入模式，材质分类采用默认值；间接漫反射与间接镜面信号的命中距离分别保存在各自辐射度纹理的 A 通道中。
 
 调用方使用一次 `RayReconstruction.Dispatch`，输出始终是完成降噪与超分的颜色纹理。
 

@@ -77,8 +77,8 @@ internal unsafe class OutputPass : DisposableObject
     protected override void Destroy()
     {
         DestroyOutput();
-        toneMappingPipeline?.Dispose();
-        constantBuffer?.Dispose();
+        toneMappingPipeline.Dispose();
+        constantBuffer.Dispose();
     }
 
     private void CreateOutput()

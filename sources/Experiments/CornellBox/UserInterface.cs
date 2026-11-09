@@ -1,4 +1,5 @@
 ﻿using System.Text.Unicode;
+using CornellBox.Helpers;
 using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Zenith.NET.Extensions.ImGui;
@@ -25,34 +26,18 @@ internal class UserInterface
     {
         App.Context.BeginImGuiFrame(deltaSeconds, App.LogicalWidth, App.LogicalHeight, App.DpiScale);
 
-        DrawOverlay();
-        DrawSettings();
-    }
-
-    private void DrawOverlay()
-    {
-        ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.Always, new(0, 0));
-        ImGui.SetNextWindowBgAlpha(0.35f);
-
-        if (ImGui.Begin("Overlay", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoDecoration))
+        ImGuiHelper.Overlay(() =>
         {
             ImGui.TextUnformatted(App.Context.Capabilities.DeviceName);
             ImGui.TextUnformatted(graphicsApiText);
 
             Span<byte> text = stackalloc byte[64];
-            Utf8.TryWrite(text, $"FPS: {ImGui.GetIO().Framerate:F1}\0", out int bytesWritten);
+            float framerate = ImGui.GetIO().Framerate * (IsFrameGenerationEnabled ? 2.0f : 1.0f);
+            Utf8.TryWrite(text, $"FPS: {framerate:F1}\0", out int bytesWritten);
             ImGui.TextUnformatted(text[..bytesWritten]);
-        }
+        });
 
-        ImGui.End();
-    }
-
-    private void DrawSettings()
-    {
-        ImGui.SetNextWindowPos(new(ImGui.GetIO().DisplaySize.X - 10, 10), ImGuiCond.Always, new(1, 0));
-        ImGui.SetNextWindowCollapsed(true, ImGuiCond.FirstUseEver);
-
-        if (ImGui.Begin("Settings", ImGuiWindowFlags.AlwaysAutoResize))
+        ImGuiHelper.Settings(() =>
         {
             RenderSettings settings = RenderSettings;
 
@@ -64,9 +49,7 @@ internal class UserInterface
             DrawFrameGeneration();
 
             RenderSettings = settings;
-        }
-
-        ImGui.End();
+        });
     }
 
     private void DrawFrameGeneration()
