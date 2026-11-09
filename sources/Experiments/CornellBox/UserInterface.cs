@@ -10,7 +10,6 @@ namespace CornellBox;
 internal class UserInterface
 {
     private const string UpscalingModes = "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0";
-    private const string RayReconstructionModes = "Off\0Quality\0Balanced\0Performance\0Ultra Performance\0";
 
     private readonly string graphicsApiText = $"GraphicsApi: {App.Context.GraphicsApi}";
 
@@ -69,12 +68,15 @@ internal class UserInterface
     {
         ImGui.BeginDisabled(!App.Context.UpscalingCapabilities.SuperResolutionSupported);
 
-        int modeOffset = settings.IsRayReconstructionEnabled ? 0 : 1;
-        int modeIndex = settings.UpscalingMode is UpscalingMode mode ? (int)mode + modeOffset : 0;
-        string modes = settings.IsRayReconstructionEnabled ? RayReconstructionModes : UpscalingModes;
-        if (ImGui.Combo("Upscaling Mode", ref modeIndex, modes))
+        int modeIndex = settings.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
+        if (ImGui.Combo("Upscaling Mode", ref modeIndex, UpscalingModes))
         {
-            settings.UpscalingMode = modeIndex is 0 ? null : (UpscalingMode)(modeIndex - modeOffset);
+            settings.UpscalingMode = modeIndex is 0 ? null : (UpscalingMode)(modeIndex - 1);
+
+            if (settings.UpscalingMode is null or UpscalingMode.Native)
+            {
+                settings.IsRayReconstructionEnabled = false;
+            }
         }
 
         ImGui.EndDisabled();
