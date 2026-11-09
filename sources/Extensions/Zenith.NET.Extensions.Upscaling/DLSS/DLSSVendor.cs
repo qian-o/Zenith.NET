@@ -116,7 +116,6 @@ internal unsafe partial class DLSSVendor : Vendor
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? CreateDirectX12(commandList, feature, &createParams) : CreateVulkan(commandList, feature, &createParams);
 
         CompleteCreation(commandBuffer, result);
-        feature.Queue = Context.GraphicsQueue;
     }
 
     public void Create(DLSSFeature feature, NGXDLSSDCreateParams createParams)
@@ -126,17 +125,15 @@ internal unsafe partial class DLSSVendor : Vendor
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? CreateDirectX12(commandList, feature, &createParams) : CreateVulkan(commandList, feature, &createParams);
 
         CompleteCreation(commandBuffer, result);
-        feature.Queue = Context.GraphicsQueue;
     }
 
     public void Create(DLSSFeature feature, NGXDLSSGCreateParams createParams)
     {
-        CommandBuffer commandBuffer = Context.PresentQueue.CommandBuffer();
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
         nint commandList = GetCommandList(commandBuffer);
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? CreateDirectX12(commandList, feature, &createParams) : CreateVulkan(commandList, feature, &createParams);
 
         CompleteCreation(commandBuffer, result);
-        feature.Queue = Context.PresentQueue;
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, SuperResolutionArgs args)
@@ -313,6 +310,11 @@ internal unsafe partial class DLSSVendor : Vendor
         if (Context.GraphicsApi is GraphicsApi.Vulkan)
         {
             DestroyVulkanResources();
+        }
+
+        if (!parameters.IsNull)
+        {
+            DestroyParameters(parameters);
         }
 
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.Shutdown1(Device) : Ngx.Vulkan.Shutdown1(Device);

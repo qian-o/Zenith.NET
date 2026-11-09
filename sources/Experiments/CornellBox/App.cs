@@ -75,14 +75,17 @@ internal static class App
         window.Render -= OnRender;
         window.Update -= OnUpdate;
 
+        presentation.WaitForPendingWork();
+
         presentation.Dispose();
         renderer.Dispose();
         camera.Dispose();
         imGui.Dispose();
         input.Dispose();
-        window.Dispose();
 
         Context.Dispose();
+
+        window.Dispose();
     }
 
     private static void OnUpdate(double deltaSeconds)

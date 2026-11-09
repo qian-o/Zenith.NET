@@ -10,8 +10,6 @@ internal unsafe class DLSSFeature(DLSSVendor vendor) : DisposableObject
 
     public NGXHandle Handle;
 
-    public CommandQueue? Queue;
-
     public void SetUI(ReadOnlySpan<byte> name, uint value)
     {
         fixed (byte* pointer = name)
@@ -22,8 +20,6 @@ internal unsafe class DLSSFeature(DLSSVendor vendor) : DisposableObject
 
     protected override void Destroy()
     {
-        Queue?.Timeline.Signal().Wait();
-
         if (!Handle.IsNull)
         {
             Vendor.ReleaseFeature(Handle);

@@ -319,41 +319,31 @@ public class FrameGenerationSwapChain : DisposableObject
 
                 lastPresentationTimestamp = Stopwatch.GetTimestamp();
                 swapChain.Present();
-
-                CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
-                realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
-                CopyToDrawable(realCommandBuffer, frame.Color);
-                realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
-                realCommandBuffer.Submit();
-
-                if (swapChain.Desc.IsVerticalSyncEnabled && lastPresentationTimestamp is not 0)
-                {
-                    TimeSpan delay = TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5) - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
-                    if (delay > TimeSpan.Zero)
-                    {
-                        stopping.WaitOne(delay);
-                    }
-                }
-
-                lastPresentationTimestamp = Stopwatch.GetTimestamp();
-                swapChain.Present();
-                frame.Completion.Set();
             }
             else
             {
                 commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
-                commandBuffer.Submit(submitted.Rendered);
-
-                CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
-                realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
-                CopyToDrawable(realCommandBuffer, frame.Color);
-                realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
-                realCommandBuffer.Submit();
-
-                lastPresentationTimestamp = Stopwatch.GetTimestamp();
-                swapChain.Present();
-                frame.Completion.Set();
+                commandBuffer.Submit(submitted.Rendered).Wait();
             }
+
+            CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
+            realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
+            CopyToDrawable(realCommandBuffer, frame.Color);
+            realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
+            realCommandBuffer.Submit().Wait();
+            frame.Completion.Set();
+
+            if (!reset && swapChain.Desc.IsVerticalSyncEnabled && lastPresentationTimestamp is not 0)
+            {
+                TimeSpan delay = TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5) - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
+                if (delay > TimeSpan.Zero)
+                {
+                    stopping.WaitOne(delay);
+                }
+            }
+
+            lastPresentationTimestamp = Stopwatch.GetTimestamp();
+            swapChain.Present();
 
             hasHistory = true;
         }
