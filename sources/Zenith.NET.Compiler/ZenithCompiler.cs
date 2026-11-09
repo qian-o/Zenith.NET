@@ -10,21 +10,23 @@ public static class ZenithCompiler
         {
             __target_switch
             {
-            case spirv:
-                if (T.kind == DescriptorKind.AccelerationStructure)
+                case spirv:
                 {
-                    return __slang_noop_cast<T>(RaytracingAccelerationStructure(__asuint64((uint2)handleValue)));
+                    if (T.kind == DescriptorKind.AccelerationStructure)
+                    {
+                        return __slang_noop_cast<T>(RaytracingAccelerationStructure(__asuint64((uint2)handleValue)));
+                    }
+
+                    if (T.kind == DescriptorKind.Unknown)
+                    {
+                        return __declVal<__DynamicResource<__DynamicResourceKind.General>>().asOpaqueDescriptor<T>();
+                    }
+
+                    return defaultGetDescriptorFromHandle(handleValue);
                 }
 
-                if (T.kind == DescriptorKind.Unknown)
-                {
-                    static __DynamicResource<__DynamicResourceKind.General> resource;
-                    return resource.asOpaqueDescriptor<T>();
-                }
-
-                return defaultGetDescriptorFromHandle(handleValue);
-            default:
-                return defaultGetDescriptorFromHandle(handleValue);
+                default:
+                    return defaultGetDescriptorFromHandle(handleValue);
             }
         }
         """;
