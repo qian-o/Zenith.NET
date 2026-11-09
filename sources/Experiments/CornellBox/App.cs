@@ -96,6 +96,7 @@ internal static class App
         renderer.Update(deltaSeconds);
         userInterface.Update(deltaSeconds);
 
+        presentation.WaitForPendingWork();
         renderer.ApplySettings(userInterface.RenderSettings);
         presentation.Configure(renderer.InputSize, userInterface.IsFrameGenerationEnabled);
     }
@@ -106,6 +107,8 @@ internal static class App
         {
             return;
         }
+
+        presentation.WaitForPendingWork();
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
         RenderedFrame frame = renderer.Render(commandBuffer, camera, deltaSeconds);
@@ -120,6 +123,7 @@ internal static class App
             return;
         }
 
+        presentation.WaitForPendingWork();
         renderer.Resize();
         presentation.Configure(renderer.InputSize, userInterface.IsFrameGenerationEnabled);
     }

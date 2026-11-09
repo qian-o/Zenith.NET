@@ -4,7 +4,7 @@ namespace Zenith.NET.Extensions.Upscaling;
 
 public class FrameGenerationSwapChain : DisposableObject
 {
-    private const int FrameCount = 2;
+    private const int FrameCount = 3;
 
     private readonly SwapChain swapChain;
 
@@ -41,10 +41,9 @@ public class FrameGenerationSwapChain : DisposableObject
 
     public Texture? Hudless => resources!.Current.Hudless;
 
-    public void Present(FrameGenerationSwapChainArgs args)
+    public void Present(TimelineValue rendered, FrameGenerationSwapChainArgs args)
     {
         Frame frame = resources!.Current;
-        TimelineValue rendered = Context.GraphicsQueue.Timeline.Signal();
 
         presenter!.Submit(frame, args, rendered);
         presenter.Wait(resources.Advance());
@@ -310,40 +309,56 @@ public class FrameGenerationSwapChain : DisposableObject
             });
 
             frame.Transition(commandBuffer, TextureLayout.Sampled, TextureLayout.Present);
-            commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
-            commandBuffer.Submit(submitted.Rendered).Wait();
 
             if (!reset)
             {
-                CopyToDrawable(resources.Output);
+                commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.CopySrc);
+                CopyToDrawable(commandBuffer, resources.Output);
+                commandBuffer.Transition(resources.Output, default, TextureLayout.CopySrc, TextureLayout.Present);
+                commandBuffer.Submit(submitted.Rendered);
+
                 lastPresentationTimestamp = Stopwatch.GetTimestamp();
                 swapChain.Present();
-            }
 
-            CopyToDrawable(frame.Color);
-            frame.Completion.Set();
+                CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
+                CopyToDrawable(realCommandBuffer, frame.Color);
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
+                realCommandBuffer.Submit();
 
-            if (!reset && lastPresentationTimestamp is not 0)
-            {
-                TimeSpan delay = TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5) - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
-                if (delay > TimeSpan.Zero)
+                if (swapChain.Desc.IsVerticalSyncEnabled && lastPresentationTimestamp is not 0)
                 {
-                    stopping.WaitOne(delay);
+                    TimeSpan delay = TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5) - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
+                    if (delay > TimeSpan.Zero)
+                    {
+                        stopping.WaitOne(delay);
+                    }
                 }
-            }
 
-            lastPresentationTimestamp = Stopwatch.GetTimestamp();
-            swapChain.Present();
+                lastPresentationTimestamp = Stopwatch.GetTimestamp();
+                swapChain.Present();
+                frame.Completion.Set();
+            }
+            else
+            {
+                commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
+                commandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
+                CopyToDrawable(commandBuffer, frame.Color);
+                commandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
+                commandBuffer.Submit(submitted.Rendered);
+
+                lastPresentationTimestamp = Stopwatch.GetTimestamp();
+                swapChain.Present();
+                frame.Completion.Set();
+            }
 
             hasHistory = true;
         }
 
-        private void CopyToDrawable(Texture texture)
+        private void CopyToDrawable(CommandBuffer commandBuffer, Texture texture)
         {
             Texture drawable = swapChain.Drawable;
-            CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
-            commandBuffer.Transition(texture, default, TextureLayout.Present, TextureLayout.CopySrc);
             commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
             commandBuffer.CopyTexture(texture, default, default, drawable, default, default, new()
             {
@@ -352,8 +367,6 @@ public class FrameGenerationSwapChain : DisposableObject
                 Depth = 1
             });
             commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
-            commandBuffer.Transition(texture, default, TextureLayout.CopySrc, TextureLayout.Present);
-            commandBuffer.Submit().Wait();
         }
 
         private readonly struct Submitted(Frame frame, FrameGenerationSwapChainArgs args, TimelineValue rendered)

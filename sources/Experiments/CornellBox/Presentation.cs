@@ -12,6 +12,8 @@ internal class Presentation : DisposableObject
     private SwapChain? swapChain;
     private FrameGenerationSwapChain? frameGenerationSwapChain;
 
+    private TimelineValue? lastSubmitted;
+
     public Presentation(Surface surface, UpscalingInputSize inputSize, bool useFrameGeneration)
     {
         CreateSwapChain(surface, inputSize, useFrameGeneration);
@@ -57,6 +59,12 @@ internal class Presentation : DisposableObject
         }
     }
 
+    public void WaitForPendingWork()
+    {
+        lastSubmitted?.Wait();
+        lastSubmitted = null;
+    }
+
     public void Present(CommandBuffer commandBuffer, in RenderedFrame frame)
     {
         if (frameGenerationSwapChain is not null)
@@ -72,11 +80,13 @@ internal class Presentation : DisposableObject
         commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         App.Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(color, default));
         commandBuffer.Transition(color, default, TextureLayout.ColorAttachment, TextureLayout.Present);
-        commandBuffer.Submit().Wait();
+
+        TimelineValue submitted = commandBuffer.Submit();
+        lastSubmitted = submitted;
 
         if (frameGenerationSwapChain is not null)
         {
-            frameGenerationSwapChain.Present(new()
+            frameGenerationSwapChain.Present(submitted, new()
             {
                 JitterOffset = frame.JitterOffset,
                 WorldToView = frame.WorldToView,
@@ -87,6 +97,8 @@ internal class Presentation : DisposableObject
         }
         else
         {
+            submitted.Wait();
+            lastSubmitted = null;
             swapChain!.Present();
         }
     }
@@ -123,6 +135,9 @@ internal class Presentation : DisposableObject
 
     private void DestroySwapChain()
     {
+        lastSubmitted?.Wait();
+        lastSubmitted = null;
+
         frameGenerationSwapChain?.Dispose();
         frameGenerationSwapChain = null;
         swapChain?.Dispose();
