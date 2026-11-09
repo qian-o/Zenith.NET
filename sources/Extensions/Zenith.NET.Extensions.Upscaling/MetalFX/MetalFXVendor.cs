@@ -60,11 +60,6 @@ internal class MetalFXVendor : Vendor
 
     public override UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        if (mode is UpscalingMode.Native)
-        {
-            return default;
-        }
-
         return GetInputSize(outputWidth, outputHeight, UpscalingHelper.Scale(mode), rayReconstructionScale.Min, rayReconstructionScale.Max);
     }
 

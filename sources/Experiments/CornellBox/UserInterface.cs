@@ -73,7 +73,7 @@ internal class UserInterface
         {
             settings.UpscalingMode = modeIndex is 0 ? null : (UpscalingMode)(modeIndex - 1);
 
-            if (settings.UpscalingMode is null or UpscalingMode.Native)
+            if (settings.UpscalingMode is null)
             {
                 settings.IsRayReconstructionEnabled = false;
             }
@@ -84,7 +84,7 @@ internal class UserInterface
 
     private static void DrawRayReconstruction(ref RenderSettings settings)
     {
-        ImGui.BeginDisabled(!App.Context.UpscalingCapabilities.RayReconstructionSupported || settings.UpscalingMode is null or UpscalingMode.Native);
+        ImGui.BeginDisabled(!App.Context.UpscalingCapabilities.RayReconstructionSupported || settings.UpscalingMode is null);
         ImGui.Checkbox("Ray Reconstruction", ref settings.IsRayReconstructionEnabled);
         ImGui.EndDisabled();
     }

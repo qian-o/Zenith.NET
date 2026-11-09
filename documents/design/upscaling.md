@@ -45,7 +45,7 @@ public readonly struct UpscalingInputSize(uint width, uint height)
 }
 ```
 
-`UpscalingMode` 用于查询建议的渲染分辨率：`GetSuperResolutionInputSize(outputWidth, outputHeight, mode)`。超分对象的实际尺寸由 `Desc.InputWidth/Height` 与 `Desc.OutputWidth/Height` 指定。`Native` 表示原分辨率时域重建，只用于 `SuperResolution`；`GetRayReconstructionInputSize` 接受其余四个档位。
+`UpscalingMode` 用于查询建议的渲染分辨率：`GetSuperResolutionInputSize(outputWidth, outputHeight, mode)` 与 `GetRayReconstructionInputSize(outputWidth, outputHeight, mode)`。超分对象的实际尺寸由 `Desc.InputWidth/Height` 与 `Desc.OutputWidth/Height` 指定。`Native` 表示原分辨率时域重建。
 
 ### 2.2 输入约定
 
@@ -250,7 +250,7 @@ public struct RayReconstructionArgs
 }
 ```
 
-`InputWidth/Height` 必须分别小于 `OutputWidth/Height`；相等或更大时创建期抛 `InvalidOperationException`。除 1×1 的 `Exposure` 外，输入纹理均为渲染尺寸，`Output` 为超分尺寸。
+`InputWidth/Height` 不大于 `OutputWidth/Height`，相等时执行原分辨率光线重建。除 1×1 的 `Exposure` 外，输入纹理均为渲染尺寸，`Output` 为超分尺寸。
 
 `Color` 是待降噪的完整线性场景颜色。`SpecularHitDistance` 保存镜面反射射线的命中距离；`TransparencyOverlay` 是与场景对应的线性 RGBA 透明层，A 通道为不透明度。曝光与帧间隔的含义与 §2.4 相同。
 

@@ -164,11 +164,6 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public override UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        if (mode is UpscalingMode.Native)
-        {
-            return default;
-        }
-
         return GetOptimalInputSize(NGXFeature.RayReconstruction, outputWidth, outputHeight, DLSSFormats.NGX(mode));
     }
 
