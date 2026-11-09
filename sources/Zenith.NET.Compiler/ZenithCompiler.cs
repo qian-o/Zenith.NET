@@ -33,7 +33,12 @@ public static class ZenithCompiler
 
     public static ShaderDesc CompileFromFile(GraphicsApi graphicsApi, string file, string name, string[]? searchPaths = null)
     {
-        return CompileFromSource(graphicsApi, File.ReadAllText(file), name, [Path.GetDirectoryName(Path.GetFullPath(file))!, .. searchPaths ?? []]);
+        return new()
+        {
+            Name = name,
+            CodeBytes = SlangCompiler.CompileWithReflection(Preamble, [file, .. Arguments(graphicsApi, name, searchPaths)], out SlangReflection reflection),
+            ThreadGroupSize = ThreadGroupSize(reflection, name)
+        };
     }
 
     public static ShaderDesc CompileFromSource(GraphicsApi graphicsApi, string source, string name, string[]? searchPaths = null)
