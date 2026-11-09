@@ -474,7 +474,7 @@ internal class CornellBoxGeometry
         indices.Add(startIndex + 3);
     }
 
-    private void AddSphere(Vector3 center, float radius, MaterialId materialId, int segmentCount = 64, int ringCount = 32)
+    private void AddSphere(Vector3 center, float radius, MaterialId materialId, int segmentCount = 32, int ringCount = 16)
     {
         uint startIndex = (uint)vertices.Count;
         Span<Vector2> longitudeDirections = stackalloc Vector2[segmentCount + 1];
@@ -530,8 +530,8 @@ internal class CornellBoxGeometry
 
     private void AddTorus(float majorRadius, float minorRadius, MaterialId materialId)
     {
-        const int MajorSegmentCount = 128;
-        const int MinorSegmentCount = 16;
+        const int MajorSegmentCount = 64;
+        const int MinorSegmentCount = 12;
 
         uint startIndex = (uint)vertices.Count;
         Span<Vector2> tubeDirections = stackalloc Vector2[MinorSegmentCount + 1];

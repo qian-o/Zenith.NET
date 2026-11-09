@@ -1,5 +1,8 @@
-﻿static const float3 LightMin = float3(213.0, 547.0, 227.0);
+﻿static const float3 BoxMin = float3(0.0, 0.0, 0.0);
+static const float3 BoxMax = float3(556.0, 548.8, 559.2);
+static const float3 LightMin = float3(213.0, 547.0, 227.0);
 static const float3 LightMax = float3(343.0, 547.0, 332.0);
+static const float3 LightCenter = float3(278.0, 548.8, 279.5);
 static const float LightArea = (343.0 - 213.0) * (332.0 - 227.0);
 static const float3 LightNormal = float3(0.0, -1.0, 0.0);
 static const uint LightMaterial = 3;
@@ -10,7 +13,7 @@ static const float RayMaxDistance = 100000.0;
 static const float MissDistance = 65504.0;
 static const float MinimumRoughness = 0.04;
 static const float PI = 3.14159265;
-static const int MaxBounces = 8;
+static const int MaxBounces = 4;
 static const uint SpecularGuideSampleCount = 4;
 
 struct Vertex
@@ -537,6 +540,11 @@ void AccumulateLighting(inout PathRadiance radiance, Lighting lighting, float3 t
     }
 }
 
+bool IsInsideBox(float3 position)
+{
+    return all(position >= BoxMin) && all(position <= BoxMax);
+}
+
 PathRadiance TracePath(float3 origin, float3 direction, Surface firstSurface, float firstDistance, bool hasFirstHit, inout uint rng, out float diffuseHitDistance, out float specularHitDistance)
 {
     diffuseHitDistance = MissDistance;
@@ -614,9 +622,13 @@ PathRadiance TracePath(float3 origin, float3 direction, Surface firstSurface, fl
         float total = specWeight + diffWeight;
         float specProb = specWeight / total;
 
-        Lighting light = SampleLightDirect(surface, V, roughness, specProb, rng);
+        if (IsInsideBox(surface.Position))
+        {
+            Lighting light = SampleLightDirect(surface, V, roughness, specProb, rng);
+            AccumulateLighting(radiance, light, throughput, bounce, primarySpecularSample);
+        }
+
         Lighting sun = SampleSunDirect(surface, V, roughness, rng);
-        AccumulateLighting(radiance, light, throughput, bounce, primarySpecularSample);
         AccumulateLighting(radiance, sun, throughput, bounce, primarySpecularSample);
 
         if (bounce == MaxBounces - 1)
@@ -713,7 +725,18 @@ float2 MotionVector(float4 currentClip, float4 previousClip)
     return (previousNdc - currentNdc) * float2(0.5, -0.5);
 }
 
-float3 EstimateSpecularAlbedo(float3 direction, Surface surface, float roughness, out float2 reflectionMotionVector, out bool hasDynamicReflection)
+float2 VirtualReflectionMotionVector(Surface surface, Surface reflectedSurface)
+{
+    Instance reflectedInstance = pathTracing.Instances[reflectedSurface.InstanceIndex];
+    float3 previousReflectedPosition = mul(float4(reflectedSurface.ObjectPosition, 1.0), reflectedInstance.PreviousObjectToWorld).xyz;
+    float3 reflectedDelta = reflectedSurface.Position - previousReflectedPosition;
+    float4 currentVirtualClip = mul(float4(surface.Position, 1.0), pathTracing.ViewProjection);
+    float4 previousVirtualClip = mul(float4(surface.Position - reflectedDelta, 1.0), pathTracing.PreviousViewProjection);
+
+    return MotionVector(currentVirtualClip, previousVirtualClip);
+}
+
+float3 EstimateSpecularAlbedo(float3 direction, Surface surface, float roughness, inout float specularHitDistance, out float2 reflectionMotionVector, out bool hasDynamicReflection)
 {
     reflectionMotionVector = 0.0;
     hasDynamicReflection = false;
@@ -721,50 +744,70 @@ float3 EstimateSpecularAlbedo(float3 direction, Surface surface, float roughness
     float3 F0 = lerp(float3(0.04), surface.Albedo, surface.Metallic);
     float3 specularAlbedo = SpecularReflectance(F0, roughness, dot(surface.Normal, -direction));
 
-    if (pathTracing.IsRayReconstructionEnabled == 0 || surface.InstanceIndex > 0 || (surface.Metallic <= 0.0 && roughness > 0.30))
+    if (surface.InstanceIndex > 0 || (surface.Metallic <= 0.0 && roughness > 0.35))
     {
         return specularAlbedo;
     }
 
-    uint guideSeed = 0;
-    float3 reflectedAlbedo = 0.0;
-    float2 accumulatedMotionVector = 0.0;
-    uint dynamicSampleCount = 0;
+    float3 reflectedDirection = reflect(direction, surface.Normal);
+    float3 origin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, reflectedDirection) > 0.0 ? RayOffset : -RayOffset);
+    Surface centerSurface = (Surface)0;
+    float centerDistance = 0.0;
+    bool hasCenterReflection = false;
 
-    for (uint i = 0; i < SpecularGuideSampleCount; i++)
+    if (dot(surface.Normal, reflectedDirection) > 0.0)
+    {
+        hasCenterReflection = TraceSurface(origin, reflectedDirection, centerSurface, centerDistance);
+
+        if (specularHitDistance <= 0.0)
+        {
+            specularHitDistance = hasCenterReflection ? min(centerDistance, MissDistance) : MissDistance;
+        }
+
+        if (hasCenterReflection && centerSurface.InstanceIndex > 0)
+        {
+            hasDynamicReflection = true;
+            reflectionMotionVector = VirtualReflectionMotionVector(surface, centerSurface);
+        }
+    }
+
+    if (pathTracing.IsRayReconstructionEnabled == 0 || roughness < 0.045)
+    {
+        float3 centerReflectedAlbedo = hasCenterReflection ? centerSurface.Albedo : float3(1.0);
+
+        return pathTracing.IsRayReconstructionEnabled == 0 ? specularAlbedo : specularAlbedo * lerp(float3(1.0), centerReflectedAlbedo, surface.Metallic);
+    }
+
+    uint guideSeed = 0;
+    float3 reflectedAlbedo = hasCenterReflection ? centerSurface.Albedo : float3(1.0);
+    uint coneSampleCount = SpecularGuideSampleCount - 1u;
+
+    for (uint i = 0; i < coneSampleCount; i++)
     {
         float3 halfVector = SampleGGXHalfVector(surface.Normal, roughness, guideSeed);
-        float3 reflectedDirection = reflect(direction, halfVector);
+        float3 sampleDirection = reflect(direction, halfVector);
 
-        if (dot(surface.Normal, reflectedDirection) <= 0.0)
+        if (dot(surface.Normal, sampleDirection) <= 0.0)
         {
             reflectedAlbedo += 1.0;
 
             continue;
         }
 
-        float3 origin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, reflectedDirection) > 0.0 ? RayOffset : -RayOffset);
         Surface reflectedSurface;
         float reflectedDistance;
-        bool hasReflection = TraceSurface(origin, reflectedDirection, reflectedSurface, reflectedDistance);
+        bool hasReflection = TraceSurface(origin, sampleDirection, reflectedSurface, reflectedDistance);
         reflectedAlbedo += hasReflection ? reflectedSurface.Albedo : float3(1.0);
 
         if (hasReflection && reflectedSurface.InstanceIndex > 0)
         {
             hasDynamicReflection = true;
-            Instance reflectedInstance = pathTracing.Instances[reflectedSurface.InstanceIndex];
-            float3 previousReflectedPosition = mul(float4(reflectedSurface.ObjectPosition, 1.0), reflectedInstance.PreviousObjectToWorld).xyz;
-            float3 reflectedDelta = reflectedSurface.Position - previousReflectedPosition;
-            float4 currentVirtualClip = mul(float4(surface.Position, 1.0), pathTracing.ViewProjection);
-            float4 previousVirtualClip = mul(float4(surface.Position - reflectedDelta, 1.0), pathTracing.PreviousViewProjection);
-            accumulatedMotionVector += MotionVector(currentVirtualClip, previousVirtualClip);
-            dynamicSampleCount++;
-        }
-    }
 
-    if (dynamicSampleCount > 0)
-    {
-        reflectionMotionVector = accumulatedMotionVector / float(dynamicSampleCount);
+            if (!hasCenterReflection || centerSurface.InstanceIndex == 0)
+            {
+                reflectionMotionVector = VirtualReflectionMotionVector(surface, reflectedSurface);
+            }
+        }
     }
 
     return specularAlbedo * lerp(float3(1.0), reflectedAlbedo / float(SpecularGuideSampleCount), surface.Metallic);
@@ -791,7 +834,7 @@ void WriteReconstructionSignals(uint2 pixel, PathRadiance radiance, float3 scale
     pathTracing.IndirectSpecularRadiance[pixel] = float4(DemodulateRadiance(radiance.IndirectSpecular * scale, specularAlbedo), specularHitDistance);
 }
 
-float ComputeReactivity(uint2 pixel, inout float2 motionVector, float previousLinearDepth, bool isDynamicNow)
+float ComputeReactivity(uint2 pixel, float2 motionVector, float previousLinearDepth, bool isDynamicNow)
 {
     float2 currentUv = (float2(pixel) + 0.5) / pathTracing.RenderSize;
     float2 previousUv = currentUv + motionVector;
@@ -808,25 +851,23 @@ float ComputeReactivity(uint2 pixel, inout float2 motionVector, float previousLi
             int2 previousCenter = int2(previousUv * pathTracing.RenderSize);
             int2 maxPixel = int2(pathTracing.RenderSize) - 1;
             float maxPreviousDepth = 0.0;
-            bool wasDynamicAtCenter = false;
             bool wasDynamicInNeighborhood = false;
 
-            for (int dy = -1; dy <= 1; dy++)
+            for (int dy = -2; dy <= 2; dy++)
             {
-                for (int dx = -1; dx <= 1; dx++)
+                for (int dx = -2; dx <= 2; dx++)
                 {
                     int2 samplePixel = clamp(previousCenter + int2(dx, dy), int2(0), maxPixel);
                     float rawPreviousDepth = pathTracing.PreviousLinearDepth.Load(int3(samplePixel, 0));
-                    maxPreviousDepth = max(maxPreviousDepth, abs(rawPreviousDepth));
+
+                    if (abs(dx) <= 1 && abs(dy) <= 1)
+                    {
+                        maxPreviousDepth = max(maxPreviousDepth, abs(rawPreviousDepth));
+                    }
 
                     if (rawPreviousDepth < 0.0)
                     {
                         wasDynamicInNeighborhood = true;
-
-                        if (dx == 0 && dy == 0)
-                        {
-                            wasDynamicAtCenter = true;
-                        }
                     }
                 }
             }
@@ -839,17 +880,12 @@ float ComputeReactivity(uint2 pixel, inout float2 motionVector, float previousLi
             if (!isDynamicNow && wasDynamicInNeighborhood)
             {
                 reactivity = 1.0;
-
-                if (wasDynamicAtCenter)
-                {
-                    motionVector = float2(2.0, 2.0);
-                }
             }
         }
     }
 
     float pixelMotion = length(motionVector * pathTracing.RenderSize);
-    float dynamicMotion = isDynamicNow ? saturate(pixelMotion * 1.5) : 0.0;
+    float dynamicMotion = isDynamicNow ? saturate(pixelMotion * 2.0) : 0.0;
 
     return max(reactivity, dynamicMotion);
 }
@@ -886,46 +922,14 @@ void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, fl
     float roughness = max(surface.Roughness, MinimumRoughness);
     float2 reflectionMotionVector;
     bool hasDynamicReflection;
-    float3 specularAlbedo = EstimateSpecularAlbedo(direction, surface, roughness, reflectionMotionVector, hasDynamicReflection);
-
-    if (surface.Metallic > 0.0 || roughness < 0.35)
-    {
-        float3 reflectedDirection = reflect(direction, surface.Normal);
-
-        if (dot(surface.Normal, reflectedDirection) > 0.0)
-        {
-            Surface reflectedSurface;
-            float reflectedDistance;
-            bool hasReflection = TraceSurface(surface.Position + surface.GeometricNormal * RayOffset, reflectedDirection, reflectedSurface, reflectedDistance);
-
-            if (specularHitDistance <= 0.0)
-            {
-                specularHitDistance = hasReflection ? min(reflectedDistance, MissDistance) : MissDistance;
-            }
-
-            if (hasReflection && reflectedSurface.InstanceIndex > 0)
-            {
-                hasDynamicReflection = true;
-
-                if (length(reflectionMotionVector) == 0.0)
-                {
-                    Instance reflectedInstance = pathTracing.Instances[reflectedSurface.InstanceIndex];
-                    float3 previousReflectedPosition = mul(float4(reflectedSurface.ObjectPosition, 1.0), reflectedInstance.PreviousObjectToWorld).xyz;
-                    float3 reflectedDelta = reflectedSurface.Position - previousReflectedPosition;
-                    float4 previousVirtualClip = mul(float4(surface.Position - reflectedDelta, 1.0), pathTracing.PreviousViewProjection);
-                    reflectionMotionVector = MotionVector(currentClip, previousVirtualClip);
-                }
-            }
-        }
-    }
+    float3 specularAlbedo = EstimateSpecularAlbedo(direction, surface, roughness, specularHitDistance, reflectionMotionVector, hasDynamicReflection);
 
     bool hasDynamicShadow = false;
     float2 shadowMotionVector = 0.0;
 
-    if (surface.InstanceIndex == 0 && surface.Normal.y > -0.9)
+    if (surface.InstanceIndex == 0 && IsInsideBox(surface.Position) && surface.Normal.y > -0.9)
     {
-        float3 lightCenter = float3(278.0, 548.8, 279.5);
-        float3 toLight = lightCenter - surface.Position;
+        float3 toLight = LightCenter - surface.Position;
         float distanceToLight = length(toLight);
         float3 lightDirection = toLight / distanceToLight;
 
@@ -959,12 +963,12 @@ void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, fl
         }
     }
 
-    if (surface.InstanceIndex > 0)
+    if (surface.InstanceIndex > 0 || hasDynamicReflection)
     {
         specularHitDistance = 0.0;
     }
 
-    if (hasDynamicReflection && surface.InstanceIndex == 0 && (surface.Metallic > 0.5 || surface.Roughness <= 0.30))
+    if (hasDynamicReflection && surface.InstanceIndex == 0 && surface.Roughness <= 0.15 && (surface.Metallic > 0.5 || surface.Roughness <= 0.10))
     {
         motionVector = reflectionMotionVector;
     }
@@ -973,8 +977,14 @@ void WriteGuides(uint2 pixel, float3 direction, Surface surface, bool hasHit, fl
         motionVector = shadowMotionVector;
     }
 
-    bool isDynamicNow = (surface.InstanceIndex > 0) || (hasDynamicReflection && (surface.Metallic > 0.5 || surface.Roughness <= 0.30));
+    bool isDynamicNow = (surface.InstanceIndex > 0) || (hasDynamicReflection && surface.Roughness <= 0.15) || hasDynamicShadow;
     float reactivity = ComputeReactivity(pixel, motionVector, previousClip.w, isDynamicNow);
+
+    if (hasDynamicReflection && surface.InstanceIndex == 0)
+    {
+        float reflectionPixelMotion = length(reflectionMotionVector * pathTracing.RenderSize);
+        reactivity = max(reactivity, saturate(reflectionPixelMotion * 2.5));
+    }
 
     if (hasDynamicShadow)
     {
