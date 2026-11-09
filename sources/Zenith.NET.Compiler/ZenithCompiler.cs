@@ -4,18 +4,37 @@ namespace Zenith.NET;
 
 public static class ZenithCompiler
 {
+    private const string VulkanDescriptorHandleOverride =
+        """
+        export T getDescriptorFromHandle<T : IOpaqueDescriptor>(DescriptorHandle<T> handleValue)
+        {
+            if (T.kind == DescriptorKind.AccelerationStructure)
+            {
+                return __slang_noop_cast<T>(RaytracingAccelerationStructure(__asuint64((uint2)handleValue)));
+            }
+
+            if (T.kind == DescriptorKind.Unknown)
+            {
+                __DynamicResource<__DynamicResourceKind.General> resource;
+                return resource.asOpaqueDescriptor<T>();
+            }
+
+            return defaultGetDescriptorFromHandle(handleValue);
+        }
+        """;
+
     public static ShaderDesc CompileFromFile(GraphicsApi graphicsApi, string file, string name, string[]? searchPaths = null)
     {
-        return new()
-        {
-            Name = name,
-            CodeBytes = SlangCompiler.CompileWithReflection([file, .. Arguments(graphicsApi, name, searchPaths)], out SlangReflection reflection),
-            ThreadGroupSize = ThreadGroupSize(reflection, name)
-        };
+        return CompileFromSource(graphicsApi, File.ReadAllText(file), name, [Path.GetDirectoryName(Path.GetFullPath(file))!, .. searchPaths ?? []]);
     }
 
     public static ShaderDesc CompileFromSource(GraphicsApi graphicsApi, string source, string name, string[]? searchPaths = null)
     {
+        if (graphicsApi is GraphicsApi.Vulkan)
+        {
+            source = $"{source}\n{VulkanDescriptorHandleOverride}";
+        }
+
         return new()
         {
             Name = name,

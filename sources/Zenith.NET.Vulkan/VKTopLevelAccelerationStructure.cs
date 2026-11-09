@@ -8,8 +8,6 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public ulong DeviceAddress;
 
-    public VKDescriptorToken Token;
-
     public VKTopLevelAccelerationStructure(VKGraphicsContext context, VKCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
@@ -63,18 +61,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0;
 
-        DeviceAddressRangeEXT addressRange = new()
-        {
-            Address = DeviceAddress,
-            Size = sizeInfo.AccelerationStructureSize
-        };
-
-        Token = context.ResourceHeap.Allocate(new ResourceDescriptorInfoEXT()
-        {
-            SType = StructureType.ResourceDescriptorInfoExt(),
-            Type = DescriptorType.AccelerationStructureKhr,
-            Data = new() { PAddressRange = &addressRange }
-        });
+        Handle = new((uint)DeviceAddress, (uint)(DeviceAddress >> 32));
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -85,7 +72,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public VKBuffer Scratch { get; }
 
-    public override ResourceHandle Handle => Token.ResourceHandle;
+    public override ResourceHandle Handle { get; }
 
     public void Update(VKCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
@@ -129,8 +116,6 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     protected override void Destroy()
     {
-        Token.Dispose();
-
         Context.AccelerationStructure?.DestroyAccelerationStructure(Context.Device, AccelerationStructure, default);
 
         Scratch.Dispose();

@@ -20,8 +20,7 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
         VKDescriptorRegion? region = info.Type switch
         {
             DescriptorType.UniformBuffer or
-            DescriptorType.StorageBuffer or
-            DescriptorType.AccelerationStructureKhr => bufferRegion,
+            DescriptorType.StorageBuffer => bufferRegion,
 
             DescriptorType.SampledImage or
             DescriptorType.StorageImage => imageRegion,
