@@ -342,10 +342,13 @@ public class FrameGenerationSwapChain : DisposableObject
             else
             {
                 commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
-                commandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
-                CopyToDrawable(commandBuffer, frame.Color);
-                commandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
                 commandBuffer.Submit(submitted.Rendered);
+
+                CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
+                CopyToDrawable(realCommandBuffer, frame.Color);
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
+                realCommandBuffer.Submit();
 
                 lastPresentationTimestamp = Stopwatch.GetTimestamp();
                 swapChain.Present();
