@@ -19,7 +19,7 @@ internal class UserInterface
         IsRayReconstructionEnabled = App.Context.UpscalingCapabilities.RayReconstructionSupported
     };
 
-    public bool IsFrameGenerationEnabled { get; private set; }
+    public bool IsFrameGenerationEnabled { get; private set; } = App.Context.UpscalingCapabilities.FrameGenerationSupported;
 
     public void Update(double deltaSeconds)
     {

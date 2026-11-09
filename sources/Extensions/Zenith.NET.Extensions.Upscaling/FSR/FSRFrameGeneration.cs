@@ -62,6 +62,19 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
+        if (Vendor.Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+
+            if (args.Hudless is not null)
+            {
+                commandBuffer.Transition(args.Hudless, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+        }
+
         void* commandList = commandBuffer.FSR();
         FSRApiRect2D generationRect = new()
         {
@@ -155,6 +168,19 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
         dispatchDesc.MinMaxLuminance[1] = args.MaxLuminanceInNits;
 
         Vendor.Dispatch(ref Context, &dispatchDesc.Header);
+
+        if (Vendor.Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+
+            if (args.Hudless is not null)
+            {
+                commandBuffer.Transition(args.Hudless, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+        }
 
         frameIndex++;
     }

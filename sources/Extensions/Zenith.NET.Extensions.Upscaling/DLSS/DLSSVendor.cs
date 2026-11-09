@@ -138,23 +138,141 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, SuperResolutionArgs args)
     {
+        if (Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+
+            if (args.Exposure is not null)
+            {
+                commandBuffer.Transition(args.Exposure, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
+            if (args.ReactiveMask is not null)
+            {
+                commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+        }
+
         nint commandList = GetCommandList(commandBuffer);
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args) : EvaluateVulkan(commandList, feature, args);
         result.Success();
+
+        if (Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+
+            if (args.Exposure is not null)
+            {
+                commandBuffer.Transition(args.Exposure, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+
+            if (args.ReactiveMask is not null)
+            {
+                commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+        }
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, RayReconstructionArgs args)
     {
+        if (Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.DiffuseAlbedo, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.SpecularAlbedo, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Normals, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Roughness, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.SpecularHitDistance, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+
+            if (args.Exposure is not null)
+            {
+                commandBuffer.Transition(args.Exposure, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
+            if (args.ReactiveMask is not null)
+            {
+                commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
+            if (args.TransparencyOverlay is not null)
+            {
+                commandBuffer.Transition(args.TransparencyOverlay, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+        }
+
         nint commandList = GetCommandList(commandBuffer);
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args) : EvaluateVulkan(commandList, feature, args);
         result.Success();
+
+        if (Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.DiffuseAlbedo, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.SpecularAlbedo, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Normals, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Roughness, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.SpecularHitDistance, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+
+            if (args.Exposure is not null)
+            {
+                commandBuffer.Transition(args.Exposure, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+
+            if (args.ReactiveMask is not null)
+            {
+                commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+
+            if (args.TransparencyOverlay is not null)
+            {
+                commandBuffer.Transition(args.TransparencyOverlay, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+        }
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, FrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
     {
+        if (Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+
+            if (args.Hudless is not null)
+            {
+                commandBuffer.Transition(args.Hudless, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+        }
+
         nint commandList = GetCommandList(commandBuffer);
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args, optEvalParams) : EvaluateVulkan(commandList, feature, args, optEvalParams);
         result.Success();
+
+        if (Context.GraphicsApi is GraphicsApi.DirectX12)
+        {
+            commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+
+            if (args.Hudless is not null)
+            {
+                commandBuffer.Transition(args.Hudless, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+        }
     }
 
     public override UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)

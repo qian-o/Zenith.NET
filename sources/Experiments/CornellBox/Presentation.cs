@@ -12,9 +12,9 @@ internal class Presentation : DisposableObject
     private SwapChain? swapChain;
     private FrameGenerationSwapChain? frameGenerationSwapChain;
 
-    public Presentation(Surface surface, UpscalingInputSize inputSize)
+    public Presentation(Surface surface, UpscalingInputSize inputSize, bool useFrameGeneration)
     {
-        CreateSwapChain(surface, inputSize, useFrameGeneration: false);
+        CreateSwapChain(surface, inputSize, useFrameGeneration);
     }
 
     public void Configure(UpscalingInputSize renderSize, bool useFrameGeneration)

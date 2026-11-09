@@ -38,6 +38,11 @@ internal static unsafe class Extensions
                 return default;
             }
 
+            if (texture.Context.GraphicsApi is GraphicsApi.DirectX12)
+            {
+                state = FSRApiResourceState.Common;
+            }
+
             ref readonly TextureDesc desc = ref texture.Desc;
             FSRApiResourceUsage usage = FSRFormats.FSR(desc.Usages);
 

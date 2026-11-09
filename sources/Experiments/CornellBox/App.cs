@@ -48,7 +48,7 @@ internal static class App
 
         userInterface = new();
         renderer = new(userInterface.RenderSettings);
-        presentation = new(PlatformHelper.CreateSurface(window), renderer.InputSize);
+        presentation = new(PlatformHelper.CreateSurface(window), renderer.InputSize, userInterface.IsFrameGenerationEnabled);
     }
 
     public static GraphicsContext Context { get; }

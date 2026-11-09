@@ -177,11 +177,34 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
         {
             Prepare(commandBuffer, args, frameIndex);
 
+            commandBuffer.Transition(args.SpecularAlbedo, default, TextureLayout.Sampled, TextureLayout.Common);
+            commandBuffer.Transition(args.DiffuseAlbedo, default, TextureLayout.Sampled, TextureLayout.Common);
+
+            if (args.DirectDiffuseRadiance is not null)
+            {
+                commandBuffer.Transition(args.DirectDiffuseRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
+            if (args.DirectSpecularRadiance is not null)
+            {
+                commandBuffer.Transition(args.DirectSpecularRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
+            if (args.IndirectDiffuseRadiance is not null)
+            {
+                commandBuffer.Transition(args.IndirectDiffuseRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
+            if (args.IndirectSpecularRadiance is not null)
+            {
+                commandBuffer.Transition(args.IndirectSpecularRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
+            }
+
             foreach (Texture? signal in SignalOutputs)
             {
                 if (signal is not null)
                 {
-                    commandBuffer.Transition(signal, default, frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
+                    commandBuffer.Transition(signal, default, frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Common);
                 }
             }
 
@@ -278,6 +301,29 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
             }
 
             Vendor.Dispatch(ref Context, &dispatchDesc.Header);
+
+            commandBuffer.Transition(args.SpecularAlbedo, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(args.DiffuseAlbedo, default, TextureLayout.Common, TextureLayout.Sampled);
+
+            if (args.DirectDiffuseRadiance is not null)
+            {
+                commandBuffer.Transition(args.DirectDiffuseRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+
+            if (args.DirectSpecularRadiance is not null)
+            {
+                commandBuffer.Transition(args.DirectSpecularRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+
+            if (args.IndirectDiffuseRadiance is not null)
+            {
+                commandBuffer.Transition(args.IndirectDiffuseRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
+
+            if (args.IndirectSpecularRadiance is not null)
+            {
+                commandBuffer.Transition(args.IndirectSpecularRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
+            }
         }
 
         protected override void Destroy()
@@ -319,7 +365,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 SizeInBytes = (uint)sizeof(PreparationConstants)
             });
 
-            TextureLayout before = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled;
+            TextureLayout before = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Common;
             commandBuffer.Transition(linearDepth, default, before, TextureLayout.Storage);
             commandBuffer.Transition(motionVectors, default, before, TextureLayout.Storage);
             commandBuffer.Transition(normals, default, before, TextureLayout.Storage);
@@ -328,9 +374,9 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
             commandBuffer.SetConstantBuffer(constantBuffer, 0);
             commandBuffer.Dispatch((Desc.InputWidth + 7) / 8, (Desc.InputHeight + 7) / 8, 1);
 
-            commandBuffer.Transition(linearDepth, default, TextureLayout.Storage, TextureLayout.Sampled);
-            commandBuffer.Transition(motionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
-            commandBuffer.Transition(normals, default, TextureLayout.Storage, TextureLayout.Sampled);
+            commandBuffer.Transition(linearDepth, default, TextureLayout.Storage, TextureLayout.Common);
+            commandBuffer.Transition(motionVectors, default, TextureLayout.Storage, TextureLayout.Common);
+            commandBuffer.Transition(normals, default, TextureLayout.Storage, TextureLayout.Common);
         }
     }
 
@@ -401,7 +447,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
             {
                 if (signal is not null)
                 {
-                    commandBuffer.Transition(signal, default, TextureLayout.Storage, TextureLayout.Sampled);
+                    commandBuffer.Transition(signal, default, TextureLayout.Common, TextureLayout.Sampled);
                 }
             }
 
