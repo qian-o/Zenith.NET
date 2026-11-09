@@ -103,7 +103,6 @@ internal class Presentation : DisposableObject
             frameGenerationSwapChain = App.Context.CreateFrameGenerationSwapChain(new()
             {
                 Surface = surface,
-                IsVerticalSyncEnabled = true,
                 ColorFormat = App.ColorFormat,
                 DepthFormat = PathTracingOutput.DepthFormat,
                 MotionVectorsFormat = PathTracingOutput.MotionVectorsFormat,
@@ -117,8 +116,7 @@ internal class Presentation : DisposableObject
             swapChain = App.Context.CreateSwapChain(new()
             {
                 Surface = surface,
-                Format = App.ColorFormat,
-                IsVerticalSyncEnabled = true
+                Format = App.ColorFormat
             });
         }
     }
