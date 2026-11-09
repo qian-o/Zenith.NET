@@ -90,6 +90,9 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public void ReleaseFeature(NGXHandle handle)
     {
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+        Context.PresentQueue.Timeline.Signal().Wait();
+
         NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Ngx.D3D12.ReleaseFeature(handle) : Ngx.Vulkan.ReleaseFeature(handle);
         result.Success();
     }
@@ -306,6 +309,11 @@ internal unsafe partial class DLSSVendor : Vendor
         {
             return;
         }
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+        Context.ComputeQueue.Timeline.Signal().Wait();
+        Context.TransferQueue.Timeline.Signal().Wait();
+        Context.PresentQueue.Timeline.Signal().Wait();
 
         if (Context.GraphicsApi is GraphicsApi.Vulkan)
         {
