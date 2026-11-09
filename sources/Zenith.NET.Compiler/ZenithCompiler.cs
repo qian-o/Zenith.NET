@@ -4,22 +4,28 @@ namespace Zenith.NET;
 
 public static class ZenithCompiler
 {
-    private const string VulkanDescriptorHandleOverride =
+    private const string Preamble =
         """
         export T getDescriptorFromHandle<T : IOpaqueDescriptor>(DescriptorHandle<T> handleValue)
         {
-            if (T.kind == DescriptorKind.AccelerationStructure)
+            __target_switch
             {
-                return __slang_noop_cast<T>(RaytracingAccelerationStructure(__asuint64((uint2)handleValue)));
-            }
+            case spirv:
+                if (T.kind == DescriptorKind.AccelerationStructure)
+                {
+                    return __slang_noop_cast<T>(RaytracingAccelerationStructure(__asuint64((uint2)handleValue)));
+                }
 
-            if (T.kind == DescriptorKind.Unknown)
-            {
-                __DynamicResource<__DynamicResourceKind.General> resource;
-                return resource.asOpaqueDescriptor<T>();
-            }
+                if (T.kind == DescriptorKind.Unknown)
+                {
+                    static __DynamicResource<__DynamicResourceKind.General> resource;
+                    return resource.asOpaqueDescriptor<T>();
+                }
 
-            return defaultGetDescriptorFromHandle(handleValue);
+                return defaultGetDescriptorFromHandle(handleValue);
+            default:
+                return defaultGetDescriptorFromHandle(handleValue);
+            }
         }
         """;
 
@@ -30,15 +36,10 @@ public static class ZenithCompiler
 
     public static ShaderDesc CompileFromSource(GraphicsApi graphicsApi, string source, string name, string[]? searchPaths = null)
     {
-        if (graphicsApi is GraphicsApi.Vulkan)
-        {
-            source = $"{source}\n{VulkanDescriptorHandleOverride}";
-        }
-
         return new()
         {
             Name = name,
-            CodeBytes = SlangCompiler.CompileWithReflection(source, Arguments(graphicsApi, name, searchPaths), out SlangReflection reflection),
+            CodeBytes = SlangCompiler.CompileWithReflection($"{Preamble}{Environment.NewLine}{source}", Arguments(graphicsApi, name, searchPaths), out SlangReflection reflection),
             ThreadGroupSize = ThreadGroupSize(reflection, name)
         };
     }
