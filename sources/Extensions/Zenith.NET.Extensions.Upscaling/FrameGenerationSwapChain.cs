@@ -160,7 +160,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
             Output = context.CreateTexture(TextureDesc.Texture2D(desc.ColorFormat, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
             {
-                Usages = TextureUsages.ColorAttachment | TextureUsages.Storage | TextureUsages.TransferSrc
+                Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst
             });
 
             for (int i = 0; i < frames.Length; i++)
@@ -205,6 +205,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
         private bool hasHistory;
         private long lastPresentationTimestamp;
+        private double targetIntervalSeconds;
 
         public Presenter(SwapChain swapChain, Resources resources)
         {
@@ -263,7 +264,7 @@ public class FrameGenerationSwapChain : DisposableObject
             {
                 available.WaitOne();
 
-                while (TryTake(out Submitted submitted))
+                while (!tokenSource.IsCancellationRequested && TryTake(out Submitted submitted))
                 {
                     ProcessFrame(submitted);
                 }
@@ -317,35 +318,78 @@ public class FrameGenerationSwapChain : DisposableObject
                 commandBuffer.Transition(resources.Output, default, TextureLayout.CopySrc, TextureLayout.Present);
                 commandBuffer.Submit(submitted.Rendered);
 
-                lastPresentationTimestamp = Stopwatch.GetTimestamp();
+                double elapsedSeconds = Stopwatch.GetElapsedTime(lastPresentationTimestamp).TotalSeconds;
                 swapChain.Present();
+                lastPresentationTimestamp = Stopwatch.GetTimestamp();
+                targetIntervalSeconds = targetIntervalSeconds is 0.0 ? elapsedSeconds : (targetIntervalSeconds * 0.8) + (elapsedSeconds * 0.2);
+
+                CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
+                CopyToDrawable(realCommandBuffer, frame.Color);
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
+                realCommandBuffer.Submit().Wait();
+                frame.Completion.Set();
+
+                WaitUntil(lastPresentationTimestamp, swapChain.Desc.IsVerticalSyncEnabled ? args.DeltaTimeInSeconds * 0.5 : targetIntervalSeconds);
+
+                if (tokenSource.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                swapChain.Present();
+                lastPresentationTimestamp = Stopwatch.GetTimestamp();
             }
             else
             {
                 commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
                 commandBuffer.Submit(submitted.Rendered).Wait();
-            }
 
-            CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
-            realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
-            CopyToDrawable(realCommandBuffer, frame.Color);
-            realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
-            realCommandBuffer.Submit().Wait();
-            frame.Completion.Set();
-
-            if (!reset && swapChain.Desc.IsVerticalSyncEnabled && lastPresentationTimestamp is not 0)
-            {
-                TimeSpan delay = TimeSpan.FromSeconds(args.DeltaTimeInSeconds * 0.5) - Stopwatch.GetElapsedTime(lastPresentationTimestamp);
-                if (delay > TimeSpan.Zero)
+                if (tokenSource.IsCancellationRequested)
                 {
-                    stopping.WaitOne(delay);
-                }
-            }
+                    frame.Completion.Set();
 
-            lastPresentationTimestamp = Stopwatch.GetTimestamp();
-            swapChain.Present();
+                    return;
+                }
+
+                CommandBuffer realCommandBuffer = swapChain.Queue.CommandBuffer();
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.CopySrc);
+                CopyToDrawable(realCommandBuffer, frame.Color);
+                realCommandBuffer.Transition(frame.Color, default, TextureLayout.CopySrc, TextureLayout.Present);
+                realCommandBuffer.Submit().Wait();
+                frame.Completion.Set();
+
+                if (tokenSource.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                swapChain.Present();
+                lastPresentationTimestamp = Stopwatch.GetTimestamp();
+                targetIntervalSeconds = 0.0;
+            }
 
             hasHistory = true;
+        }
+
+        private void WaitUntil(long startTimestamp, double targetSeconds)
+        {
+            double remainingSeconds = targetSeconds - Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+            if (remainingSeconds <= 0.0)
+            {
+                return;
+            }
+
+            int sleepMilliseconds = (int)((remainingSeconds - 0.016) * 1000.0);
+            if (sleepMilliseconds > 0 && stopping.WaitOne(sleepMilliseconds))
+            {
+                return;
+            }
+
+            while (!tokenSource.IsCancellationRequested && Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds < targetSeconds)
+            {
+                Thread.SpinWait(64);
+            }
         }
 
         private void CopyToDrawable(CommandBuffer commandBuffer, Texture texture)

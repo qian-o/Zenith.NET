@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
@@ -7,6 +7,7 @@ internal unsafe class DLSSFrameGeneration : FrameGeneration
 {
     public DLSSFeature Feature;
 
+    private bool hasHistory;
     private Matrix4x4 previousWorldToView;
     private Matrix4x4 previousViewToClip;
 
@@ -35,7 +36,7 @@ internal unsafe class DLSSFrameGeneration : FrameGeneration
         Matrix4x4 clipToPreviousClip = Matrix4x4.Identity;
         Matrix4x4 previousClipToClip = Matrix4x4.Identity;
 
-        if (!args.Reset)
+        if (hasHistory && !args.Reset)
         {
             Matrix4x4.Invert(previousWorldToView, out Matrix4x4 previousViewToWorld);
             Matrix4x4.Invert(previousViewToClip, out Matrix4x4 previousClipToView);
@@ -111,6 +112,7 @@ internal unsafe class DLSSFrameGeneration : FrameGeneration
 
         Feature.Vendor.Evaluate(commandBuffer, Feature, args, &optEvalParams);
 
+        hasHistory = true;
         previousWorldToView = args.WorldToView;
         previousViewToClip = args.ViewToClip;
     }

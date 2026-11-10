@@ -1,4 +1,4 @@
-using Metal.NET;
+﻿using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 

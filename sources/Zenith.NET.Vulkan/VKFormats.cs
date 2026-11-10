@@ -376,17 +376,17 @@ internal static class VKFormats
     {
         TransformMatrixKHR result = new();
         result.Matrix[0] = matrix4x4.M11;
-        result.Matrix[1] = matrix4x4.M12;
-        result.Matrix[2] = matrix4x4.M13;
-        result.Matrix[3] = matrix4x4.M14;
-        result.Matrix[4] = matrix4x4.M21;
+        result.Matrix[1] = matrix4x4.M21;
+        result.Matrix[2] = matrix4x4.M31;
+        result.Matrix[3] = matrix4x4.M41;
+        result.Matrix[4] = matrix4x4.M12;
         result.Matrix[5] = matrix4x4.M22;
-        result.Matrix[6] = matrix4x4.M23;
-        result.Matrix[7] = matrix4x4.M24;
-        result.Matrix[8] = matrix4x4.M31;
-        result.Matrix[9] = matrix4x4.M32;
+        result.Matrix[6] = matrix4x4.M32;
+        result.Matrix[7] = matrix4x4.M42;
+        result.Matrix[8] = matrix4x4.M13;
+        result.Matrix[9] = matrix4x4.M23;
         result.Matrix[10] = matrix4x4.M33;
-        result.Matrix[11] = matrix4x4.M34;
+        result.Matrix[11] = matrix4x4.M43;
 
         return result;
     }

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;

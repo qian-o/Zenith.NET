@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;

@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using FSR.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -221,8 +221,8 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 DiffuseAlbedo = args.DiffuseAlbedo.FSR(),
                 MotionVectorScale = new()
                 {
-                    X = 1.0f,
-                    Y = 1.0f,
+                    X = Desc.InputWidth,
+                    Y = Desc.InputHeight,
                     Z = 1.0f
                 },
                 JitterOffsets = new()
@@ -262,7 +262,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 directDiffuse.Signal = new()
                 {
                     Input = args.DirectDiffuseRadiance.FSR(),
-                    Output = directDiffuseOutput.FSR(FSRApiResourceState.UnorderedAccess)
+                    Output = directDiffuseOutput.FSR()
                 };
                 tail->Next = &directDiffuse.Header;
                 tail = &directDiffuse.Header;
@@ -273,7 +273,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 directSpecular.Signal = new()
                 {
                     Input = args.DirectSpecularRadiance.FSR(),
-                    Output = directSpecularOutput.FSR(FSRApiResourceState.UnorderedAccess)
+                    Output = directSpecularOutput.FSR()
                 };
                 tail->Next = &directSpecular.Header;
                 tail = &directSpecular.Header;
@@ -284,7 +284,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 indirectDiffuse.Signal = new()
                 {
                     Input = args.IndirectDiffuseRadiance.FSR(),
-                    Output = indirectDiffuseOutput.FSR(FSRApiResourceState.UnorderedAccess)
+                    Output = indirectDiffuseOutput.FSR()
                 };
                 tail->Next = &indirectDiffuse.Header;
                 tail = &indirectDiffuse.Header;
@@ -295,7 +295,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 indirectSpecular.Signal = new()
                 {
                     Input = args.IndirectSpecularRadiance.FSR(),
-                    Output = indirectSpecularOutput.FSR(FSRApiResourceState.UnorderedAccess)
+                    Output = indirectSpecularOutput.FSR()
                 };
                 tail->Next = &indirectSpecular.Header;
             }

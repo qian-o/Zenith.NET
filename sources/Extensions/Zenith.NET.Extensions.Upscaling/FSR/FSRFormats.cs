@@ -1,10 +1,23 @@
-using System.Numerics;
+﻿using System.Numerics;
 using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
 internal static unsafe class FSRFormats
 {
+    public static FSRApiUpscaleQualityMode FSR(UpscalingMode upscalingMode)
+    {
+        return upscalingMode switch
+        {
+            UpscalingMode.Native => FSRApiUpscaleQualityMode.NativeAA,
+            UpscalingMode.Quality => FSRApiUpscaleQualityMode.Quality,
+            UpscalingMode.Balanced => FSRApiUpscaleQualityMode.Balanced,
+            UpscalingMode.Performance => FSRApiUpscaleQualityMode.Performance,
+            UpscalingMode.UltraPerformance => FSRApiUpscaleQualityMode.UltraPerformance,
+            _ => default
+        };
+    }
+
     public static FSRApiMatrix4x4 FSR(Matrix4x4 matrix4x4)
     {
         return Fsr.ConvertToMatrix4x4((float*)&matrix4x4, FSRApiMatrixLayout.RowMajor, FSRApiMatrixVectorConvention.RowVectors);

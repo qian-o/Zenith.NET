@@ -33,6 +33,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         ExtMeshShader.ExtensionName,
         ExtMetalObjects.ExtensionName,
         KhrAccelerationStructure.ExtensionName,
+        KhrComputeShaderDerivatives.ExtensionName,
         KhrDeferredHostOperations.ExtensionName,
         KhrExternalMemoryFd.ExtensionName,
         KhrExternalMemoryWin32.ExtensionName,
@@ -308,6 +309,11 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             if (enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName))
             {
                 createInfo.AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrComputeShaderDerivatives.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceComputeShaderDerivativesFeaturesKHR _);
             }
 
             if (enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName))

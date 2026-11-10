@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;

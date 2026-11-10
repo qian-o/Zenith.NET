@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
@@ -31,16 +31,11 @@ internal static unsafe class Extensions
 
     extension(Texture? texture)
     {
-        internal FSRApiResource FSR(FSRApiResourceState state = FSRApiResourceState.ComputeRead)
+        internal FSRApiResource FSR(FSRApiResourceState state = FSRApiResourceState.Common)
         {
             if (texture is null)
             {
                 return default;
-            }
-
-            if (texture.Context.GraphicsApi is GraphicsApi.DirectX12)
-            {
-                state = FSRApiResourceState.Common;
             }
 
             ref readonly TextureDesc desc = ref texture.Desc;

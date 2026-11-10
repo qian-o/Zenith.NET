@@ -157,7 +157,7 @@ internal unsafe class UpscalingPass : DisposableObject
 
         Color = App.Context.CreateTexture(TextureDesc.Texture2D(PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferDst
         });
     }
 

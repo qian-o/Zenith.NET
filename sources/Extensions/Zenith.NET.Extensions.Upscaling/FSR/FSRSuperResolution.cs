@@ -1,4 +1,4 @@
-using FSR.NET;
+﻿using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
@@ -59,27 +59,24 @@ internal unsafe class FSRSuperResolution : SuperResolution
         (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
         float far = Desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite) ? float.MaxValue : farPlane;
 
-        if (Vendor.Context.GraphicsApi is GraphicsApi.DirectX12)
+        commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+
+        if (args.Exposure is not null)
         {
-            commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
-            commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
-            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
-            commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+            commandBuffer.Transition(args.Exposure, default, TextureLayout.Sampled, TextureLayout.Common);
+        }
 
-            if (args.Exposure is not null)
-            {
-                commandBuffer.Transition(args.Exposure, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
+        if (args.ReactiveMask is not null)
+        {
+            commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Sampled, TextureLayout.Common);
+        }
 
-            if (args.ReactiveMask is not null)
-            {
-                commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
-
-            if (transparencyMask is not null)
-            {
-                commandBuffer.Transition(transparencyMask, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
+        if (transparencyMask is not null)
+        {
+            commandBuffer.Transition(transparencyMask, default, TextureLayout.Sampled, TextureLayout.Common);
         }
 
         FSRDispatchDescUpscale dispatchDesc = new()
@@ -91,7 +88,7 @@ internal unsafe class FSRSuperResolution : SuperResolution
             Exposure = args.Exposure.FSR(),
             Reactive = args.ReactiveMask.FSR(),
             TransparencyAndComposition = transparencyMask.FSR(),
-            Output = args.Output.FSR(FSRApiResourceState.UnorderedAccess),
+            Output = args.Output.FSR(),
             JitterOffset = new()
             {
                 X = args.JitterOffset.X,
@@ -123,27 +120,24 @@ internal unsafe class FSRSuperResolution : SuperResolution
 
         Vendor.Dispatch(ref Context, &dispatchDesc.Header);
 
-        if (Vendor.Context.GraphicsApi is GraphicsApi.DirectX12)
+        commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+
+        if (args.Exposure is not null)
         {
-            commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
-            commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
-            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
-            commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+            commandBuffer.Transition(args.Exposure, default, TextureLayout.Common, TextureLayout.Sampled);
+        }
 
-            if (args.Exposure is not null)
-            {
-                commandBuffer.Transition(args.Exposure, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
+        if (args.ReactiveMask is not null)
+        {
+            commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Common, TextureLayout.Sampled);
+        }
 
-            if (args.ReactiveMask is not null)
-            {
-                commandBuffer.Transition(args.ReactiveMask, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
-
-            if (transparencyMask is not null)
-            {
-                commandBuffer.Transition(transparencyMask, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
+        if (transparencyMask is not null)
+        {
+            commandBuffer.Transition(transparencyMask, default, TextureLayout.Common, TextureLayout.Sampled);
         }
     }
 

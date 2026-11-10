@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
@@ -62,17 +62,14 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
-        if (Vendor.Context.GraphicsApi is GraphicsApi.DirectX12)
-        {
-            commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
-            commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
-            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
-            commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+        commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
 
-            if (args.Hudless is not null)
-            {
-                commandBuffer.Transition(args.Hudless, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
+        if (args.Hudless is not null)
+        {
+            commandBuffer.Transition(args.Hudless, default, TextureLayout.Sampled, TextureLayout.Common);
         }
 
         void* commandList = commandBuffer.FSR();
@@ -163,23 +160,20 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
             GenerationRect = generationRect,
             FrameID = frameIndex
         };
-        dispatchDesc.Outputs[0] = args.Output.FSR(FSRApiResourceState.UnorderedAccess);
+        dispatchDesc.Outputs[0] = args.Output.FSR();
         dispatchDesc.MinMaxLuminance[0] = args.MinLuminanceInNits;
         dispatchDesc.MinMaxLuminance[1] = args.MaxLuminanceInNits;
 
         Vendor.Dispatch(ref Context, &dispatchDesc.Header);
 
-        if (Vendor.Context.GraphicsApi is GraphicsApi.DirectX12)
-        {
-            commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
-            commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
-            commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
-            commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+        commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
 
-            if (args.Hudless is not null)
-            {
-                commandBuffer.Transition(args.Hudless, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
+        if (args.Hudless is not null)
+        {
+            commandBuffer.Transition(args.Hudless, default, TextureLayout.Common, TextureLayout.Sampled);
         }
 
         frameIndex++;

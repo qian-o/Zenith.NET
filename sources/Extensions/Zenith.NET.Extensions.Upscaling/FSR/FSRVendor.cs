@@ -41,12 +41,12 @@ internal unsafe class FSRVendor : Vendor
 
     public override UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return GetInputSize(outputWidth, outputHeight, UpscalingHelper.Scale(mode));
+        return GetInputSize(outputWidth, outputHeight, mode);
     }
 
     public override UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return GetInputSize(outputWidth, outputHeight, UpscalingHelper.Scale(mode));
+        return GetInputSize(outputWidth, outputHeight, mode);
     }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
@@ -145,8 +145,21 @@ internal unsafe class FSRVendor : Vendor
         return result.IsSuccess() && count > 0;
     }
 
-    private static UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, float scale)
+    private UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
     {
-        return new((uint)(outputWidth / scale), (uint)(outputHeight / scale));
+        uint renderWidth = 0;
+        uint renderHeight = 0;
+        FSRQueryDescUpscaleGetRenderResolutionFromQualityMode query = new()
+        {
+            DisplayWidth = outputWidth,
+            DisplayHeight = outputHeight,
+            QualityMode = (uint)FSRFormats.FSR(mode),
+            RenderWidth = &renderWidth,
+            RenderHeight = &renderHeight
+        };
+        FSRApiReturnCodes result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.Query(null, &query.Header) : Fsr.Vulkan.Query(null, &query.Header);
+        result.Success();
+
+        return result.IsSuccess() ? new(renderWidth, renderHeight) : default;
     }
 }
