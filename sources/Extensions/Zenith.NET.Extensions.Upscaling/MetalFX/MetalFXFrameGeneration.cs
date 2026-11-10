@@ -25,6 +25,8 @@ internal class MetalFXFrameGeneration : FrameGeneration
         };
 
         Interpolator = descriptor.MakeFrameInterpolator(vendor.Device, vendor.Compiler);
+
+        WarmUp(vendor);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
@@ -33,6 +35,18 @@ internal class MetalFXFrameGeneration : FrameGeneration
 
         MTL4CommandBuffer mtlCommandBuffer = commandBuffer.Metal();
 
+        Encode(mtlCommandBuffer, args);
+
+        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
+    }
+
+    protected override void Destroy()
+    {
+        Interpolator.Dispose();
+    }
+
+    private void Encode(MTL4CommandBuffer commandBuffer, FrameGenerationArgs args)
+    {
         (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
 
         Interpolator.ColorTexture = (args.Hudless ?? args.Color).Metal();
@@ -56,13 +70,28 @@ internal class MetalFXFrameGeneration : FrameGeneration
         Interpolator.IsUITextureComposited = Desc.HudlessFormat is not null;
         Interpolator.ShouldResetHistory = args.Reset;
         Interpolator.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
-        Interpolator.Encode(mtlCommandBuffer);
-
-        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
+        Interpolator.Encode(commandBuffer);
     }
 
-    protected override void Destroy()
+    private void WarmUp(MetalFXVendor vendor)
     {
-        Interpolator.Dispose();
+        using Texture color = vendor.CreateTexture(Desc.ColorFormat, Desc.Width, Desc.Height);
+        using Texture? hudless = Desc.HudlessFormat is PixelFormat hudlessFormat ? vendor.CreateTexture(hudlessFormat, Desc.Width, Desc.Height) : null;
+        using Texture depth = vendor.CreateTexture(Desc.DepthFormat, Desc.AuxiliaryWidth, Desc.AuxiliaryHeight);
+        using Texture motionVectors = vendor.CreateTexture(Desc.MotionVectorsFormat, Desc.AuxiliaryWidth, Desc.AuxiliaryHeight);
+        using Texture output = vendor.CreateTexture(Desc.OutputFormat, Desc.Width, Desc.Height);
+
+        vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
+        {
+            Color = color,
+            Hudless = hudless,
+            Depth = depth,
+            MotionVectors = motionVectors,
+            Output = output,
+            WorldToView = Matrix4x4.Identity,
+            ViewToClip = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4.0f, (float)Desc.Width / Desc.Height, 0.1f, 100.0f),
+            DeltaTimeInSeconds = 1.0f / 60.0f,
+            Reset = true
+        }));
     }
 }

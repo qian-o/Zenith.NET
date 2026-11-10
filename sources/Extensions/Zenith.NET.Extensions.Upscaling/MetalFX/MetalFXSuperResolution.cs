@@ -24,6 +24,8 @@ internal class MetalFXSuperResolution : SuperResolution
         };
 
         Scaler = descriptor.MakeTemporalScaler(vendor.Device, vendor.Compiler);
+
+        WarmUp(vendor);
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
@@ -32,6 +34,18 @@ internal class MetalFXSuperResolution : SuperResolution
 
         MTL4CommandBuffer mtlCommandBuffer = commandBuffer.Metal();
 
+        Encode(mtlCommandBuffer, args);
+
+        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
+    }
+
+    protected override void Destroy()
+    {
+        Scaler.Dispose();
+    }
+
+    private void Encode(MTL4CommandBuffer commandBuffer, SuperResolutionArgs args)
+    {
         Scaler.ColorTexture = args.Color.Metal();
         Scaler.DepthTexture = args.Depth.Metal();
         Scaler.MotionTexture = args.MotionVectors.Metal();
@@ -47,13 +61,28 @@ internal class MetalFXSuperResolution : SuperResolution
         Scaler.PreExposure = args.PreExposure;
         Scaler.Reset = args.Reset;
         Scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
-        Scaler.Encode(mtlCommandBuffer);
-
-        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
+        Scaler.Encode(commandBuffer);
     }
 
-    protected override void Destroy()
+    private void WarmUp(MetalFXVendor vendor)
     {
-        Scaler.Dispose();
+        using Texture color = vendor.CreateTexture(Desc.ColorFormat, Desc.InputWidth, Desc.InputHeight);
+        using Texture depth = vendor.CreateTexture(Desc.DepthFormat, Desc.InputWidth, Desc.InputHeight);
+        using Texture motionVectors = vendor.CreateTexture(Desc.MotionVectorsFormat, Desc.InputWidth, Desc.InputHeight);
+        using Texture? exposure = Desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure) ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
+        using Texture? reactiveMask = Desc.ReactiveMaskFormat is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.InputWidth, Desc.InputHeight) : null;
+        using Texture output = vendor.CreateTexture(Desc.OutputFormat, Desc.OutputWidth, Desc.OutputHeight);
+
+        vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
+        {
+            Color = color,
+            Depth = depth,
+            MotionVectors = motionVectors,
+            Exposure = exposure,
+            ReactiveMask = reactiveMask,
+            Output = output,
+            PreExposure = 1.0f,
+            Reset = true
+        }));
     }
 }

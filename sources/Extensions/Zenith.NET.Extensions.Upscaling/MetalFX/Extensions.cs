@@ -18,6 +18,14 @@ internal static class Extensions
         }
     }
 
+    extension(CommandQueue commandQueue)
+    {
+        internal MTL4CommandQueue Metal()
+        {
+            return new(commandQueue.GetNativeObject(NativeObjectType.MTL4CommandQueue), NativeObjectOwnership.Borrowed);
+        }
+    }
+
     extension(CommandBuffer commandBuffer)
     {
         internal MTL4CommandBuffer Metal()

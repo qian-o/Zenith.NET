@@ -13,6 +13,8 @@ internal class MetalFXVendor : Vendor
 
     public MetalFXVendor(GraphicsContext context)
     {
+        Context = context;
+
         if (!OperatingSystem.IsMacOSVersionAtLeast(27) && !OperatingSystem.IsIOSVersionAtLeast(27) && !OperatingSystem.IsTvOSVersionAtLeast(27, 1))
         {
             Capabilities = new(false, false, false);
@@ -50,6 +52,8 @@ internal class MetalFXVendor : Vendor
             rayReconstructionScale = (MTLFXTemporalDenoisedScalerDescriptor.SupportedInputContentMinScale(Device), MTLFXTemporalDenoisedScalerDescriptor.SupportedInputContentMaxScale(Device));
         }
     }
+
+    public GraphicsContext Context { get; }
 
     public override UpscalingCapabilities Capabilities { get; }
 
@@ -89,6 +93,33 @@ internal class MetalFXVendor : Vendor
 
         encoder.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         encoder.EndEncoding();
+    }
+
+    public Texture CreateTexture(PixelFormat format, uint width, uint height)
+    {
+        TextureUsages usages = TextureUsages.Sampled;
+        usages |= ZenithHelper.HasDepth(format) ? TextureUsages.DepthStencilAttachment : TextureUsages.ColorAttachment | TextureUsages.Storage;
+
+        return Context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with { Usages = usages });
+    }
+
+    public void WarmUp(Action<MTL4CommandBuffer> encode)
+    {
+        using NSAutoreleasePool _ = new();
+
+        MTL4CommandQueue queue = Context.GraphicsQueue.Metal();
+        MTL4CommandAllocator allocator = Device.MakeCommandAllocator();
+        MTL4CommandBuffer commandBuffer = Device.MakeCommandBuffer();
+        MTLSharedEvent @event = Device.MakeSharedEvent();
+
+        commandBuffer.BeginCommandBuffer(allocator);
+        encode(commandBuffer);
+        commandBuffer.EndCommandBuffer();
+
+        queue.Commit([commandBuffer]);
+        queue.SignalEvent(@event, 1);
+
+        @event.Wait(1, ulong.MaxValue);
     }
 
     private static UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, float scale, float minScale, float maxScale)
