@@ -156,7 +156,6 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
 
         if (args.Exposure is not null)
         {
@@ -179,7 +178,6 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
 
         if (args.Exposure is not null)
         {
@@ -202,7 +200,6 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Normals, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Roughness, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.SpecularHitDistance, default, TextureLayout.Sampled, TextureLayout.Common);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
 
         if (args.Exposure is not null)
         {
@@ -235,7 +232,6 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Normals, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Roughness, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.SpecularHitDistance, default, TextureLayout.Common, TextureLayout.Sampled);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
 
         if (args.Exposure is not null)
         {
@@ -258,7 +254,6 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
 
         if (args.Hudless is not null)
         {
@@ -276,7 +271,6 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
 
         if (args.Hudless is not null)
         {
