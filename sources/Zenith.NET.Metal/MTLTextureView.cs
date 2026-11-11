@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET.Metal;
+﻿using Metal.NET;
+
+namespace Zenith.NET.Metal;
 
 internal class MTLTextureView : TextureView
 {
@@ -26,7 +28,9 @@ internal class MTLTextureView : TextureView
 
     protected override void SetResourceName(string name)
     {
-        Texture.Label = name;
+        using NSString @string = new(name);
+
+        Texture.Label = @string;
     }
 
     protected override void Destroy()

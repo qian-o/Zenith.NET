@@ -4,9 +4,9 @@ namespace Zenith.NET.Metal;
 
 internal class MTLSwapChain : SwapChain
 {
-    public CAMetalLayer MetalLayer = CAMetalLayer.Null;
+    public CAMetalLayer MetalLayer;
 
-    public CAMetalDrawable MetalDrawable = CAMetalDrawable.Null;
+    public CAMetalDrawable MetalDrawable;
 
     private MTLTexture? drawable;
 
@@ -55,7 +55,7 @@ internal class MTLSwapChain : SwapChain
 
         MetalDrawable.Present();
         MetalDrawable.Dispose();
-        MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
+        MetalDrawable = NSAutorelease.NextDrawable(MetalLayer);
     }
 
     protected override void ResizeImpl()
@@ -63,7 +63,7 @@ internal class MTLSwapChain : SwapChain
         MetalLayer.DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height);
 
         MetalDrawable.Dispose();
-        MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
+        MetalDrawable = NSAutorelease.NextDrawable(MetalLayer);
     }
 
     protected override void RefreshImpl()
@@ -72,7 +72,6 @@ internal class MTLSwapChain : SwapChain
         drawable = null;
 
         MetalDrawable.Dispose();
-        MetalLayer.Dispose();
 
         Initialize();
     }
@@ -86,12 +85,11 @@ internal class MTLSwapChain : SwapChain
         drawable?.Dispose();
 
         MetalDrawable.Dispose();
-        MetalLayer.Dispose();
     }
 
     private void Initialize()
     {
-        MetalLayer = new(Desc.Surface.Handles[0], NativeObjectOwnership.Borrowed)
+        MetalLayer = new(Desc.Surface.Handles[0])
         {
             Device = Context.Device,
             PixelFormat = MTLFormats.Metal(Desc.Format),
@@ -104,6 +102,6 @@ internal class MTLSwapChain : SwapChain
             MetalLayer.DisplaySyncEnabled = Desc.IsVerticalSyncEnabled;
         }
 
-        MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
+        MetalDrawable = NSAutorelease.NextDrawable(MetalLayer);
     }
 }

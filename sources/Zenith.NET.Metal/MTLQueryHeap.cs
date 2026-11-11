@@ -8,12 +8,11 @@ internal unsafe class MTLQueryHeap : QueryHeap
 
     public MTLQueryHeap(MTLGraphicsContext context, QueryHeapDesc desc) : base(context, desc)
     {
-        MTL4CounterHeapDescriptor descriptor = new()
+        using MTL4CounterHeapDescriptor descriptor = new()
         {
             Type = MTL4CounterHeapType.Timestamp,
             Count = desc.Count
         };
-
         CounterHeap = context.Device.MakeCounterHeap(descriptor, out NSError error);
         error.Success();
 
@@ -42,7 +41,9 @@ internal unsafe class MTLQueryHeap : QueryHeap
 
     protected override void SetResourceName(string name)
     {
-        CounterHeap.Label = name;
+        using NSString @string = new(name);
+
+        CounterHeap.Label = @string;
     }
 
     protected override void Destroy()

@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET.Metal;
+﻿using Metal.NET;
+
+namespace Zenith.NET.Metal;
 
 internal class MTLBuffer : Buffer
 {
@@ -58,7 +60,9 @@ internal class MTLBuffer : Buffer
 
     protected override void SetResourceName(string name)
     {
-        Buffer.Label = name;
+        using NSString @string = new(name);
+
+        Buffer.Label = @string;
     }
 
     protected override void Destroy()

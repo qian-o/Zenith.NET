@@ -7,9 +7,9 @@ internal class MetalFXVendor : Vendor
     private readonly (float Min, float Max) superResolutionScale;
     private readonly (float Min, float Max) rayReconstructionScale;
 
-    public readonly MTLDevice Device = MTLDevice.Null;
+    public MTLDevice Device;
 
-    public readonly MTL4Compiler Compiler = MTL4Compiler.Null;
+    public MTL4Compiler Compiler;
 
     public MetalFXVendor(GraphicsContext context)
     {
@@ -22,7 +22,7 @@ internal class MetalFXVendor : Vendor
             return;
         }
 
-        Device = new(context.GetNativeObject(NativeObjectType.MTLDevice), NativeObjectOwnership.Borrowed);
+        Device = new(context.GetNativeObject(NativeObjectType.MTLDevice));
         Capabilities = new(MTLFXTemporalScalerDescriptor.SupportsMetal4FX(Device),
                            MTLFXTemporalDenoisedScalerDescriptor.SupportsMetal4FX(Device),
                            MTLFXFrameInterpolatorDescriptor.SupportsMetal4FX(Device));
@@ -32,7 +32,8 @@ internal class MetalFXVendor : Vendor
             return;
         }
 
-        Compiler = Device.MakeCompiler(new(), out NSError error);
+        using MTL4CompilerDescriptor compilerDescriptor = new();
+        Compiler = Device.MakeCompiler(compilerDescriptor, out NSError error);
         error.Success();
 
         if (Compiler.IsNull)
@@ -82,19 +83,6 @@ internal class MetalFXVendor : Vendor
         return new MetalFXFrameGeneration(this, desc);
     }
 
-    protected override void Destroy()
-    {
-        Compiler.Dispose();
-    }
-
-    public static void EncodeBarrier(MTL4CommandBuffer commandBuffer)
-    {
-        MTL4ComputeCommandEncoder encoder = commandBuffer.MakeComputeCommandEncoder();
-
-        encoder.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
-        encoder.EndEncoding();
-    }
-
     public Texture CreateTexture(PixelFormat format, uint width, uint height)
     {
         TextureUsages usages = TextureUsages.Sampled;
@@ -108,9 +96,9 @@ internal class MetalFXVendor : Vendor
         using NSAutoreleasePool _ = new();
 
         MTL4CommandQueue queue = Context.GraphicsQueue.Metal();
-        MTL4CommandAllocator allocator = Device.MakeCommandAllocator();
-        MTL4CommandBuffer commandBuffer = Device.MakeCommandBuffer();
-        MTLSharedEvent @event = Device.MakeSharedEvent();
+        using MTL4CommandAllocator allocator = Device.MakeCommandAllocator();
+        using MTL4CommandBuffer commandBuffer = Device.MakeCommandBuffer();
+        using MTLSharedEvent @event = Device.MakeSharedEvent();
 
         commandBuffer.BeginCommandBuffer(allocator);
         encode(commandBuffer);
@@ -120,6 +108,18 @@ internal class MetalFXVendor : Vendor
         queue.SignalEvent(@event, 1);
 
         @event.Wait(1, ulong.MaxValue);
+    }
+
+    protected override void Destroy()
+    {
+        Compiler.Dispose();
+    }
+
+    public static void EncodeBarrier(MTL4CommandBuffer commandBuffer)
+    {
+        MTL4ComputeCommandEncoder encoder = commandBuffer.MakeComputeCommandEncoder();
+        encoder.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        encoder.EndEncoding();
     }
 
     private static UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, float scale, float minScale, float maxScale)

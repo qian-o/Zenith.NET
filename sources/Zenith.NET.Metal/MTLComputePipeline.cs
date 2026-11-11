@@ -8,13 +8,12 @@ internal class MTLComputePipeline : ComputePipeline
 
     public MTLComputePipeline(MTLGraphicsContext context, ComputePipelineDesc desc) : base(context, desc)
     {
-        MTL4ComputePipelineDescriptor descriptor = new()
+        using MTL4ComputePipelineDescriptor descriptor = new()
         {
             ComputeFunctionDescriptor = desc.ComputeShader.Metal().Descriptor,
             RequiredThreadsPerThreadgroup = new(desc.ComputeShader.Desc.ThreadGroupSize.X, desc.ComputeShader.Desc.ThreadGroupSize.Y, desc.ComputeShader.Desc.ThreadGroupSize.Z)
         };
-
-        ComputePipelineState = context.Compiler.MakeComputePipelineState(descriptor, MTL4CompilerTaskOptions.Null, out NSError error);
+        ComputePipelineState = context.Compiler.MakeComputePipelineState(descriptor, default, out NSError error);
         error.Success();
     }
 

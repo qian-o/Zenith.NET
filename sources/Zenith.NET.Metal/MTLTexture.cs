@@ -8,7 +8,8 @@ internal class MTLTexture : Texture
 
     public MTLTexture(MTLGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        context.Register(Texture = context.Device.MakeTexture(Descriptor(desc)));
+        using MTLTextureDescriptor descriptor = Descriptor(desc);
+        context.Register(Texture = context.Device.MakeTexture(descriptor));
 
         View = new(context, new()
         {
@@ -51,7 +52,9 @@ internal class MTLTexture : Texture
 
     protected override void SetResourceName(string name)
     {
-        Texture.Label = name;
+        using NSString @string = new(name);
+
+        Texture.Label = @string;
     }
 
     protected override void Destroy()

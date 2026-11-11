@@ -8,12 +8,13 @@ internal class MTLHeap : Heap
 
     public MTLHeap(MTLGraphicsContext context, HeapDesc desc) : base(context, desc)
     {
-        Heap = context.Device.MakeHeap(new()
+        using MTLHeapDescriptor descriptor = new()
         {
             Size = (nuint)desc.SizeInBytes,
             ResourceOptions = MTLFormats.Metal(desc.Residency),
             Type = MTLHeapType.Placement
-        });
+        };
+        Heap = context.Device.MakeHeap(descriptor);
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
@@ -30,12 +31,16 @@ internal class MTLHeap : Heap
 
     protected override Texture CreateTextureImpl(ulong offsetInBytes, TextureDesc desc)
     {
-        return new MTLTexture(Context, desc, Heap.MakeTexture(MTLTexture.Descriptor(desc), (nuint)offsetInBytes));
+        using MTLTextureDescriptor descriptor = MTLTexture.Descriptor(desc);
+
+        return new MTLTexture(Context, desc, Heap.MakeTexture(descriptor, (nuint)offsetInBytes));
     }
 
     protected override void SetResourceName(string name)
     {
-        Heap.Label = name;
+        using NSString @string = new(name);
+
+        Heap.Label = @string;
     }
 
     protected override void Destroy()

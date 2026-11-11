@@ -10,7 +10,7 @@ internal class MetalFXRayReconstruction : RayReconstruction
 
     public MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionDesc desc) : base(desc)
     {
-        MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
+        using MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
             DepthTextureFormat = MetalFXFormats.Metal(desc.DepthFormat),
@@ -32,7 +32,6 @@ internal class MetalFXRayReconstruction : RayReconstruction
             IsSpecularHitDistanceTextureEnabled = true,
             IsTransparencyOverlayTextureEnabled = desc.TransparencyOverlayFormat is not null
         };
-
         Scaler = descriptor.MakeTemporalDenoisedScaler(vendor.Device, vendor.Compiler);
 
         WarmUp(vendor);
@@ -64,9 +63,9 @@ internal class MetalFXRayReconstruction : RayReconstruction
         Scaler.NormalTexture = args.Normals.Metal();
         Scaler.RoughnessTexture = args.Roughness.Metal();
         Scaler.SpecularHitDistanceTexture = args.SpecularHitDistance.Metal();
-        Scaler.ExposureTexture = args.Exposure?.Metal() ?? MTLTexture.Null;
-        Scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? MTLTexture.Null;
-        Scaler.TransparencyOverlayTexture = args.TransparencyOverlay?.Metal() ?? MTLTexture.Null;
+        Scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
+        Scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
+        Scaler.TransparencyOverlayTexture = args.TransparencyOverlay?.Metal() ?? default;
         Scaler.OutputTexture = args.Output.Metal();
         Scaler.JitterOffsetX = args.JitterOffset.X;
         Scaler.JitterOffsetY = args.JitterOffset.Y;

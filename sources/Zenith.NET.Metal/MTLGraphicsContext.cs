@@ -8,9 +8,9 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     public MTLDevice Device = MTLDevice.CreateSystemDefaultDevice();
 
-    public MTL4Compiler Compiler = MTL4Compiler.Null;
+    public MTL4Compiler Compiler;
 
-    public MTLResidencySet ResidencySet = MTLResidencySet.Null;
+    public MTLResidencySet ResidencySet;
 
     public void Register(MTLAllocation allocation)
     {
@@ -50,10 +50,12 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
             throw new NotSupportedException("This device does not support Metal 4.0 or higher.");
         }
 
-        Compiler = Device.MakeCompiler(new(), out NSError error);
+        using MTL4CompilerDescriptor compilerDescriptor = new();
+        Compiler = Device.MakeCompiler(compilerDescriptor, out NSError error);
         error.Success();
 
-        ResidencySet = Device.MakeResidencySet(new(), out error);
+        using MTLResidencySetDescriptor residencySetDescriptor = new();
+        ResidencySet = Device.MakeResidencySet(residencySetDescriptor, out error);
         error.Success();
 
         capabilities = new MTLCapabilities(this);
@@ -83,7 +85,8 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
-        MTLSizeAndAlign sizeAndAlign = Device.HeapTextureSizeAndAlign(MTLTexture.Descriptor(desc));
+        using MTLTextureDescriptor descriptor = MTLTexture.Descriptor(desc);
+        MTLSizeAndAlign sizeAndAlign = Device.HeapTextureSizeAndAlign(descriptor);
 
         return new(sizeAndAlign.Size, sizeAndAlign.Align);
     }
@@ -105,11 +108,13 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
     {
+        using MTLTextureDescriptor descriptor = MTLTexture.Descriptor(desc);
+
         return new MTLTexture(this, desc, nativeTextureType switch
         {
-            NativeTextureType.MTLSharedTextureHandle => Device.MakeSharedTexture(new MTLSharedTextureHandle(nativeTexture, NativeObjectOwnership.Borrowed)),
-            NativeTextureType.IOSurfaceRef => Device.MakeTexture(MTLTexture.Descriptor(desc), nativeTexture, 0),
-            _ => MtlTexture.Null
+            NativeTextureType.MTLSharedTextureHandle => Device.MakeSharedTexture(new MTLSharedTextureHandle(nativeTexture)),
+            NativeTextureType.IOSurfaceRef => Device.MakeTexture(descriptor, nativeTexture, 0),
+            _ => default
         });
     }
 

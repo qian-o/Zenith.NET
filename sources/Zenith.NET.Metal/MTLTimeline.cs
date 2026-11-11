@@ -28,7 +28,9 @@ internal class MTLTimeline(MTLGraphicsContext context, MTLCommandQueue queue) : 
 
     protected override void SetResourceName(string name)
     {
-        Event.Label = name;
+        using NSString @string = new(name);
+
+        Event.Label = @string;
     }
 
     protected override void Destroy()

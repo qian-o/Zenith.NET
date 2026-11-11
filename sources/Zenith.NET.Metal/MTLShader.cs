@@ -10,12 +10,15 @@ internal class MTLShader : Shader
 
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
-        Library = context.Device.MakeLibrary(DispatchData.Create(desc.CodeBytes), out NSError error);
+        using DispatchData data = DispatchData.Create(desc.CodeBytes);
+        Library = context.Device.MakeLibrary(data, out NSError error);
         error.Success();
+
+        using NSString @string = new(desc.Name);
 
         Descriptor = new()
         {
-            Name = desc.Name,
+            Name = @string,
             Library = Library
         };
     }
@@ -27,7 +30,9 @@ internal class MTLShader : Shader
 
     protected override void SetResourceName(string name)
     {
-        Library.Label = name;
+        using NSString @string = new(name);
+
+        Library.Label = @string;
     }
 
     protected override void Destroy()

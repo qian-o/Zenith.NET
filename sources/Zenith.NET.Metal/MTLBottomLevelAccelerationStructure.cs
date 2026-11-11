@@ -14,8 +14,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        MTL4PrimitiveAccelerationStructureDescriptor descriptor = Descriptor(desc);
-
+        using MTL4PrimitiveAccelerationStructureDescriptor descriptor = Descriptor(desc);
         MTLAccelerationStructureSizes sizes = context.Device.AccelerationStructureSizes(descriptor);
 
         context.Register(AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize));
@@ -27,7 +26,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
             Residency = MemoryResidency.GpuOnly
         });
 
-        commandBuffer.Compute?.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
+        commandBuffer.Compute.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
@@ -38,10 +37,10 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
 
     public void Update(MTLCommandBuffer commandBuffer, BottomLevelAccelerationStructureDesc newDesc)
     {
-        MTL4PrimitiveAccelerationStructureDescriptor descriptor = Descriptor(newDesc);
+        using MTL4PrimitiveAccelerationStructureDescriptor descriptor = Descriptor(newDesc);
         descriptor.Usage |= MTLAccelerationStructureUsage.Refit;
 
-        commandBuffer.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
+        commandBuffer.Compute.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
     }
 
     public override nint GetNativeObject(NativeObjectType type)
@@ -55,7 +54,9 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
 
     protected override void SetResourceName(string name)
     {
-        AccelerationStructure.Label = name;
+        using NSString @string = new(name);
+
+        AccelerationStructure.Label = @string;
     }
 
     protected override void Destroy()
@@ -128,9 +129,15 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
 
         Transform.Unmap();
 
+        using NSArray<MTL4AccelerationStructureGeometryDescriptor> geometryDescriptors = new(geometries);
+        for (uint i = 0; i < geometryCount; i++)
+        {
+            geometries[i].Release();
+        }
+
         return new()
         {
-            GeometryDescriptors = geometries,
+            GeometryDescriptors = geometryDescriptors,
             Usage = MTLFormats.Metal(desc.BuildFlags)
         };
     }

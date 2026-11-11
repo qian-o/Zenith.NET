@@ -10,7 +10,7 @@ internal class MetalFXFrameGeneration : FrameGeneration
 
     public MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc desc) : base(desc)
     {
-        MTLFXFrameInterpolatorDescriptor descriptor = new()
+        using MTLFXFrameInterpolatorDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(desc.HudlessFormat ?? desc.ColorFormat),
             OutputTextureFormat = MetalFXFormats.Metal(desc.OutputFormat),
@@ -23,7 +23,6 @@ internal class MetalFXFrameGeneration : FrameGeneration
             OutputHeight = desc.Height,
             RequiresPrevColorTexture = false
         };
-
         Interpolator = descriptor.MakeFrameInterpolator(vendor.Device, vendor.Compiler);
 
         WarmUp(vendor);
@@ -52,7 +51,7 @@ internal class MetalFXFrameGeneration : FrameGeneration
         Interpolator.ColorTexture = (args.Hudless ?? args.Color).Metal();
         Interpolator.DepthTexture = args.Depth.Metal();
         Interpolator.MotionTexture = args.MotionVectors.Metal();
-        Interpolator.UiTexture = args.Hudless is not null ? args.Color.Metal() : MTLTexture.Null;
+        Interpolator.UiTexture = args.Hudless is not null ? args.Color.Metal() : default;
         Interpolator.OutputTexture = args.Output.Metal();
         Interpolator.ContentWidth = Desc.AuxiliaryWidth;
         Interpolator.ContentHeight = Desc.AuxiliaryHeight;

@@ -8,7 +8,7 @@
         <PackageVersion Include="Avalonia" Version="12.1.6" />
         <PackageVersion Include="FSR.NET" Version="2.4.0" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
-        <PackageVersion Include="Metal.NET" Version="3.0.0-alpha.1" />
+        <PackageVersion Include="Metal.NET" Version="3.0.0-alpha.2" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.130" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
         <PackageVersion Include="NGX.NET" Version="310.9.16" />

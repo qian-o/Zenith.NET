@@ -8,7 +8,7 @@ internal class MetalFXSuperResolution : SuperResolution
 
     public MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc desc) : base(desc)
     {
-        MTLFXTemporalScalerDescriptor descriptor = new()
+        using MTLFXTemporalScalerDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
             DepthTextureFormat = MetalFXFormats.Metal(desc.DepthFormat),
@@ -22,7 +22,6 @@ internal class MetalFXSuperResolution : SuperResolution
             IsReactiveMaskTextureEnabled = desc.ReactiveMaskFormat is not null,
             ReactiveMaskTextureFormat = MetalFXFormats.Metal(desc.ReactiveMaskFormat)
         };
-
         Scaler = descriptor.MakeTemporalScaler(vendor.Device, vendor.Compiler);
 
         WarmUp(vendor);
@@ -49,8 +48,8 @@ internal class MetalFXSuperResolution : SuperResolution
         Scaler.ColorTexture = args.Color.Metal();
         Scaler.DepthTexture = args.Depth.Metal();
         Scaler.MotionTexture = args.MotionVectors.Metal();
-        Scaler.ExposureTexture = args.Exposure?.Metal() ?? MTLTexture.Null;
-        Scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? MTLTexture.Null;
+        Scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
+        Scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
         Scaler.OutputTexture = args.Output.Metal();
         Scaler.InputContentWidth = Desc.InputWidth;
         Scaler.InputContentHeight = Desc.InputHeight;

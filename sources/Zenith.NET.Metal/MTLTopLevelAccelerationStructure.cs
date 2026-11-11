@@ -14,8 +14,7 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(desc);
-
+        using MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(desc);
         MTLAccelerationStructureSizes sizes = context.Device.AccelerationStructureSizes(descriptor);
 
         context.Register(AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize));
@@ -27,9 +26,9 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
             Residency = MemoryResidency.GpuOnly
         });
 
-        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
-        commandBuffer.Compute?.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
-        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
+        commandBuffer.Compute.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
 
         Handle = AccelerationStructure.GpuResourceID.Impl.ToHandle();
     }
@@ -44,12 +43,12 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     public void Update(MTLCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
-        MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(newDesc);
+        using MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(newDesc);
         descriptor.Usage |= MTLAccelerationStructureUsage.Refit;
 
-        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
-        commandBuffer.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
-        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
+        commandBuffer.Compute.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     public override nint GetNativeObject(NativeObjectType type)
@@ -63,7 +62,9 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     protected override void SetResourceName(string name)
     {
-        AccelerationStructure.Label = name;
+        using NSString @string = new(name);
+
+        AccelerationStructure.Label = @string;
     }
 
     protected override void Destroy()

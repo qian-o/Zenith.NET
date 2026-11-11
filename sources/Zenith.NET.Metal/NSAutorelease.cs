@@ -4,31 +4,24 @@ namespace Zenith.NET.Metal;
 
 internal static class NSAutorelease
 {
-    public static T Own<T>(Func<T> func) where T : NSObject, INativeObject<T>
+    public static CAMetalDrawable NextDrawable(CAMetalLayer layer)
     {
         using NSAutoreleasePool _ = new();
 
-        return func().Retain();
+        return layer.NextDrawable().Retain();
     }
 
-    public static T Own<T1, T>(Func<T1, T> func, T1 arg1) where T : NSObject, INativeObject<T>
+    public static MTL4RenderCommandEncoder MakeRenderCommandEncoder(MTL4CommandBuffer commandBuffer, MTL4RenderPassDescriptor descriptor)
     {
         using NSAutoreleasePool _ = new();
 
-        return func(arg1).Retain();
+        return commandBuffer.MakeRenderCommandEncoder(descriptor).Retain();
     }
 
-    public static T Own<T1, T2, T>(Func<T1, T2, T> func, T1 arg1, T2 arg2) where T : NSObject, INativeObject<T>
+    public static MTL4ComputeCommandEncoder MakeComputeCommandEncoder(MTL4CommandBuffer commandBuffer)
     {
         using NSAutoreleasePool _ = new();
 
-        return func(arg1, arg2).Retain();
-    }
-
-    public static T Own<T1, T2, T3, T>(Func<T1, T2, T3, T> func, T1 arg1, T2 arg2, T3 arg3) where T : NSObject, INativeObject<T>
-    {
-        using NSAutoreleasePool _ = new();
-
-        return func(arg1, arg2, arg3).Retain();
+        return commandBuffer.MakeComputeCommandEncoder().Retain();
     }
 }

@@ -8,7 +8,7 @@ internal class MTLSampler : Sampler
 
     public MTLSampler(MTLGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
-        SamplerState = context.Device.MakeSamplerState(new()
+        using MTLSamplerDescriptor descriptor = new()
         {
             MinFilter = MTLFormats.Metal(desc.MinFilter).MinMagFilter,
             MagFilter = MTLFormats.Metal(desc.MagFilter).MinMagFilter,
@@ -24,7 +24,8 @@ internal class MTLSampler : Sampler
             LodBias = desc.LodBias,
             CompareFunction = MTLFormats.Metal(desc.CompareOp),
             SupportArgumentBuffers = true
-        });
+        };
+        SamplerState = context.Device.MakeSamplerState(descriptor);
 
         Handle = SamplerState.GpuResourceID.Impl.ToHandle();
     }

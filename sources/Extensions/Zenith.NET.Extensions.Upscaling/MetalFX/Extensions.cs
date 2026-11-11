@@ -22,7 +22,7 @@ internal static class Extensions
     {
         internal MTL4CommandQueue Metal()
         {
-            return new(commandQueue.GetNativeObject(NativeObjectType.MTL4CommandQueue), NativeObjectOwnership.Borrowed);
+            return new(commandQueue.GetNativeObject(NativeObjectType.MTL4CommandQueue));
         }
     }
 
@@ -30,7 +30,7 @@ internal static class Extensions
     {
         internal MTL4CommandBuffer Metal()
         {
-            return new(commandBuffer.GetNativeObject(NativeObjectType.MTL4CommandBuffer), NativeObjectOwnership.Borrowed);
+            return new(commandBuffer.GetNativeObject(NativeObjectType.MTL4CommandBuffer));
         }
     }
 
@@ -38,7 +38,7 @@ internal static class Extensions
     {
         internal MTLTexture Metal()
         {
-            return new(texture.GetNativeObject(NativeObjectType.MTLTexture), NativeObjectOwnership.Borrowed);
+            return new(texture.GetNativeObject(NativeObjectType.MTLTexture));
         }
     }
 }
