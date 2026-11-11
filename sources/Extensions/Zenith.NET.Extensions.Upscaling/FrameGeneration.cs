@@ -6,13 +6,11 @@ public abstract class FrameGeneration(FrameGenerationDesc desc) : DisposableObje
 
     public void Dispatch(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
-        commandBuffer.BeginExternalCommands();
         commandBuffer.BeginDebugEvent("Frame Generation");
 
         DispatchImpl(commandBuffer, args);
 
         commandBuffer.EndDebugEvent();
-        commandBuffer.EndExternalCommands();
     }
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args);

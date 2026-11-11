@@ -2,62 +2,46 @@
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
-internal unsafe class FSRSuperResolution : SuperResolution
+internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc desc) : SuperResolution(desc)
 {
-    public FSRVendor Vendor;
+    private FSRContext context;
+    private FSRApiCreateContextUpscaleFlags contextFlags;
+    private bool recreated;
 
-    public FSRContext Context;
-
-    public FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc desc) : base(desc)
+    public void Dispatch(CommandBuffer commandBuffer, SuperResolutionArgs args, Texture? transparencyMask)
     {
-        Vendor = vendor;
-
+        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _, bool depthReversed, bool depthInfinite) = Vendor.DecomposePerspective(args.Projection);
         FSRApiCreateContextUpscaleFlags flags = default;
 
-        if (desc.IsHdr)
+        if (args.Color.Desc.Format.IsHdr())
         {
             flags |= FSRApiCreateContextUpscaleFlags.HighDynamicRange;
         }
 
-        if (desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed))
+        if (depthReversed)
         {
             flags |= FSRApiCreateContextUpscaleFlags.DepthInverted;
         }
 
-        if (desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite))
+        if (depthInfinite)
         {
             flags |= FSRApiCreateContextUpscaleFlags.DepthInfinite;
         }
 
-        if (desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure))
+        if (args.Exposure is null)
         {
             flags |= FSRApiCreateContextUpscaleFlags.AutoExposure;
         }
 
-        FSRCreateContextDescUpscaleVersion version = new() { Version = (uint)Fsr.UpscalerVersion };
-        FSRCreateContextDescUpscale createDesc = new()
+        EnsureContext(flags);
+
+        if (recreated)
         {
-            Flags = (uint)flags,
-            MaxRenderSize = new()
-            {
-                Width = desc.InputWidth,
-                Height = desc.InputHeight
-            },
-            MaxUpscaleSize = new()
-            {
-                Width = desc.OutputWidth,
-                Height = desc.OutputHeight
-            }
-        };
-        createDesc.Header.Next = &version.Header;
+            args.Reset = true;
+            recreated = false;
+        }
 
-        vendor.CreateContext(ref Context, &createDesc.Header);
-    }
-
-    public void Dispatch(CommandBuffer commandBuffer, SuperResolutionArgs args, Texture? transparencyMask)
-    {
-        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
-        float far = Desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite) ? float.MaxValue : farPlane;
+        float far = depthInfinite ? float.MaxValue : farPlane;
 
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
@@ -91,18 +75,18 @@ internal unsafe class FSRSuperResolution : SuperResolution
             Output = args.Output.FSR(),
             JitterOffset = new()
             {
-                X = args.JitterOffset.X,
-                Y = args.JitterOffset.Y
+                X = -args.JitterOffset.X,
+                Y = -args.JitterOffset.Y
             },
             MotionVectorScale = new()
             {
-                X = Desc.InputWidth,
-                Y = Desc.InputHeight
+                X = Desc.RenderWidth,
+                Y = Desc.RenderHeight
             },
             RenderSize = new()
             {
-                Width = Desc.InputWidth,
-                Height = Desc.InputHeight
+                Width = Desc.RenderWidth,
+                Height = Desc.RenderHeight
             },
             UpscaleSize = new()
             {
@@ -110,15 +94,19 @@ internal unsafe class FSRSuperResolution : SuperResolution
                 Height = Desc.OutputHeight
             },
             FrameTimeDelta = args.DeltaTimeInSeconds * 1000.0f,
-            PreExposure = args.PreExposure,
+            PreExposure = args.PreExposure ?? 1.0f,
             Reset = args.Reset,
-            CameraNear = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed) ? far : nearPlane,
-            CameraFar = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed) ? nearPlane : far,
+            CameraNear = depthReversed ? far : nearPlane,
+            CameraFar = depthReversed ? nearPlane : far,
             CameraFovAngleVertical = verticalFieldOfViewInRadians,
             ViewSpaceToMetersFactor = 1.0f
         };
 
-        Vendor.Dispatch(ref Context, &dispatchDesc.Header);
+        commandBuffer.BeginExternalCommands();
+
+        vendor.Dispatch(context, &dispatchDesc.Header);
+
+        commandBuffer.EndExternalCommands();
 
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
@@ -148,6 +136,44 @@ internal unsafe class FSRSuperResolution : SuperResolution
 
     protected override void Destroy()
     {
-        Vendor.DestroyContext(ref Context);
+        vendor.DestroyContext(context);
+        context = default;
+    }
+
+    private void EnsureContext(FSRApiCreateContextUpscaleFlags flags)
+    {
+        if (!context.IsNull && contextFlags == flags)
+        {
+            return;
+        }
+
+        if (!context.IsNull)
+        {
+            vendor.Context.GraphicsQueue.Timeline.Signal().Wait();
+            vendor.DestroyContext(context);
+            context = default;
+        }
+
+        contextFlags = flags;
+
+        FSRCreateContextDescUpscaleVersion version = new() { Version = (uint)Fsr.UpscalerVersion };
+        FSRCreateContextDescUpscale createDesc = new()
+        {
+            Flags = (uint)flags,
+            MaxRenderSize = new()
+            {
+                Width = Desc.RenderWidth,
+                Height = Desc.RenderHeight
+            },
+            MaxUpscaleSize = new()
+            {
+                Width = Desc.OutputWidth,
+                Height = Desc.OutputHeight
+            }
+        };
+        createDesc.Header.Next = &version.Header;
+
+        context = vendor.CreateContext(&createDesc.Header);
+        recreated = true;
     }
 }

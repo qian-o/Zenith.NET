@@ -30,13 +30,9 @@ internal class Renderer : DisposableObject
 
     public RenderSettings Settings { get; private set; }
 
-    public Texture Color => outputPass.Color;
-
-    public UpscalingInputSize InputSize => new(pathTracingPass.Output.Width, pathTracingPass.Output.Height);
-
     public void ApplySettings(RenderSettings settings)
     {
-        bool hasRenderChanges = Settings.UpscalingMode != settings.UpscalingMode || Settings.IsRayReconstructionEnabled != settings.IsRayReconstructionEnabled;
+        bool hasRenderChanges = Settings.UpscalingQuality != settings.UpscalingQuality || Settings.IsRayReconstructionEnabled != settings.IsRayReconstructionEnabled;
 
         Settings = settings;
 
@@ -58,18 +54,20 @@ internal class Renderer : DisposableObject
     {
         uint sampleIndex = frameIndex + 1u;
         Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : new(GetHaltonSample(sampleIndex, 2u) - 0.5f, GetHaltonSample(sampleIndex, 3u) - 0.5f);
+        Matrix4x4 view = camera.View;
+        Matrix4x4 projection = camera.Projection;
         float deltaTimeInSeconds = (float)deltaSeconds;
         bool reset = frameIndex is 0;
 
         scene.Update(commandBuffer, elapsedSeconds);
-        pathTracingPass.Record(commandBuffer, scene, camera, jitterOffsetInPixels, frameIndex);
+        pathTracingPass.Record(commandBuffer, scene, camera, jitterOffsetInPixels, frameIndex, upscalingPass?.IsRayReconstructionEnabled is true);
 
         PathTracingOutput output = pathTracingPass.Output;
         Texture color = output.Color;
 
         if (upscalingPass is not null)
         {
-            upscalingPass.Record(commandBuffer, output, camera, jitterOffsetInPixels, deltaTimeInSeconds, reset);
+            upscalingPass.Record(commandBuffer, output, jitterOffsetInPixels, view, projection, deltaTimeInSeconds, reset);
             color = upscalingPass.Color;
         }
 
@@ -80,9 +78,9 @@ internal class Renderer : DisposableObject
             Color = outputPass.Color,
             Depth = output.Depth,
             MotionVectors = output.MotionVectors,
-            JitterOffset = -jitterOffsetInPixels,
-            WorldToView = camera.View,
-            ViewToClip = camera.Projection,
+            JitterOffset = jitterOffsetInPixels,
+            View = view,
+            Projection = projection,
             DeltaTimeInSeconds = deltaTimeInSeconds,
             Reset = reset
         };
@@ -94,14 +92,14 @@ internal class Renderer : DisposableObject
 
     public void Resize()
     {
-        if (Settings.UpscalingMode is UpscalingMode mode)
+        if (Settings.UpscalingQuality is UpscalingQuality quality)
         {
-            if (upscalingPass is null || upscalingPass.Mode != mode || upscalingPass.IsRayReconstructionEnabled != Settings.IsRayReconstructionEnabled)
+            if (upscalingPass is null || upscalingPass.Quality != quality || upscalingPass.IsRayReconstructionEnabled != Settings.IsRayReconstructionEnabled)
             {
                 upscalingPass?.Dispose();
                 upscalingPass = null;
 
-                upscalingPass = new(mode, Settings.IsRayReconstructionEnabled);
+                upscalingPass = new(quality, Settings.IsRayReconstructionEnabled);
             }
             else
             {
@@ -114,9 +112,10 @@ internal class Renderer : DisposableObject
             upscalingPass = null;
         }
 
-        UpscalingInputSize inputSize = upscalingPass?.InputSize ?? new(App.PhysicalWidth, App.PhysicalHeight);
+        uint renderWidth = upscalingPass?.RenderWidth ?? App.PhysicalWidth;
+        uint renderHeight = upscalingPass?.RenderHeight ?? App.PhysicalHeight;
 
-        pathTracingPass.Resize(inputSize.Width, inputSize.Height, upscalingPass?.IsRayReconstructionEnabled is true);
+        pathTracingPass.Resize(renderWidth, renderHeight);
         outputPass.Resize();
 
         frameIndex = 0;

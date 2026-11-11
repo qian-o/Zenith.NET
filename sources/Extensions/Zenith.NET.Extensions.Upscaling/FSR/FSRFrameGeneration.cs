@@ -3,65 +3,46 @@ using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
-internal unsafe class FSRFrameGeneration : FrameGeneration
+internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc desc) : FrameGeneration(desc)
 {
-    public FSRVendor Vendor;
+    private const float DefaultMinLuminanceInNits = 0.001f;
+    private const float DefaultMaxLuminanceInNits = 1000.0f;
 
-    public FSRContext Context;
-
+    private FSRContext context;
+    private (FSRApiCreateContextFrameGenerationFlags Flags, PixelFormat ColorFormat, PixelFormat? HudlessFormat) key;
+    private bool recreated;
     private ulong frameIndex;
 
-    public FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc desc) : base(desc)
+    protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
-        Vendor = vendor;
+        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _, bool depthReversed, bool depthInfinite) = Vendor.DecomposePerspective(args.Projection);
+        bool isHdr = args.Color.Desc.Format.IsHdr();
 
         FSRApiCreateContextFrameGenerationFlags flags = default;
 
-        if (desc.IsHdr)
+        if (isHdr)
         {
             flags |= FSRApiCreateContextFrameGenerationFlags.HighDynamicRange;
         }
 
-        if (desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed))
+        if (depthReversed)
         {
             flags |= FSRApiCreateContextFrameGenerationFlags.DepthInverted;
         }
 
-        if (desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite))
+        if (depthInfinite)
         {
             flags |= FSRApiCreateContextFrameGenerationFlags.DepthInfinite;
         }
 
-        FSRCreateContextDescFrameGenerationHudless hudless = new();
-        FSRCreateContextDescFrameGenerationVersion version = new() { Version = (uint)Fsr.FrameGenerationVersion };
-        FSRCreateContextDescFrameGeneration createDesc = new()
-        {
-            Flags = (uint)flags,
-            DisplaySize = new()
-            {
-                Width = desc.Width,
-                Height = desc.Height
-            },
-            MaxRenderSize = new()
-            {
-                Width = desc.AuxiliaryWidth,
-                Height = desc.AuxiliaryHeight
-            },
-            BackBufferFormat = (uint)FSRFormats.FSR(desc.ColorFormat)
-        };
-        createDesc.Header.Next = &version.Header;
+        EnsureContext((flags, args.Color.Desc.Format, args.Hudless?.Desc.Format));
 
-        if (desc.HudlessFormat is PixelFormat hudlessFormat)
+        if (recreated)
         {
-            hudless.HudlessBackBufferFormat = (uint)FSRFormats.FSR(hudlessFormat);
-            version.Header.Next = &hudless.Header;
+            args.Reset = true;
+            recreated = false;
         }
 
-        vendor.CreateContext(ref Context, &createDesc.Header);
-    }
-
-    protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
-    {
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
@@ -72,11 +53,13 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
             commandBuffer.Transition(args.Hudless, default, TextureLayout.Sampled, TextureLayout.Common);
         }
 
+        commandBuffer.BeginExternalCommands();
+
         void* commandList = commandBuffer.FSR();
         FSRApiRect2D generationRect = new()
         {
-            Width = (int)Desc.Width,
-            Height = (int)Desc.Height
+            Width = (int)Desc.OutputWidth,
+            Height = (int)Desc.OutputHeight
         };
         FSRConfigureDescFrameGeneration configureDesc = new()
         {
@@ -87,18 +70,17 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
             FrameID = frameIndex
         };
 
-        Vendor.Configure(ref Context, &configureDesc.Header);
+        vendor.Configure(context, &configureDesc.Header);
 
-        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
-        float far = Desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite) ? float.MaxValue : farPlane;
+        float far = depthInfinite ? float.MaxValue : farPlane;
 
-        Matrix4x4.Invert(args.WorldToView, out Matrix4x4 viewToWorld);
+        Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
 
         Vector3 position = viewToWorld.Translation;
         Vector3 up = new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23);
         Vector3 right = new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13);
         Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
-        forward = args.ViewToClip.M34 < 0.0f ? -forward : forward;
+        forward = args.Projection.M34 < 0.0f ? -forward : forward;
 
         FSRDispatchDescFrameGenerationPrepareV2 prepareDesc = new()
         {
@@ -106,23 +88,23 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
             CommandList = commandList,
             RenderSize = new()
             {
-                Width = Desc.AuxiliaryWidth,
-                Height = Desc.AuxiliaryHeight
+                Width = Desc.RenderWidth,
+                Height = Desc.RenderHeight
             },
             JitterOffset = new()
             {
-                X = args.JitterOffset.X,
-                Y = args.JitterOffset.Y
+                X = -args.JitterOffset.X,
+                Y = -args.JitterOffset.Y
             },
             MotionVectorScale = new()
             {
-                X = Desc.AuxiliaryWidth,
-                Y = Desc.AuxiliaryHeight
+                X = Desc.RenderWidth,
+                Y = Desc.RenderHeight
             },
             FrameTimeDelta = args.DeltaTimeInSeconds * 1000.0f,
             Reset = args.Reset,
-            CameraNear = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed) ? far : nearPlane,
-            CameraFar = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed) ? nearPlane : far,
+            CameraNear = depthReversed ? far : nearPlane,
+            CameraFar = depthReversed ? nearPlane : far,
             CameraFovAngleVertical = verticalFieldOfViewInRadians,
             ViewSpaceToMetersFactor = 1.0f,
             Depth = args.Depth.FSR(),
@@ -141,13 +123,13 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
         prepareDesc.CameraForward[1] = forward.Y;
         prepareDesc.CameraForward[2] = forward.Z;
 
-        Vendor.Dispatch(ref Context, &prepareDesc.Header);
+        vendor.Dispatch(context, &prepareDesc.Header);
 
         FSRApiBackBufferTransferFunction transferFunction = FSRApiBackBufferTransferFunction.Srgb;
 
-        if (Desc.IsHdr)
+        if (isHdr)
         {
-            transferFunction = Desc.ColorFormat is PixelFormat.R16G16B16A16Float ? FSRApiBackBufferTransferFunction.Scrgb : FSRApiBackBufferTransferFunction.Pq;
+            transferFunction = args.Color.Desc.Format is PixelFormat.R10G10B10A2UNorm ? FSRApiBackBufferTransferFunction.Pq : FSRApiBackBufferTransferFunction.Scrgb;
         }
 
         FSRDispatchDescFrameGeneration dispatchDesc = new()
@@ -161,10 +143,12 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
             FrameID = frameIndex
         };
         dispatchDesc.Outputs[0] = args.Output.FSR();
-        dispatchDesc.MinMaxLuminance[0] = args.MinLuminanceInNits;
-        dispatchDesc.MinMaxLuminance[1] = args.MaxLuminanceInNits;
+        dispatchDesc.MinMaxLuminance[0] = args.MinLuminanceInNits ?? DefaultMinLuminanceInNits;
+        dispatchDesc.MinMaxLuminance[1] = args.MaxLuminanceInNits ?? DefaultMaxLuminanceInNits;
 
-        Vendor.Dispatch(ref Context, &dispatchDesc.Header);
+        vendor.Dispatch(context, &dispatchDesc.Header);
+
+        commandBuffer.EndExternalCommands();
 
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
@@ -181,6 +165,53 @@ internal unsafe class FSRFrameGeneration : FrameGeneration
 
     protected override void Destroy()
     {
-        Vendor.DestroyContext(ref Context);
+        vendor.DestroyContext(context);
+        context = default;
+    }
+
+    private void EnsureContext((FSRApiCreateContextFrameGenerationFlags Flags, PixelFormat ColorFormat, PixelFormat? HudlessFormat) nextKey)
+    {
+        if (!context.IsNull && key == nextKey)
+        {
+            return;
+        }
+
+        if (!context.IsNull)
+        {
+            vendor.Context.GraphicsQueue.Timeline.Signal().Wait();
+            vendor.Context.PresentQueue.Timeline.Signal().Wait();
+            vendor.DestroyContext(context);
+            context = default;
+        }
+
+        key = nextKey;
+
+        FSRCreateContextDescFrameGenerationHudless hudless = new();
+        FSRCreateContextDescFrameGenerationVersion version = new() { Version = (uint)Fsr.FrameGenerationVersion };
+        FSRCreateContextDescFrameGeneration createDesc = new()
+        {
+            Flags = (uint)nextKey.Flags,
+            DisplaySize = new()
+            {
+                Width = Desc.OutputWidth,
+                Height = Desc.OutputHeight
+            },
+            MaxRenderSize = new()
+            {
+                Width = Desc.RenderWidth,
+                Height = Desc.RenderHeight
+            },
+            BackBufferFormat = (uint)FSRFormats.FSR(nextKey.ColorFormat)
+        };
+        createDesc.Header.Next = &version.Header;
+
+        if (nextKey.HudlessFormat is PixelFormat hudlessFormat)
+        {
+            hudless.HudlessBackBufferFormat = (uint)FSRFormats.FSR(hudlessFormat);
+            version.Header.Next = &hudless.Header;
+        }
+
+        context = vendor.CreateContext(&createDesc.Header);
+        recreated = true;
     }
 }

@@ -4,6 +4,19 @@ namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal static class MetalFXFormats
 {
+    public static float Scale(UpscalingQuality quality)
+    {
+        return quality switch
+        {
+            UpscalingQuality.Native => 1.0f,
+            UpscalingQuality.Quality => 1.5f,
+            UpscalingQuality.Balanced => 1.7f,
+            UpscalingQuality.Performance => 2.0f,
+            UpscalingQuality.UltraPerformance => 3.0f,
+            _ => default
+        };
+    }
+
     public static MTLPixelFormat Metal(PixelFormat? pixelFormat)
     {
         return pixelFormat switch

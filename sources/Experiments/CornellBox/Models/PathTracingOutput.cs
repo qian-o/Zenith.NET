@@ -13,12 +13,10 @@ internal class PathTracingOutput : DisposableObject
     public const PixelFormat RoughnessFormat = PixelFormat.R16Float;
     public const PixelFormat SpecularHitDistanceFormat = PixelFormat.R32Float;
     public const PixelFormat ReactiveMaskFormat = PixelFormat.R16Float;
-    public const PixelFormat LinearDepthDeltaFormat = PixelFormat.R32Float;
-    public const PixelFormat RadianceFormat = PixelFormat.R16G16B16A16Float;
 
-    private readonly Texture[] textures = [];
+    private readonly Texture[] textures;
 
-    public PathTracingOutput(uint width, uint height, bool isRayReconstructionEnabled)
+    public PathTracingOutput(uint width, uint height)
     {
         Color = CreateTexture(ColorFormat, width, height);
         Depth = CreateTexture(DepthFormat, width, height, TextureUsages.TransferSrc);
@@ -30,20 +28,7 @@ internal class PathTracingOutput : DisposableObject
         SpecularHitDistance = CreateTexture(SpecularHitDistanceFormat, width, height);
         ReactiveMask = CreateTexture(ReactiveMaskFormat, width, height);
 
-        if (isRayReconstructionEnabled)
-        {
-            LinearDepthDelta = CreateTexture(LinearDepthDeltaFormat, width, height);
-            DirectDiffuseRadiance = CreateTexture(RadianceFormat, width, height);
-            DirectSpecularRadiance = CreateTexture(RadianceFormat, width, height);
-            IndirectDiffuseRadiance = CreateTexture(RadianceFormat, width, height);
-            IndirectSpecularRadiance = CreateTexture(RadianceFormat, width, height);
-
-            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, ReactiveMask, LinearDepthDelta, DirectDiffuseRadiance, DirectSpecularRadiance, IndirectDiffuseRadiance, IndirectSpecularRadiance];
-        }
-        else
-        {
-            textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, ReactiveMask];
-        }
+        textures = [Color, Depth, MotionVectors, DiffuseAlbedo, SpecularAlbedo, Normals, Roughness, SpecularHitDistance, ReactiveMask];
     }
 
     public uint Width => Color.Desc.Width;
@@ -67,16 +52,6 @@ internal class PathTracingOutput : DisposableObject
     public Texture SpecularHitDistance { get; }
 
     public Texture ReactiveMask { get; }
-
-    public Texture? LinearDepthDelta { get; }
-
-    public Texture? DirectDiffuseRadiance { get; }
-
-    public Texture? DirectSpecularRadiance { get; }
-
-    public Texture? IndirectDiffuseRadiance { get; }
-
-    public Texture? IndirectSpecularRadiance { get; }
 
     public ReadOnlySpan<Texture> Textures => textures;
 

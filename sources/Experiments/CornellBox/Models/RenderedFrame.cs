@@ -13,9 +13,9 @@ internal readonly struct RenderedFrame
 
     public Vector2 JitterOffset { get; init; }
 
-    public Matrix4x4 WorldToView { get; init; }
+    public Matrix4x4 View { get; init; }
 
-    public Matrix4x4 ViewToClip { get; init; }
+    public Matrix4x4 Projection { get; init; }
 
     public float DeltaTimeInSeconds { get; init; }
 

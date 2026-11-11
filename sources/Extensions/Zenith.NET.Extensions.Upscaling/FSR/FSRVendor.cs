@@ -7,10 +7,8 @@ internal unsafe class FSRVendor : Vendor
 {
     private readonly FSRVkDeviceContext deviceContext;
 
-    public FSRVendor(GraphicsContext context)
+    public FSRVendor(GraphicsContext context) : base(context)
     {
-        Context = context;
-
         if (!OperatingSystem.IsWindows() || RuntimeInformation.ProcessArchitecture is not Architecture.X64)
         {
             Capabilities = new(false, false, false);
@@ -35,18 +33,16 @@ internal unsafe class FSRVendor : Vendor
         Capabilities = new(superResolutionSupported, rayReconstructionSupported, frameGenerationSupported);
     }
 
-    public GraphicsContext Context { get; }
-
     public override UpscalingCapabilities Capabilities { get; }
 
-    public override UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override (uint Width, uint Height) GetSuperResolutionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return GetInputSize(outputWidth, outputHeight, mode);
+        return GetRenderSize(outputWidth, outputHeight, quality);
     }
 
-    public override UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override (uint Width, uint Height) GetRayReconstructionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return GetInputSize(outputWidth, outputHeight, mode);
+        return GetRenderSize(outputWidth, outputHeight, quality);
     }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
@@ -64,7 +60,7 @@ internal unsafe class FSRVendor : Vendor
         return new FSRFrameGeneration(this, desc);
     }
 
-    public void CreateContext(ref FSRContext context, FSRApiHeader* desc)
+    public FSRContext CreateContext(FSRApiHeader* desc)
     {
         FSRCreateBackendDX12Desc directX12 = new() { Device = Context.GetNativeObject(NativeObjectType.D3D12Device) };
         FSRCreateBackendVKDesc vulkan = new() { DeviceContext = deviceContext };
@@ -76,52 +72,35 @@ internal unsafe class FSRVendor : Vendor
 
         tail->Next = Context.GraphicsApi is GraphicsApi.DirectX12 ? &directX12.Header : &vulkan.Header;
 
-        FSRApiReturnCodes result;
-        fixed (FSRContext* pointer = &context)
-        {
-            result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.CreateContext(pointer, desc, null) : Fsr.Vulkan.CreateContext(pointer, desc, null);
-        }
+        FSRContext context = default;
+        FSRApiReturnCodes result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.CreateContext(&context, desc, null) : Fsr.Vulkan.CreateContext(&context, desc, null);
 
         tail->Next = null;
         result.Success();
+
+        return context;
     }
 
-    public void DestroyContext(ref FSRContext context)
+    public void DestroyContext(FSRContext context)
     {
         if (context.IsNull)
         {
             return;
         }
 
-        FSRApiReturnCodes result;
-        fixed (FSRContext* pointer = &context)
-        {
-            result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.DestroyContext(pointer, null) : Fsr.Vulkan.DestroyContext(pointer, null);
-        }
-
-        context = default;
+        FSRApiReturnCodes result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.DestroyContext(&context, null) : Fsr.Vulkan.DestroyContext(&context, null);
         result.Success();
     }
 
-    public void Configure(ref FSRContext context, FSRApiHeader* desc)
+    public void Configure(FSRContext context, FSRApiHeader* desc)
     {
-        FSRApiReturnCodes result;
-        fixed (FSRContext* pointer = &context)
-        {
-            result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.Configure(pointer, desc) : Fsr.Vulkan.Configure(pointer, desc);
-        }
-
+        FSRApiReturnCodes result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.Configure(&context, desc) : Fsr.Vulkan.Configure(&context, desc);
         result.Success();
     }
 
-    public void Dispatch(ref FSRContext context, FSRApiHeader* desc)
+    public void Dispatch(FSRContext context, FSRApiHeader* desc)
     {
-        FSRApiReturnCodes result;
-        fixed (FSRContext* pointer = &context)
-        {
-            result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.Dispatch(pointer, desc) : Fsr.Vulkan.Dispatch(pointer, desc);
-        }
-
+        FSRApiReturnCodes result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.Dispatch(&context, desc) : Fsr.Vulkan.Dispatch(&context, desc);
         result.Success();
     }
 
@@ -145,21 +124,21 @@ internal unsafe class FSRVendor : Vendor
         return result.IsSuccess() && count > 0;
     }
 
-    private UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    private (uint Width, uint Height) GetRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        uint renderWidth = 0;
-        uint renderHeight = 0;
+        uint width = 0;
+        uint height = 0;
         FSRQueryDescUpscaleGetRenderResolutionFromQualityMode query = new()
         {
             DisplayWidth = outputWidth,
             DisplayHeight = outputHeight,
-            QualityMode = (uint)FSRFormats.FSR(mode),
-            RenderWidth = &renderWidth,
-            RenderHeight = &renderHeight
+            QualityMode = (uint)FSRFormats.FSR(quality),
+            RenderWidth = &width,
+            RenderHeight = &height
         };
         FSRApiReturnCodes result = Context.GraphicsApi is GraphicsApi.DirectX12 ? Fsr.D3D12.Query(null, &query.Header) : Fsr.Vulkan.Query(null, &query.Header);
         result.Success();
 
-        return result.IsSuccess() ? new(renderWidth, renderHeight) : default;
+        return result.IsSuccess() ? (width, height) : default;
     }
 }

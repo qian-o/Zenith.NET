@@ -4,95 +4,171 @@ using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXRayReconstruction : RayReconstruction
+internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionDesc desc) : RayReconstruction(desc)
 {
-    public MTL4FXTemporalDenoisedScaler Scaler;
-
-    public MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionDesc desc) : base(desc)
-    {
-        using MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
-        {
-            ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
-            DepthTextureFormat = MetalFXFormats.Metal(desc.DepthFormat),
-            MotionTextureFormat = MetalFXFormats.Metal(desc.MotionVectorsFormat),
-            DiffuseAlbedoTextureFormat = MetalFXFormats.Metal(desc.DiffuseAlbedoFormat),
-            SpecularAlbedoTextureFormat = MetalFXFormats.Metal(desc.SpecularAlbedoFormat),
-            NormalTextureFormat = MetalFXFormats.Metal(desc.NormalsFormat),
-            RoughnessTextureFormat = MetalFXFormats.Metal(desc.RoughnessFormat),
-            SpecularHitDistanceTextureFormat = MetalFXFormats.Metal(desc.SpecularHitDistanceFormat),
-            TransparencyOverlayTextureFormat = MetalFXFormats.Metal(desc.TransparencyOverlayFormat),
-            OutputTextureFormat = MetalFXFormats.Metal(desc.OutputFormat),
-            InputWidth = desc.InputWidth,
-            InputHeight = desc.InputHeight,
-            OutputWidth = desc.OutputWidth,
-            OutputHeight = desc.OutputHeight,
-            IsAutoExposureEnabled = desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure),
-            IsReactiveMaskTextureEnabled = desc.ReactiveMaskFormat is not null,
-            ReactiveMaskTextureFormat = MetalFXFormats.Metal(desc.ReactiveMaskFormat),
-            IsSpecularHitDistanceTextureEnabled = true,
-            IsTransparencyOverlayTextureEnabled = desc.TransparencyOverlayFormat is not null
-        };
-        Scaler = descriptor.MakeTemporalDenoisedScaler(vendor.Device, vendor.Compiler);
-
-        WarmUp(vendor);
-    }
+    private MTL4FXTemporalDenoisedScaler scaler;
+    private (PixelFormat Color,
+             PixelFormat Depth,
+             PixelFormat MotionVectors,
+             PixelFormat DiffuseAlbedo,
+             PixelFormat SpecularAlbedo,
+             PixelFormat Normals,
+             PixelFormat Roughness,
+             PixelFormat SpecularHitDistance,
+             PixelFormat? ReactiveMask,
+             PixelFormat? TransparencyOverlay,
+             PixelFormat Output,
+             bool AutoExposure) key;
+    private bool recreated;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {
-        using NSAutoreleasePool _ = new();
+        using NSAutoreleasePool pool = new();
 
-        MTL4CommandBuffer mtlCommandBuffer = commandBuffer.Metal();
+        (_, _, _, _, bool depthReversed, _) = Vendor.DecomposePerspective(args.Projection);
 
-        Encode(mtlCommandBuffer, args);
+        EnsureScaler((args.Color.Desc.Format,
+                      args.Depth.Desc.Format,
+                      args.MotionVectors.Desc.Format,
+                      args.DiffuseAlbedo.Desc.Format,
+                      args.SpecularAlbedo.Desc.Format,
+                      args.Normals.Desc.Format,
+                      args.Roughness.Desc.Format,
+                      args.SpecularHitDistance.Desc.Format,
+                      args.ReactiveMask?.Desc.Format,
+                      args.TransparencyOverlay?.Desc.Format,
+                      args.Output.Desc.Format,
+                      args.Exposure is null),
+                     depthReversed);
 
-        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
+        if (recreated)
+        {
+            args.Reset = true;
+            recreated = false;
+        }
+
+        commandBuffer.BeginExternalCommands();
+
+        Encode(commandBuffer.Metal(), args, depthReversed);
+
+        commandBuffer.EndExternalCommands();
     }
 
     protected override void Destroy()
     {
-        Scaler.Dispose();
+        if (!scaler.IsNull)
+        {
+            scaler.Dispose();
+        }
     }
 
-    private void Encode(MTL4CommandBuffer commandBuffer, RayReconstructionArgs args)
+    private void EnsureScaler((PixelFormat Color,
+                               PixelFormat Depth,
+                               PixelFormat MotionVectors,
+                               PixelFormat DiffuseAlbedo,
+                               PixelFormat SpecularAlbedo,
+                               PixelFormat Normals,
+                               PixelFormat Roughness,
+                               PixelFormat SpecularHitDistance,
+                               PixelFormat? ReactiveMask,
+                               PixelFormat? TransparencyOverlay,
+                               PixelFormat Output,
+                               bool AutoExposure) nextKey,
+                              bool depthReversed)
     {
-        Scaler.ColorTexture = args.Color.Metal();
-        Scaler.DepthTexture = args.Depth.Metal();
-        Scaler.MotionTexture = args.MotionVectors.Metal();
-        Scaler.DiffuseAlbedoTexture = args.DiffuseAlbedo.Metal();
-        Scaler.SpecularAlbedoTexture = args.SpecularAlbedo.Metal();
-        Scaler.NormalTexture = args.Normals.Metal();
-        Scaler.RoughnessTexture = args.Roughness.Metal();
-        Scaler.SpecularHitDistanceTexture = args.SpecularHitDistance.Metal();
-        Scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
-        Scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
-        Scaler.TransparencyOverlayTexture = args.TransparencyOverlay?.Metal() ?? default;
-        Scaler.OutputTexture = args.Output.Metal();
-        Scaler.JitterOffsetX = args.JitterOffset.X;
-        Scaler.JitterOffsetY = args.JitterOffset.Y;
-        Scaler.MotionVectorScaleX = Desc.InputWidth;
-        Scaler.MotionVectorScaleY = Desc.InputHeight;
-        Scaler.WorldToViewMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.WorldToView);
-        Scaler.ViewToClipMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.ViewToClip);
-        Scaler.PreExposure = args.PreExposure;
-        Scaler.ShouldResetHistory = args.Reset;
-        Scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
-        Scaler.Encode(commandBuffer);
+        if (!scaler.IsNull && key == nextKey)
+        {
+            return;
+        }
+
+        if (!scaler.IsNull)
+        {
+            vendor.Context.GraphicsQueue.Timeline.Signal().Wait();
+            scaler.Dispose();
+        }
+
+        key = nextKey;
+
+        using MTLFXTemporalDenoisedScalerDescriptor descriptor = new()
+        {
+            ColorTextureFormat = MetalFXFormats.Metal(nextKey.Color),
+            DepthTextureFormat = MetalFXFormats.Metal(nextKey.Depth),
+            MotionTextureFormat = MetalFXFormats.Metal(nextKey.MotionVectors),
+            DiffuseAlbedoTextureFormat = MetalFXFormats.Metal(nextKey.DiffuseAlbedo),
+            SpecularAlbedoTextureFormat = MetalFXFormats.Metal(nextKey.SpecularAlbedo),
+            NormalTextureFormat = MetalFXFormats.Metal(nextKey.Normals),
+            RoughnessTextureFormat = MetalFXFormats.Metal(nextKey.Roughness),
+            SpecularHitDistanceTextureFormat = MetalFXFormats.Metal(nextKey.SpecularHitDistance),
+            TransparencyOverlayTextureFormat = MetalFXFormats.Metal(nextKey.TransparencyOverlay),
+            OutputTextureFormat = MetalFXFormats.Metal(nextKey.Output),
+            InputWidth = Desc.RenderWidth,
+            InputHeight = Desc.RenderHeight,
+            OutputWidth = Desc.OutputWidth,
+            OutputHeight = Desc.OutputHeight,
+            IsAutoExposureEnabled = nextKey.AutoExposure,
+            IsReactiveMaskTextureEnabled = nextKey.ReactiveMask is not null,
+            ReactiveMaskTextureFormat = MetalFXFormats.Metal(nextKey.ReactiveMask),
+            IsSpecularHitDistanceTextureEnabled = true,
+            IsTransparencyOverlayTextureEnabled = nextKey.TransparencyOverlay is not null
+        };
+        scaler = descriptor.MakeTemporalDenoisedScaler(vendor.Device, vendor.Compiler);
+
+        WarmUp(nextKey, depthReversed);
+        recreated = true;
     }
 
-    private void WarmUp(MetalFXVendor vendor)
+    private void Encode(MTL4CommandBuffer commandBuffer, RayReconstructionArgs args, bool depthReversed)
     {
-        using Texture color = vendor.CreateTexture(Desc.ColorFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture depth = vendor.CreateTexture(Desc.DepthFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture motionVectors = vendor.CreateTexture(Desc.MotionVectorsFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture diffuseAlbedo = vendor.CreateTexture(Desc.DiffuseAlbedoFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture specularAlbedo = vendor.CreateTexture(Desc.SpecularAlbedoFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture normals = vendor.CreateTexture(Desc.NormalsFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture roughness = vendor.CreateTexture(Desc.RoughnessFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture specularHitDistance = vendor.CreateTexture(Desc.SpecularHitDistanceFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture? exposure = Desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure) ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
-        using Texture? reactiveMask = Desc.ReactiveMaskFormat is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.InputWidth, Desc.InputHeight) : null;
-        using Texture? transparencyOverlay = Desc.TransparencyOverlayFormat is PixelFormat transparencyOverlayFormat ? vendor.CreateTexture(transparencyOverlayFormat, Desc.OutputWidth, Desc.OutputHeight) : null;
-        using Texture output = vendor.CreateTexture(Desc.OutputFormat, Desc.OutputWidth, Desc.OutputHeight);
+        scaler.ColorTexture = args.Color.Metal();
+        scaler.DepthTexture = args.Depth.Metal();
+        scaler.MotionTexture = args.MotionVectors.Metal();
+        scaler.DiffuseAlbedoTexture = args.DiffuseAlbedo.Metal();
+        scaler.SpecularAlbedoTexture = args.SpecularAlbedo.Metal();
+        scaler.NormalTexture = args.Normals.Metal();
+        scaler.RoughnessTexture = args.Roughness.Metal();
+        scaler.SpecularHitDistanceTexture = args.SpecularHitDistance.Metal();
+        scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
+        scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
+        scaler.TransparencyOverlayTexture = args.TransparencyOverlay?.Metal() ?? default;
+        scaler.OutputTexture = args.Output.Metal();
+        scaler.JitterOffsetX = -args.JitterOffset.X;
+        scaler.JitterOffsetY = -args.JitterOffset.Y;
+        scaler.MotionVectorScaleX = Desc.RenderWidth;
+        scaler.MotionVectorScaleY = Desc.RenderHeight;
+        scaler.WorldToViewMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.View);
+        scaler.ViewToClipMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.Projection);
+        scaler.PreExposure = args.PreExposure ?? 1.0f;
+        scaler.ShouldResetHistory = args.Reset;
+        scaler.IsDepthReversed = depthReversed;
+        scaler.Encode(commandBuffer);
+    }
+
+    private void WarmUp((PixelFormat Color,
+                         PixelFormat Depth,
+                         PixelFormat MotionVectors,
+                         PixelFormat DiffuseAlbedo,
+                         PixelFormat SpecularAlbedo,
+                         PixelFormat Normals,
+                         PixelFormat Roughness,
+                         PixelFormat SpecularHitDistance,
+                         PixelFormat? ReactiveMask,
+                         PixelFormat? TransparencyOverlay,
+                         PixelFormat Output,
+                         bool AutoExposure) nextKey,
+                        bool depthReversed)
+    {
+        using Texture color = vendor.CreateTexture(nextKey.Color, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture depth = vendor.CreateTexture(nextKey.Depth, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture motionVectors = vendor.CreateTexture(nextKey.MotionVectors, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture diffuseAlbedo = vendor.CreateTexture(nextKey.DiffuseAlbedo, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture specularAlbedo = vendor.CreateTexture(nextKey.SpecularAlbedo, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture normals = vendor.CreateTexture(nextKey.Normals, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture roughness = vendor.CreateTexture(nextKey.Roughness, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture specularHitDistance = vendor.CreateTexture(nextKey.SpecularHitDistance, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture? reactiveMask = nextKey.ReactiveMask is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.RenderWidth, Desc.RenderHeight) : null;
+        using Texture? transparencyOverlay = nextKey.TransparencyOverlay is PixelFormat transparencyOverlayFormat ? vendor.CreateTexture(transparencyOverlayFormat, Desc.RenderWidth, Desc.RenderHeight) : null;
+        using Texture? exposure = nextKey.AutoExposure ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
+        using Texture output = vendor.CreateTexture(nextKey.Output, Desc.OutputWidth, Desc.OutputHeight);
 
         vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
         {
@@ -104,14 +180,14 @@ internal class MetalFXRayReconstruction : RayReconstruction
             Normals = normals,
             Roughness = roughness,
             SpecularHitDistance = specularHitDistance,
-            Exposure = exposure,
             ReactiveMask = reactiveMask,
             TransparencyOverlay = transparencyOverlay,
+            Exposure = exposure,
             Output = output,
-            WorldToView = Matrix4x4.Identity,
-            ViewToClip = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4.0f, (float)Desc.OutputWidth / Desc.OutputHeight, 0.1f, 100.0f),
+            View = Matrix4x4.Identity,
+            Projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4.0f, (float)Desc.OutputWidth / Desc.OutputHeight, 0.1f, 100.0f),
             PreExposure = 1.0f,
             Reset = true
-        }));
+        }, depthReversed));
     }
 }

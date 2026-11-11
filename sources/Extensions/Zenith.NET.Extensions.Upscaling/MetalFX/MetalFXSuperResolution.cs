@@ -2,86 +2,115 @@
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXSuperResolution : SuperResolution
+internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc desc) : SuperResolution(desc)
 {
-    public MTL4FXTemporalScaler Scaler;
-
-    public MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc desc) : base(desc)
-    {
-        using MTLFXTemporalScalerDescriptor descriptor = new()
-        {
-            ColorTextureFormat = MetalFXFormats.Metal(desc.ColorFormat),
-            DepthTextureFormat = MetalFXFormats.Metal(desc.DepthFormat),
-            MotionTextureFormat = MetalFXFormats.Metal(desc.MotionVectorsFormat),
-            OutputTextureFormat = MetalFXFormats.Metal(desc.OutputFormat),
-            InputWidth = desc.InputWidth,
-            InputHeight = desc.InputHeight,
-            OutputWidth = desc.OutputWidth,
-            OutputHeight = desc.OutputHeight,
-            IsAutoExposureEnabled = desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure),
-            IsReactiveMaskTextureEnabled = desc.ReactiveMaskFormat is not null,
-            ReactiveMaskTextureFormat = MetalFXFormats.Metal(desc.ReactiveMaskFormat)
-        };
-        Scaler = descriptor.MakeTemporalScaler(vendor.Device, vendor.Compiler);
-
-        WarmUp(vendor);
-    }
+    private MTL4FXTemporalScaler scaler;
+    private (PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, PixelFormat Output, bool AutoExposure) key;
+    private bool recreated;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
     {
-        using NSAutoreleasePool _ = new();
+        using NSAutoreleasePool pool = new();
 
-        MTL4CommandBuffer mtlCommandBuffer = commandBuffer.Metal();
+        (_, _, _, _, bool depthReversed, _) = Vendor.DecomposePerspective(args.Projection);
 
-        Encode(mtlCommandBuffer, args);
+        EnsureScaler((args.Color.Desc.Format, args.Depth.Desc.Format, args.MotionVectors.Desc.Format, args.ReactiveMask?.Desc.Format, args.Output.Desc.Format, args.Exposure is null), depthReversed);
 
-        MetalFXVendor.EncodeBarrier(mtlCommandBuffer);
+        if (recreated)
+        {
+            args.Reset = true;
+            recreated = false;
+        }
+
+        commandBuffer.BeginExternalCommands();
+
+        Encode(commandBuffer.Metal(), args, depthReversed);
+
+        commandBuffer.EndExternalCommands();
     }
 
     protected override void Destroy()
     {
-        Scaler.Dispose();
+        if (!scaler.IsNull)
+        {
+            scaler.Dispose();
+        }
     }
 
-    private void Encode(MTL4CommandBuffer commandBuffer, SuperResolutionArgs args)
+    private void EnsureScaler((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, PixelFormat Output, bool AutoExposure) nextKey, bool depthReversed)
     {
-        Scaler.ColorTexture = args.Color.Metal();
-        Scaler.DepthTexture = args.Depth.Metal();
-        Scaler.MotionTexture = args.MotionVectors.Metal();
-        Scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
-        Scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
-        Scaler.OutputTexture = args.Output.Metal();
-        Scaler.InputContentWidth = Desc.InputWidth;
-        Scaler.InputContentHeight = Desc.InputHeight;
-        Scaler.JitterOffsetX = args.JitterOffset.X;
-        Scaler.JitterOffsetY = args.JitterOffset.Y;
-        Scaler.MotionVectorScaleX = Desc.InputWidth;
-        Scaler.MotionVectorScaleY = Desc.InputHeight;
-        Scaler.PreExposure = args.PreExposure;
-        Scaler.Reset = args.Reset;
-        Scaler.IsDepthReversed = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed);
-        Scaler.Encode(commandBuffer);
+        if (!scaler.IsNull && key == nextKey)
+        {
+            return;
+        }
+
+        if (!scaler.IsNull)
+        {
+            vendor.Context.GraphicsQueue.Timeline.Signal().Wait();
+            scaler.Dispose();
+        }
+
+        key = nextKey;
+
+        using MTLFXTemporalScalerDescriptor descriptor = new()
+        {
+            ColorTextureFormat = MetalFXFormats.Metal(nextKey.Color),
+            DepthTextureFormat = MetalFXFormats.Metal(nextKey.Depth),
+            MotionTextureFormat = MetalFXFormats.Metal(nextKey.MotionVectors),
+            OutputTextureFormat = MetalFXFormats.Metal(nextKey.Output),
+            InputWidth = Desc.RenderWidth,
+            InputHeight = Desc.RenderHeight,
+            OutputWidth = Desc.OutputWidth,
+            OutputHeight = Desc.OutputHeight,
+            IsAutoExposureEnabled = nextKey.AutoExposure,
+            IsReactiveMaskTextureEnabled = nextKey.ReactiveMask is not null,
+            ReactiveMaskTextureFormat = MetalFXFormats.Metal(nextKey.ReactiveMask)
+        };
+        scaler = descriptor.MakeTemporalScaler(vendor.Device, vendor.Compiler);
+
+        WarmUp(nextKey, depthReversed);
+        recreated = true;
     }
 
-    private void WarmUp(MetalFXVendor vendor)
+    private void Encode(MTL4CommandBuffer commandBuffer, SuperResolutionArgs args, bool depthReversed)
     {
-        using Texture color = vendor.CreateTexture(Desc.ColorFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture depth = vendor.CreateTexture(Desc.DepthFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture motionVectors = vendor.CreateTexture(Desc.MotionVectorsFormat, Desc.InputWidth, Desc.InputHeight);
-        using Texture? exposure = Desc.Flags.HasFlag(UpscalingInputFlags.AutoExposure) ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
-        using Texture? reactiveMask = Desc.ReactiveMaskFormat is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.InputWidth, Desc.InputHeight) : null;
-        using Texture output = vendor.CreateTexture(Desc.OutputFormat, Desc.OutputWidth, Desc.OutputHeight);
+        scaler.ColorTexture = args.Color.Metal();
+        scaler.DepthTexture = args.Depth.Metal();
+        scaler.MotionTexture = args.MotionVectors.Metal();
+        scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
+        scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
+        scaler.OutputTexture = args.Output.Metal();
+        scaler.InputContentWidth = Desc.RenderWidth;
+        scaler.InputContentHeight = Desc.RenderHeight;
+        scaler.JitterOffsetX = -args.JitterOffset.X;
+        scaler.JitterOffsetY = -args.JitterOffset.Y;
+        scaler.MotionVectorScaleX = Desc.RenderWidth;
+        scaler.MotionVectorScaleY = Desc.RenderHeight;
+        scaler.PreExposure = args.PreExposure ?? 1.0f;
+        scaler.Reset = args.Reset;
+        scaler.IsDepthReversed = depthReversed;
+        scaler.Encode(commandBuffer);
+    }
+
+    private void WarmUp((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, PixelFormat Output, bool AutoExposure) nextKey, bool depthReversed)
+    {
+        using Texture color = vendor.CreateTexture(nextKey.Color, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture depth = vendor.CreateTexture(nextKey.Depth, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture motionVectors = vendor.CreateTexture(nextKey.MotionVectors, Desc.RenderWidth, Desc.RenderHeight);
+        using Texture? exposure = nextKey.AutoExposure ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
+        using Texture? reactiveMask = nextKey.ReactiveMask is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.RenderWidth, Desc.RenderHeight) : null;
+        using Texture output = vendor.CreateTexture(nextKey.Output, Desc.OutputWidth, Desc.OutputHeight);
 
         vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
         {
             Color = color,
             Depth = depth,
             MotionVectors = motionVectors,
-            Exposure = exposure,
             ReactiveMask = reactiveMask,
+            Exposure = exposure,
             Output = output,
             PreExposure = 1.0f,
             Reset = true
-        }));
+        }, depthReversed));
     }
 }

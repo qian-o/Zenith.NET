@@ -2,25 +2,11 @@
 
 public struct FrameGenerationDesc
 {
-    public PixelFormat ColorFormat;
+    public uint RenderWidth;
 
-    public PixelFormat DepthFormat;
+    public uint RenderHeight;
 
-    public PixelFormat MotionVectorsFormat;
+    public uint OutputWidth;
 
-    public PixelFormat? HudlessFormat;
-
-    public PixelFormat OutputFormat;
-
-    public bool IsHdr;
-
-    public uint Width;
-
-    public uint Height;
-
-    public uint AuxiliaryWidth;
-
-    public uint AuxiliaryHeight;
-
-    public UpscalingInputFlags Flags;
+    public uint OutputHeight;
 }

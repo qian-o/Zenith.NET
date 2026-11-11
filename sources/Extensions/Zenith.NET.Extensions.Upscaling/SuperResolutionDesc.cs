@@ -2,25 +2,16 @@
 
 public struct SuperResolutionDesc
 {
-    public PixelFormat ColorFormat;
+    public uint RenderWidth;
 
-    public PixelFormat DepthFormat;
-
-    public PixelFormat MotionVectorsFormat;
-
-    public PixelFormat? ReactiveMaskFormat;
-
-    public PixelFormat OutputFormat;
-
-    public bool IsHdr;
-
-    public uint InputWidth;
-
-    public uint InputHeight;
+    public uint RenderHeight;
 
     public uint OutputWidth;
 
     public uint OutputHeight;
 
-    public UpscalingInputFlags Flags;
+    public static SuperResolutionDesc Quality(GraphicsContext context, uint outputWidth, uint outputHeight, UpscalingQuality quality)
+    {
+        return context.UpscalingBridge.CreateSuperResolutionDesc(outputWidth, outputHeight, quality);
+    }
 }

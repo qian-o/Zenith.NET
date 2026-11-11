@@ -4,8 +4,6 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe class DLSSFeature(DLSSVendor vendor) : DisposableObject
 {
-    public readonly DLSSVendor Vendor = vendor;
-
     public readonly NGXParameter Parameters = vendor.AllocateParameters();
 
     public NGXHandle Handle;
@@ -22,12 +20,12 @@ internal unsafe class DLSSFeature(DLSSVendor vendor) : DisposableObject
     {
         if (!Handle.IsNull)
         {
-            Vendor.ReleaseFeature(Handle);
+            vendor.ReleaseFeature(Handle);
         }
 
         if (!Parameters.IsNull)
         {
-            Vendor.DestroyParameters(Parameters);
+            vendor.DestroyParameters(Parameters);
         }
     }
 }

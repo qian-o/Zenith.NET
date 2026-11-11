@@ -11,10 +11,8 @@ internal class MetalFXVendor : Vendor
 
     public MTL4Compiler Compiler;
 
-    public MetalFXVendor(GraphicsContext context)
+    public MetalFXVendor(GraphicsContext context) : base(context)
     {
-        Context = context;
-
         if (!OperatingSystem.IsMacOSVersionAtLeast(27) && !OperatingSystem.IsIOSVersionAtLeast(27) && !OperatingSystem.IsTvOSVersionAtLeast(27, 1))
         {
             Capabilities = new(false, false, false);
@@ -54,18 +52,16 @@ internal class MetalFXVendor : Vendor
         }
     }
 
-    public GraphicsContext Context { get; }
-
     public override UpscalingCapabilities Capabilities { get; }
 
-    public override UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override (uint Width, uint Height) GetSuperResolutionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return GetInputSize(outputWidth, outputHeight, UpscalingHelper.Scale(mode), superResolutionScale.Min, superResolutionScale.Max);
+        return GetRenderSize(outputWidth, outputHeight, MetalFXFormats.Scale(quality), superResolutionScale.Min, superResolutionScale.Max);
     }
 
-    public override UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public override (uint Width, uint Height) GetRayReconstructionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return GetInputSize(outputWidth, outputHeight, UpscalingHelper.Scale(mode), rayReconstructionScale.Min, rayReconstructionScale.Max);
+        return GetRenderSize(outputWidth, outputHeight, MetalFXFormats.Scale(quality), rayReconstructionScale.Min, rayReconstructionScale.Max);
     }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
@@ -115,15 +111,8 @@ internal class MetalFXVendor : Vendor
         Compiler.Dispose();
     }
 
-    public static void EncodeBarrier(MTL4CommandBuffer commandBuffer)
+    private static (uint Width, uint Height) GetRenderSize(uint outputWidth, uint outputHeight, float scale, float minScale, float maxScale)
     {
-        MTL4ComputeCommandEncoder encoder = commandBuffer.MakeComputeCommandEncoder();
-        encoder.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
-        encoder.EndEncoding();
-    }
-
-    private static UpscalingInputSize GetInputSize(uint outputWidth, uint outputHeight, float scale, float minScale, float maxScale)
-    {
-        return scale < minScale || scale > maxScale ? default : new((uint)MathF.Floor((outputWidth / scale) + 0.5f), (uint)MathF.Floor((outputHeight / scale) + 0.5f));
+        return scale < minScale || scale > maxScale ? default : ((uint)MathF.Floor((outputWidth / scale) + 0.5f), (uint)MathF.Floor((outputHeight / scale) + 0.5f));
     }
 }

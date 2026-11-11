@@ -3,59 +3,44 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe class DLSSFrameGeneration : FrameGeneration
+internal unsafe class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) : FrameGeneration(desc)
 {
-    public DLSSFeature Feature;
-
+    private DLSSFeature? feature;
+    private PixelFormat colorFormat;
     private bool hasHistory;
-    private Matrix4x4 previousWorldToView;
-    private Matrix4x4 previousViewToClip;
-
-    public DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) : base(desc)
-    {
-        Feature = new(vendor);
-        Feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
-
-        NGXDLSSGCreateParams createParams = new()
-        {
-            Width = desc.Width,
-            Height = desc.Height,
-            NativeBackbufferFormat = vendor.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.ColorFormat) : DLSSFormats.Vulkan(desc.ColorFormat).Format,
-            RenderWidth = desc.AuxiliaryWidth,
-            RenderHeight = desc.AuxiliaryHeight
-        };
-
-        vendor.Create(Feature, createParams);
-    }
+    private Matrix4x4 previousView;
+    private Matrix4x4 previousProjection;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
-        Matrix4x4.Invert(args.WorldToView, out Matrix4x4 viewToWorld);
-        Matrix4x4.Invert(args.ViewToClip, out Matrix4x4 clipToView);
+        EnsureFeature(args.Color.Desc.Format);
+
+        Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
+        Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToView);
 
         Matrix4x4 clipToPreviousClip = Matrix4x4.Identity;
         Matrix4x4 previousClipToClip = Matrix4x4.Identity;
 
         if (hasHistory && !args.Reset)
         {
-            Matrix4x4.Invert(previousWorldToView, out Matrix4x4 previousViewToWorld);
-            Matrix4x4.Invert(previousViewToClip, out Matrix4x4 previousClipToView);
+            Matrix4x4.Invert(previousView, out Matrix4x4 previousViewToWorld);
+            Matrix4x4.Invert(previousProjection, out Matrix4x4 previousClipToView);
 
             // Relative translations keep the view-to-view transform precise far from the world origin.
             Matrix4x4 relativeViewToWorld = viewToWorld;
             relativeViewToWorld.Translation -= previousViewToWorld.Translation;
 
-            Matrix4x4 relativeWorldToPreviousView = previousWorldToView;
+            Matrix4x4 relativeWorldToPreviousView = previousView;
             relativeWorldToPreviousView.Translation = Vector3.Zero;
 
             Matrix4x4 viewToPreviousView = relativeViewToWorld * relativeWorldToPreviousView;
             Matrix4x4.Invert(viewToPreviousView, out Matrix4x4 previousViewToView);
 
-            clipToPreviousClip = clipToView * viewToPreviousView * previousViewToClip;
-            previousClipToClip = previousClipToView * previousViewToView * args.ViewToClip;
+            clipToPreviousClip = clipToView * viewToPreviousView * previousClipToView;
+            previousClipToClip = previousClipToView * previousViewToView * args.Projection;
         }
 
-        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
+        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio, bool depthReversed, bool depthInfinite) = Vendor.DecomposePerspective(args.Projection);
 
         Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
 
@@ -63,62 +48,93 @@ internal unsafe class DLSSFrameGeneration : FrameGeneration
         {
             MultiFrameCount = 1,
             MultiFrameIndex = 1,
-            CameraViewToClip = args.ViewToClip,
+            CameraViewToClip = args.Projection,
             ClipToCameraView = clipToView,
             ClipToLensClip = Matrix4x4.Identity,
             ClipToPrevClip = clipToPreviousClip,
             PrevClipToClip = previousClipToClip,
-            JitterOffset = args.JitterOffset,
-            MvecScale = new(Desc.AuxiliaryWidth, Desc.AuxiliaryHeight),
+            JitterOffset = -args.JitterOffset,
+            MvecScale = new(Desc.RenderWidth, Desc.RenderHeight),
             CameraPos = viewToWorld.Translation,
             CameraUp = new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23),
             CameraRight = new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13),
-            CameraFwd = args.ViewToClip.M34 < 0.0f ? -forward : forward,
+            CameraFwd = args.Projection.M34 < 0.0f ? -forward : forward,
             CameraNear = nearPlane,
-            CameraFar = Desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite) ? float.PositiveInfinity : farPlane,
+            CameraFar = depthInfinite ? float.PositiveInfinity : farPlane,
             CameraFOV = verticalFieldOfViewInRadians,
             CameraAspectRatio = aspectRatio,
-            ColorBuffersHDR = Desc.IsHdr,
-            DepthInverted = Desc.Flags.HasFlag(UpscalingInputFlags.DepthReversed),
+            ColorBuffersHDR = args.Color.Desc.Format.IsHdr(),
+            DepthInverted = depthReversed,
             CameraMotionIncluded = true,
-            Reset = args.Reset,
+            Reset = !hasHistory || args.Reset,
             MvecsSubrectSize = new()
             {
-                Width = Desc.AuxiliaryWidth,
-                Height = Desc.AuxiliaryHeight
+                Width = Desc.RenderWidth,
+                Height = Desc.RenderHeight
             },
             DepthSubrectSize = new()
             {
-                Width = Desc.AuxiliaryWidth,
-                Height = Desc.AuxiliaryHeight
+                Width = Desc.RenderWidth,
+                Height = Desc.RenderHeight
             },
             HudLessSubrectSize = new()
             {
-                Width = Desc.Width,
-                Height = Desc.Height
+                Width = Desc.OutputWidth,
+                Height = Desc.OutputHeight
             },
             MinRelativeLinearDepthObjectSeparation = 40.0f,
             BackbufferSubrectSize = new()
             {
-                Width = Desc.Width,
-                Height = Desc.Height
+                Width = Desc.OutputWidth,
+                Height = Desc.OutputHeight
             },
             OutputInterpSubrectSize = new()
             {
-                Width = Desc.Width,
-                Height = Desc.Height
+                Width = Desc.OutputWidth,
+                Height = Desc.OutputHeight
             }
         };
 
-        Feature.Vendor.Evaluate(commandBuffer, Feature, args, &optEvalParams);
+        vendor.Evaluate(commandBuffer, feature!, args, &optEvalParams);
 
         hasHistory = true;
-        previousWorldToView = args.WorldToView;
-        previousViewToClip = args.ViewToClip;
+        previousView = args.View;
+        previousProjection = args.Projection;
     }
 
     protected override void Destroy()
     {
-        Feature.Dispose();
+        feature?.Dispose();
+    }
+
+    private void EnsureFeature(PixelFormat nextColorFormat)
+    {
+        if (feature is not null && colorFormat == nextColorFormat)
+        {
+            return;
+        }
+
+        if (feature is not null)
+        {
+            vendor.Context.GraphicsQueue.Timeline.Signal().Wait();
+            vendor.Context.PresentQueue.Timeline.Signal().Wait();
+            feature.Dispose();
+            hasHistory = false;
+        }
+
+        colorFormat = nextColorFormat;
+        feature = new(vendor);
+        feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
+
+        NGXDLSSGCreateParams createParams = new()
+        {
+            Width = Desc.OutputWidth,
+            Height = Desc.OutputHeight,
+            NativeBackbufferFormat = vendor.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(nextColorFormat) : DLSSFormats.Vulkan(nextColorFormat).Format,
+            RenderWidth = Desc.RenderWidth,
+            RenderHeight = Desc.RenderHeight
+        };
+
+        vendor.Create(feature, createParams);
     }
 }

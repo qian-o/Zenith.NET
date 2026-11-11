@@ -9,13 +9,13 @@ namespace CornellBox;
 
 internal class UserInterface
 {
-    private const string UpscalingModes = "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0";
+    private const string UpscalingQualities = "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0";
 
     private readonly string graphicsApiText = $"GraphicsApi: {App.Context.GraphicsApi}";
 
     public RenderSettings RenderSettings { get; private set; } = new()
     {
-        UpscalingMode = App.Context.UpscalingCapabilities.SuperResolutionSupported ? UpscalingMode.Quality : null,
+        UpscalingQuality = App.Context.UpscalingCapabilities.SuperResolutionSupported ? UpscalingQuality.Quality : null,
         IsRayReconstructionEnabled = App.Context.UpscalingCapabilities.RayReconstructionSupported
     };
 
@@ -43,7 +43,7 @@ internal class UserInterface
             ImGui.Checkbox("Pause", ref settings.IsPaused);
             ImGui.Separator();
 
-            DrawUpscalingMode(ref settings);
+            DrawUpscalingQuality(ref settings);
             DrawRayReconstruction(ref settings);
             DrawFrameGeneration();
 
@@ -64,16 +64,16 @@ internal class UserInterface
         ImGui.EndDisabled();
     }
 
-    private static void DrawUpscalingMode(ref RenderSettings settings)
+    private static void DrawUpscalingQuality(ref RenderSettings settings)
     {
         ImGui.BeginDisabled(!App.Context.UpscalingCapabilities.SuperResolutionSupported);
 
-        int modeIndex = settings.UpscalingMode is UpscalingMode mode ? (int)mode + 1 : 0;
-        if (ImGui.Combo("Upscaling Mode", ref modeIndex, UpscalingModes))
+        int qualityIndex = settings.UpscalingQuality is UpscalingQuality quality ? (int)quality + 1 : 0;
+        if (ImGui.Combo("Upscaling Quality", ref qualityIndex, UpscalingQualities))
         {
-            settings.UpscalingMode = modeIndex is 0 ? null : (UpscalingMode)(modeIndex - 1);
+            settings.UpscalingQuality = qualityIndex is 0 ? null : (UpscalingQuality)(qualityIndex - 1);
 
-            if (settings.UpscalingMode is null)
+            if (settings.UpscalingQuality is null)
             {
                 settings.IsRayReconstructionEnabled = false;
             }
@@ -84,7 +84,7 @@ internal class UserInterface
 
     private static void DrawRayReconstruction(ref RenderSettings settings)
     {
-        ImGui.BeginDisabled(!App.Context.UpscalingCapabilities.RayReconstructionSupported || settings.UpscalingMode is null);
+        ImGui.BeginDisabled(!App.Context.UpscalingCapabilities.RayReconstructionSupported || settings.UpscalingQuality is null);
         ImGui.Checkbox("Ray Reconstruction", ref settings.IsRayReconstructionEnabled);
         ImGui.EndDisabled();
     }

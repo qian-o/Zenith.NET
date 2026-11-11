@@ -16,15 +16,15 @@ public struct FrameGenerationArgs
 
     public Vector2 JitterOffset;
 
-    public Matrix4x4 WorldToView;
+    public Matrix4x4 View;
 
-    public Matrix4x4 ViewToClip;
+    public Matrix4x4 Projection;
 
     public float DeltaTimeInSeconds;
 
-    public float MinLuminanceInNits;
+    public float? MinLuminanceInNits;
 
-    public float MaxLuminanceInNits;
+    public float? MaxLuminanceInNits;
 
     public bool Reset;
 }

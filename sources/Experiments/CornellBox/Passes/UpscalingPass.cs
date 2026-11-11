@@ -1,49 +1,34 @@
 ﻿using System.Numerics;
-using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Passes;
 
-internal unsafe class UpscalingPass : DisposableObject
+internal class UpscalingPass : DisposableObject
 {
-    private readonly Texture exposure;
-
     private SuperResolution? superResolution;
     private RayReconstruction? rayReconstruction;
 
-    public UpscalingPass(UpscalingMode mode, bool isRayReconstructionEnabled)
+    public UpscalingPass(UpscalingQuality quality, bool isRayReconstructionEnabled)
     {
-        Mode = mode;
+        Quality = quality;
         IsRayReconstructionEnabled = isRayReconstructionEnabled;
-
-        exposure = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16Float, 1, 1, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
-        });
-
-        Half unitExposure = (Half)1.0f;
-        exposure.Upload(default, TextureLayout.Undefined, TextureLayout.Sampled, default, new() { Width = 1, Height = 1, Depth = 1 }, new()
-        {
-            Pointer = (nint)(&unitExposure),
-            SizeInBytes = (uint)sizeof(Half),
-            RowStrideInBytes = (uint)sizeof(Half),
-            SliceStrideInBytes = (uint)sizeof(Half)
-        });
 
         CreateResources();
     }
 
-    public UpscalingMode Mode { get; }
+    public UpscalingQuality Quality { get; }
 
     public bool IsRayReconstructionEnabled { get; }
 
-    public UpscalingInputSize InputSize { get; private set; }
+    public uint RenderWidth => rayReconstruction?.Desc.RenderWidth ?? superResolution!.Desc.RenderWidth;
+
+    public uint RenderHeight => rayReconstruction?.Desc.RenderHeight ?? superResolution!.Desc.RenderHeight;
 
     public Texture Color { get; private set; } = null!;
 
-    public void Record(CommandBuffer commandBuffer, PathTracingOutput input, CameraHandler camera, Vector2 jitterOffsetInPixels, float deltaTimeInSeconds, bool reset)
+    public void Record(CommandBuffer commandBuffer, PathTracingOutput input, Vector2 jitterOffset, Matrix4x4 view, Matrix4x4 projection, float deltaTimeInSeconds, bool reset)
     {
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
 
@@ -53,13 +38,10 @@ internal unsafe class UpscalingPass : DisposableObject
             Depth = input.Depth,
             MotionVectors = input.MotionVectors,
             ReactiveMask = input.ReactiveMask,
-            Exposure = exposure,
             Output = Color,
-            JitterOffset = -jitterOffsetInPixels,
-            WorldToView = camera.View,
-            ViewToClip = camera.Projection,
+            JitterOffset = jitterOffset,
+            Projection = projection,
             DeltaTimeInSeconds = deltaTimeInSeconds,
-            PreExposure = 1.0f,
             Reset = reset
         });
 
@@ -74,18 +56,11 @@ internal unsafe class UpscalingPass : DisposableObject
             Roughness = input.Roughness,
             SpecularHitDistance = input.SpecularHitDistance,
             ReactiveMask = input.ReactiveMask,
-            Exposure = exposure,
-            LinearDepthDelta = input.LinearDepthDelta,
-            DirectDiffuseRadiance = input.DirectDiffuseRadiance,
-            DirectSpecularRadiance = input.DirectSpecularRadiance,
-            IndirectDiffuseRadiance = input.IndirectDiffuseRadiance,
-            IndirectSpecularRadiance = input.IndirectSpecularRadiance,
             Output = Color,
-            JitterOffset = -jitterOffsetInPixels,
-            WorldToView = camera.View,
-            ViewToClip = camera.Projection,
+            JitterOffset = jitterOffset,
+            View = view,
+            Projection = projection,
             DeltaTimeInSeconds = deltaTimeInSeconds,
-            PreExposure = 1.0f,
             Reset = reset
         });
 
@@ -101,63 +76,22 @@ internal unsafe class UpscalingPass : DisposableObject
     protected override void Destroy()
     {
         DestroyResources();
-        exposure.Dispose();
     }
 
     private void CreateResources()
     {
         if (IsRayReconstructionEnabled)
         {
-            InputSize = App.Context.GetRayReconstructionInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
-
-            rayReconstruction = App.Context.CreateRayReconstruction(new()
-            {
-                ColorFormat = PathTracingOutput.ColorFormat,
-                DepthFormat = PathTracingOutput.DepthFormat,
-                MotionVectorsFormat = PathTracingOutput.MotionVectorsFormat,
-                DiffuseAlbedoFormat = PathTracingOutput.DiffuseAlbedoFormat,
-                SpecularAlbedoFormat = PathTracingOutput.SpecularAlbedoFormat,
-                NormalsFormat = PathTracingOutput.NormalsFormat,
-                RoughnessFormat = PathTracingOutput.RoughnessFormat,
-                SpecularHitDistanceFormat = PathTracingOutput.SpecularHitDistanceFormat,
-                ReactiveMaskFormat = PathTracingOutput.ReactiveMaskFormat,
-                LinearDepthDeltaFormat = PathTracingOutput.LinearDepthDeltaFormat,
-                DirectDiffuseRadianceFormat = PathTracingOutput.RadianceFormat,
-                DirectSpecularRadianceFormat = PathTracingOutput.RadianceFormat,
-                IndirectDiffuseRadianceFormat = PathTracingOutput.RadianceFormat,
-                IndirectSpecularRadianceFormat = PathTracingOutput.RadianceFormat,
-                OutputFormat = PathTracingOutput.ColorFormat,
-                IsHdr = true,
-                InputWidth = InputSize.Width,
-                InputHeight = InputSize.Height,
-                OutputWidth = App.PhysicalWidth,
-                OutputHeight = App.PhysicalHeight,
-                Flags = UpscalingInputFlags.None
-            });
+            rayReconstruction = App.Context.CreateRayReconstruction(RayReconstructionDesc.Quality(App.Context, App.PhysicalWidth, App.PhysicalHeight, Quality));
         }
         else
         {
-            InputSize = App.Context.GetSuperResolutionInputSize(App.PhysicalWidth, App.PhysicalHeight, Mode);
-
-            superResolution = App.Context.CreateSuperResolution(new()
-            {
-                ColorFormat = PathTracingOutput.ColorFormat,
-                DepthFormat = PathTracingOutput.DepthFormat,
-                MotionVectorsFormat = PathTracingOutput.MotionVectorsFormat,
-                ReactiveMaskFormat = PathTracingOutput.ReactiveMaskFormat,
-                OutputFormat = PathTracingOutput.ColorFormat,
-                IsHdr = true,
-                InputWidth = InputSize.Width,
-                InputHeight = InputSize.Height,
-                OutputWidth = App.PhysicalWidth,
-                OutputHeight = App.PhysicalHeight,
-                Flags = UpscalingInputFlags.None
-            });
+            superResolution = App.Context.CreateSuperResolution(SuperResolutionDesc.Quality(App.Context, App.PhysicalWidth, App.PhysicalHeight, Quality));
         }
 
         Color = App.Context.CreateTexture(TextureDesc.Texture2D(PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferDst
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
     }
 

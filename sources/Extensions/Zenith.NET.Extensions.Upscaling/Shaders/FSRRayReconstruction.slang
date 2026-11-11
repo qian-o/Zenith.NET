@@ -4,27 +4,39 @@ struct PreparationConstants
 
     uint Height;
 
-    uint SignalFlags;
+    uint HasHistory;
 
     uint Padding;
 
     float4 ProjectionDepth;
 
+    DescriptorHandle<Texture2D<float4>> Color;
+
     DescriptorHandle<Texture2D<float>> Depth;
 
     DescriptorHandle<Texture2D<float2>> MotionVectors;
+
+    DescriptorHandle<Texture2D<float4>> DiffuseAlbedo;
+
+    DescriptorHandle<Texture2D<float4>> SpecularAlbedo;
 
     DescriptorHandle<Texture2D<float4>> Normals;
 
     DescriptorHandle<Texture2D<float>> Roughness;
 
-    DescriptorHandle<Texture2D<float>> LinearDepthDelta;
+    DescriptorHandle<Texture2D<float>> SpecularHitDistance;
+
+    DescriptorHandle<Texture2D<float>> PreviousLinearDepth;
 
     DescriptorHandle<RWTexture2D<float>> LinearDepth;
 
     DescriptorHandle<RWTexture2D<float4>> PackedMotion;
 
     DescriptorHandle<RWTexture2D<float4>> NormalRoughness;
+
+    DescriptorHandle<RWTexture2D<float4>> DiffuseRadiance;
+
+    DescriptorHandle<RWTexture2D<float4>> SpecularRadiance;
 };
 
 struct CompositionConstants
@@ -33,9 +45,9 @@ struct CompositionConstants
 
     uint Height;
 
-    uint SignalFlags;
-
     uint HasTransparencyOverlay;
+
+    uint Padding;
 
     DescriptorHandle<Texture2D<float4>> Color;
 
@@ -45,21 +57,13 @@ struct CompositionConstants
 
     DescriptorHandle<Texture2D<float4>> TransparencyOverlay;
 
-    DescriptorHandle<Texture2D<float4>> DirectDiffuse;
+    DescriptorHandle<Texture2D<float4>> DiffuseRadiance;
 
-    DescriptorHandle<Texture2D<float4>> DirectSpecular;
+    DescriptorHandle<Texture2D<float4>> SpecularRadiance;
 
-    DescriptorHandle<Texture2D<float4>> IndirectDiffuse;
+    DescriptorHandle<Texture2D<float4>> DenoisedDiffuse;
 
-    DescriptorHandle<Texture2D<float4>> IndirectSpecular;
-
-    DescriptorHandle<Texture2D<float4>> DenoisedDirectDiffuse;
-
-    DescriptorHandle<Texture2D<float4>> DenoisedDirectSpecular;
-
-    DescriptorHandle<Texture2D<float4>> DenoisedIndirectDiffuse;
-
-    DescriptorHandle<Texture2D<float4>> DenoisedIndirectSpecular;
+    DescriptorHandle<Texture2D<float4>> DenoisedSpecular;
 
     DescriptorHandle<RWTexture2D<float4>> CompositedColor;
 
@@ -68,6 +72,11 @@ struct CompositionConstants
 
 ConstantBuffer<PreparationConstants> preparation;
 ConstantBuffer<CompositionConstants> composition;
+
+float Luminance(float3 color)
+{
+    return dot(color, float3(0.2126, 0.7152, 0.0722));
+}
 
 float2 EncodeNormal(float3 normal)
 {
@@ -96,10 +105,50 @@ void Prepare(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float depth = preparation.Depth[pixel];
     float4 projection = preparation.ProjectionDepth;
+    float linearDepth = abs((projection.z - depth * projection.w) / (depth * projection.y - projection.x));
+    float2 motionVector = preparation.MotionVectors[pixel];
+    float linearDepthDelta = 0.0;
 
-    preparation.LinearDepth[pixel] = (projection.z - depth * projection.w) / (depth * projection.y - projection.x);
-    preparation.PackedMotion[pixel] = float4(preparation.MotionVectors[pixel], preparation.LinearDepthDelta[pixel], 0.0);
-    preparation.NormalRoughness[pixel] = float4(EncodeNormal(preparation.Normals[pixel].xyz), preparation.Roughness[pixel], 0.0);
+    if (preparation.HasHistory != 0)
+    {
+        float2 renderSize = float2(preparation.Width, preparation.Height);
+        float2 previousUv = (float2(pixel) + 0.5) / renderSize + motionVector;
+
+        if (all(previousUv >= 0.0) && all(previousUv <= 1.0))
+        {
+            int2 maxPixel = int2(preparation.Width - 1, preparation.Height - 1);
+            int2 previousPixel = clamp(int2(previousUv * renderSize), int2(0), maxPixel);
+            float previousDepth = preparation.PreviousLinearDepth.Load(int3(previousPixel, 0));
+
+            linearDepthDelta = previousDepth - linearDepth;
+        }
+    }
+
+    float3 color = preparation.Color[pixel].rgb;
+    float3 diffuseAlbedo = max(preparation.DiffuseAlbedo[pixel].rgb, 0.0);
+    float3 specularAlbedo = max(preparation.SpecularAlbedo[pixel].rgb, 0.0);
+    float roughness = saturate(preparation.Roughness[pixel]);
+    float specularHitDistance = max(preparation.SpecularHitDistance[pixel], 0.0);
+
+    float diffuseWeight = Luminance(diffuseAlbedo);
+    float specularWeight = Luminance(specularAlbedo);
+    float totalWeight = diffuseWeight + specularWeight;
+
+    float specularRatio = totalWeight > 1e-4 ? (specularWeight / totalWeight) : 0.0;
+    float diffuseRatio = totalWeight > 1e-4 ? (1.0 - specularRatio) : 0.0;
+
+    float3 diffuseComponent = color * diffuseRatio;
+    float3 specularComponent = color * specularRatio;
+
+    float3 diffuseSignal = select(diffuseAlbedo > 1e-4, diffuseComponent / max(diffuseAlbedo, 1e-4), 0.0);
+    float3 specularSignal = select(specularAlbedo > 1e-4, specularComponent / max(specularAlbedo, 1e-4), 0.0);
+    float diffuseHitDistance = max(specularHitDistance, linearDepth * (0.1 + 0.9 * roughness));
+
+    preparation.LinearDepth[pixel] = linearDepth;
+    preparation.PackedMotion[pixel] = float4(motionVector, linearDepthDelta, 0.0);
+    preparation.NormalRoughness[pixel] = float4(EncodeNormal(preparation.Normals[pixel].xyz), roughness, 0.0);
+    preparation.DiffuseRadiance[pixel] = float4(diffuseSignal, diffuseHitDistance);
+    preparation.SpecularRadiance[pixel] = float4(specularSignal, specularHitDistance);
 }
 
 [shader("compute")]
@@ -114,35 +163,21 @@ void Compose(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     float4 color = composition.Color[pixel];
-    float3 diffuseAlbedo = composition.DiffuseAlbedo[pixel].rgb;
-    float3 specularAlbedo = composition.SpecularAlbedo[pixel].rgb;
-    float3 difference = 0.0;
+    float3 diffuseAlbedo = max(composition.DiffuseAlbedo[pixel].rgb, 0.0);
+    float3 specularAlbedo = max(composition.SpecularAlbedo[pixel].rgb, 0.0);
 
-    if ((composition.SignalFlags & 2) != 0)
-    {
-        difference += (composition.DenoisedDirectDiffuse[pixel].rgb - composition.DirectDiffuse[pixel].rgb) * diffuseAlbedo;
-    }
+    float3 difference =
+        (composition.DenoisedDiffuse[pixel].rgb - composition.DiffuseRadiance[pixel].rgb) * diffuseAlbedo +
+        (composition.DenoisedSpecular[pixel].rgb - composition.SpecularRadiance[pixel].rgb) * specularAlbedo;
 
-    if ((composition.SignalFlags & 4) != 0)
-    {
-        difference += (composition.DenoisedDirectSpecular[pixel].rgb - composition.DirectSpecular[pixel].rgb) * specularAlbedo;
-    }
-
-    if ((composition.SignalFlags & 16) != 0)
-    {
-        difference += (composition.DenoisedIndirectDiffuse[pixel].rgb - composition.IndirectDiffuse[pixel].rgb) * diffuseAlbedo;
-    }
-
-    if ((composition.SignalFlags & 32) != 0)
-    {
-        difference += (composition.DenoisedIndirectSpecular[pixel].rgb - composition.IndirectSpecular[pixel].rgb) * specularAlbedo;
-    }
-
-    color.rgb += difference;
+    color.rgb = max(color.rgb + difference, 0.0);
 
     if (composition.HasTransparencyOverlay != 0)
     {
-        composition.TransparencyMask[pixel] = composition.TransparencyOverlay[pixel].a;
+        float4 overlay = composition.TransparencyOverlay[pixel];
+
+        color.rgb = color.rgb * (1.0 - overlay.a) + overlay.rgb;
+        composition.TransparencyMask[pixel] = overlay.a;
     }
 
     composition.CompositedColor[pixel] = color;

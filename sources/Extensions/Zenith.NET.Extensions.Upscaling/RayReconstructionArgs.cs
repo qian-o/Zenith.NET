@@ -20,16 +20,6 @@ public struct RayReconstructionArgs
 
     public Texture SpecularHitDistance;
 
-    public Texture? LinearDepthDelta;
-
-    public Texture? DirectDiffuseRadiance;
-
-    public Texture? DirectSpecularRadiance;
-
-    public Texture? IndirectDiffuseRadiance;
-
-    public Texture? IndirectSpecularRadiance;
-
     public Texture? ReactiveMask;
 
     public Texture? TransparencyOverlay;
@@ -40,13 +30,13 @@ public struct RayReconstructionArgs
 
     public Vector2 JitterOffset;
 
-    public Matrix4x4 WorldToView;
+    public Matrix4x4 View;
 
-    public Matrix4x4 ViewToClip;
+    public Matrix4x4 Projection;
 
     public float DeltaTimeInSeconds;
 
-    public float PreExposure;
+    public float? PreExposure;
 
     public bool Reset;
 }

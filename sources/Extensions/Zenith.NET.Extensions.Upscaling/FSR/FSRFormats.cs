@@ -5,15 +5,15 @@ namespace Zenith.NET.Extensions.Upscaling.FSR;
 
 internal static unsafe class FSRFormats
 {
-    public static FSRApiUpscaleQualityMode FSR(UpscalingMode upscalingMode)
+    public static FSRApiUpscaleQualityMode FSR(UpscalingQuality quality)
     {
-        return upscalingMode switch
+        return quality switch
         {
-            UpscalingMode.Native => FSRApiUpscaleQualityMode.NativeAA,
-            UpscalingMode.Quality => FSRApiUpscaleQualityMode.Quality,
-            UpscalingMode.Balanced => FSRApiUpscaleQualityMode.Balanced,
-            UpscalingMode.Performance => FSRApiUpscaleQualityMode.Performance,
-            UpscalingMode.UltraPerformance => FSRApiUpscaleQualityMode.UltraPerformance,
+            UpscalingQuality.Native => FSRApiUpscaleQualityMode.NativeAA,
+            UpscalingQuality.Quality => FSRApiUpscaleQualityMode.Quality,
+            UpscalingQuality.Balanced => FSRApiUpscaleQualityMode.Balanced,
+            UpscalingQuality.Performance => FSRApiUpscaleQualityMode.Performance,
+            UpscalingQuality.UltraPerformance => FSRApiUpscaleQualityMode.UltraPerformance,
             _ => default
         };
     }

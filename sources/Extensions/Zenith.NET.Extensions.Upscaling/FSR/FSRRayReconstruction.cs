@@ -13,36 +13,31 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
 
     private Vector3 previousCameraPosition;
     private uint frameIndex;
+    private bool hasHistory;
 
     public FSRRayReconstruction(FSRVendor vendor, RayReconstructionDesc desc) : base(desc)
     {
         denoisingPass = new(vendor, desc);
-        compositionPass = new(vendor.Context, desc, denoisingPass.SignalFlags);
+        compositionPass = new(vendor.Context, desc);
         superResolution = new(vendor, new()
         {
-            ColorFormat = compositionPass.Color.Desc.Format,
-            DepthFormat = desc.DepthFormat,
-            MotionVectorsFormat = desc.MotionVectorsFormat,
-            ReactiveMaskFormat = desc.ReactiveMaskFormat,
-            OutputFormat = desc.OutputFormat,
-            IsHdr = desc.IsHdr,
-            InputWidth = desc.InputWidth,
-            InputHeight = desc.InputHeight,
+            RenderWidth = desc.RenderWidth,
+            RenderHeight = desc.RenderHeight,
             OutputWidth = desc.OutputWidth,
-            OutputHeight = desc.OutputHeight,
-            Flags = desc.Flags
+            OutputHeight = desc.OutputHeight
         });
     }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {
-        Matrix4x4.Invert(args.WorldToView, out Matrix4x4 viewToWorld);
+        Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
 
+        bool reset = !hasHistory || args.Reset;
         Vector3 cameraPosition = viewToWorld.Translation;
-        Vector3 cameraPositionDelta = args.Reset ? Vector3.Zero : previousCameraPosition - cameraPosition;
+        Vector3 cameraPositionDelta = reset ? Vector3.Zero : previousCameraPosition - cameraPosition;
 
-        denoisingPass.Dispatch(commandBuffer, args, cameraPositionDelta, frameIndex);
-        compositionPass.Dispatch(commandBuffer, args, denoisingPass.SignalOutputs, frameIndex);
+        denoisingPass.Dispatch(commandBuffer, args, cameraPositionDelta, frameIndex, reset);
+        compositionPass.Dispatch(commandBuffer, args, denoisingPass.DiffuseRadiance, denoisingPass.SpecularRadiance, denoisingPass.DenoisedDiffuse, denoisingPass.DenoisedSpecular, frameIndex);
 
         superResolution.Dispatch(commandBuffer, new()
         {
@@ -53,14 +48,14 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
             Exposure = args.Exposure,
             Output = args.Output,
             JitterOffset = args.JitterOffset,
-            WorldToView = args.WorldToView,
-            ViewToClip = args.ViewToClip,
+            Projection = args.Projection,
             DeltaTimeInSeconds = args.DeltaTimeInSeconds,
             PreExposure = args.PreExposure,
-            Reset = args.Reset
+            Reset = reset
         }, compositionPass.TransparencyMask);
 
         previousCameraPosition = cameraPosition;
+        hasHistory = true;
         frameIndex++;
     }
 
@@ -71,11 +66,11 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
         denoisingPass.Dispose();
     }
 
-    private static Texture CreateTexture(GraphicsContext context, PixelFormat format, RayReconstructionDesc desc)
+    private static Texture CreateTexture(GraphicsContext context, PixelFormat format, RayReconstructionDesc desc, TextureUsages additionalUsages = TextureUsages.None)
     {
-        return context.CreateTexture(TextureDesc.Texture2D(format, desc.InputWidth, desc.InputHeight, 1, SampleCount.Count1) with
+        return context.CreateTexture(TextureDesc.Texture2D(format, desc.RenderWidth, desc.RenderHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | additionalUsages
         });
     }
 
@@ -88,128 +83,72 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
 
     private class DenoisingPass : DisposableObject
     {
+        private readonly FSRVendor vendor;
+        private readonly RayReconstructionDesc desc;
+        private readonly FSRContext context;
         private readonly Buffer constantBuffer;
         private readonly ComputePipeline pipeline;
+        private readonly Texture previousLinearDepth;
         private readonly Texture linearDepth;
         private readonly Texture motionVectors;
         private readonly Texture normals;
 
-        public readonly FSRVendor Vendor;
+        public readonly Texture DiffuseRadiance;
 
-        public readonly Texture?[] SignalOutputs = new Texture?[4];
+        public readonly Texture SpecularRadiance;
 
-        public FSRContext Context;
+        public readonly Texture DenoisedDiffuse;
+
+        public readonly Texture DenoisedSpecular;
 
         public DenoisingPass(FSRVendor vendor, RayReconstructionDesc desc)
         {
-            Vendor = vendor;
-            Desc = desc;
+            this.vendor = vendor;
+            this.desc = desc;
 
-            FSRApiDenoiserSignalFlags signalFlags = FSRApiDenoiserSignalFlags.None;
-
-            if (desc.DirectDiffuseRadianceFormat is not null)
-            {
-                signalFlags |= FSRApiDenoiserSignalFlags.DirectDiffuse;
-            }
-
-            if (desc.DirectSpecularRadianceFormat is not null)
-            {
-                signalFlags |= FSRApiDenoiserSignalFlags.DirectSpecular;
-            }
-
-            if (desc.IndirectDiffuseRadianceFormat is not null)
-            {
-                signalFlags |= FSRApiDenoiserSignalFlags.IndirectDiffuse;
-            }
-
-            if (desc.IndirectSpecularRadianceFormat is not null)
-            {
-                signalFlags |= FSRApiDenoiserSignalFlags.IndirectSpecular;
-            }
-
-            SignalFlags = signalFlags;
+            const FSRApiDenoiserSignalFlags SignalFlags = FSRApiDenoiserSignalFlags.IndirectDiffuse | FSRApiDenoiserSignalFlags.IndirectSpecular;
 
             FSRCreateContextDescDenoiser createDesc = new()
             {
                 Version = (uint)Fsr.DenoiserVersion,
                 MaxRenderSize = new()
                 {
-                    Width = desc.InputWidth,
-                    Height = desc.InputHeight
+                    Width = desc.RenderWidth,
+                    Height = desc.RenderHeight
                 },
-                SignalFlags = (uint)signalFlags
+                SignalFlags = (uint)SignalFlags
             };
-            vendor.CreateContext(ref Context, &createDesc.Header);
+            context = vendor.CreateContext(&createDesc.Header);
 
             GraphicsContext graphicsContext = vendor.Context;
-            constantBuffer = graphicsContext.CreateBuffer(new()
-            {
-                SizeInBytes = (uint)sizeof(PreparationConstants),
-                Usages = BufferUsages.Constant,
-                Residency = MemoryResidency.CpuWriteOnly
-            });
+            constantBuffer = graphicsContext.CreateBuffer(BufferDesc.Constant((uint)sizeof(PreparationConstants)));
             pipeline = CreatePipeline(graphicsContext, DirectX12Prepare);
-            linearDepth = CreateTexture(graphicsContext, PixelFormat.R32Float, desc);
+            previousLinearDepth = graphicsContext.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, desc.RenderWidth, desc.RenderHeight, 1, SampleCount.Count1) with
+            {
+                Usages = TextureUsages.Sampled | TextureUsages.TransferDst
+            });
+            linearDepth = CreateTexture(graphicsContext, PixelFormat.R32Float, desc, TextureUsages.TransferSrc);
             motionVectors = CreateTexture(graphicsContext, PixelFormat.R32G32B32A32Float, desc);
             normals = CreateTexture(graphicsContext, PixelFormat.R16G16B16A16Float, desc);
-
-            ReadOnlySpan<FSRApiDenoiserSignalFlags> signals =
-            [
-                FSRApiDenoiserSignalFlags.DirectDiffuse,
-                FSRApiDenoiserSignalFlags.DirectSpecular,
-                FSRApiDenoiserSignalFlags.IndirectDiffuse,
-                FSRApiDenoiserSignalFlags.IndirectSpecular
-            ];
-            for (int i = 0; i < signals.Length; i++)
-            {
-                if (signalFlags.HasFlag(signals[i]))
-                {
-                    SignalOutputs[i] = CreateTexture(graphicsContext, PixelFormat.R32G32B32A32Float, desc);
-                }
-            }
+            DiffuseRadiance = CreateTexture(graphicsContext, PixelFormat.R16G16B16A16Float, desc);
+            SpecularRadiance = CreateTexture(graphicsContext, PixelFormat.R16G16B16A16Float, desc);
+            DenoisedDiffuse = CreateTexture(graphicsContext, PixelFormat.R32G32B32A32Float, desc);
+            DenoisedSpecular = CreateTexture(graphicsContext, PixelFormat.R32G32B32A32Float, desc);
         }
 
-        public RayReconstructionDesc Desc { get; }
-
-        public FSRApiDenoiserSignalFlags SignalFlags { get; }
-
-        public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args, Vector3 cameraPositionDelta, uint frameIndex)
+        public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args, Vector3 cameraPositionDelta, uint frameIndex, bool reset)
         {
-            Prepare(commandBuffer, args, frameIndex);
+            Prepare(commandBuffer, args, frameIndex, reset);
 
             commandBuffer.Transition(args.SpecularAlbedo, default, TextureLayout.Sampled, TextureLayout.Common);
             commandBuffer.Transition(args.DiffuseAlbedo, default, TextureLayout.Sampled, TextureLayout.Common);
 
-            if (args.DirectDiffuseRadiance is not null)
-            {
-                commandBuffer.Transition(args.DirectDiffuseRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
+            TextureLayout denoisedBefore = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled;
+            commandBuffer.Transition(DenoisedDiffuse, default, denoisedBefore, TextureLayout.Common);
+            commandBuffer.Transition(DenoisedSpecular, default, denoisedBefore, TextureLayout.Common);
 
-            if (args.DirectSpecularRadiance is not null)
-            {
-                commandBuffer.Transition(args.DirectSpecularRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
-
-            if (args.IndirectDiffuseRadiance is not null)
-            {
-                commandBuffer.Transition(args.IndirectDiffuseRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
-
-            if (args.IndirectSpecularRadiance is not null)
-            {
-                commandBuffer.Transition(args.IndirectSpecularRadiance, default, TextureLayout.Sampled, TextureLayout.Common);
-            }
-
-            foreach (Texture? signal in SignalOutputs)
-            {
-                if (signal is not null)
-                {
-                    commandBuffer.Transition(signal, default, frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Common);
-                }
-            }
-
-            (float nearPlane, float farPlane, _, _) = UpscalingHelper.DecomposePerspective(args.ViewToClip);
-            float far = Desc.Flags.HasFlag(UpscalingInputFlags.DepthInfinite) ? float.MaxValue : farPlane;
+            (float nearPlane, float farPlane, _, _, _, bool depthInfinite) = Vendor.DecomposePerspective(args.Projection);
+            float far = depthInfinite ? float.MaxValue : farPlane;
 
             FSRDispatchDescDenoiser dispatchDesc = new()
             {
@@ -221,14 +160,14 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 DiffuseAlbedo = args.DiffuseAlbedo.FSR(),
                 MotionVectorScale = new()
                 {
-                    X = Desc.InputWidth,
-                    Y = Desc.InputHeight,
+                    X = desc.RenderWidth,
+                    Y = desc.RenderHeight,
                     Z = 1.0f
                 },
                 JitterOffsets = new()
                 {
-                    X = args.JitterOffset.X,
-                    Y = args.JitterOffset.Y
+                    X = -args.JitterOffset.X,
+                    Y = -args.JitterOffset.Y
                 },
                 CameraPositionDelta = new()
                 {
@@ -236,8 +175,8 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                     Y = cameraPositionDelta.Y,
                     Z = cameraPositionDelta.Z
                 },
-                View = FSRFormats.FSR(args.WorldToView),
-                Projection = FSRFormats.FSR(args.ViewToClip),
+                View = FSRFormats.FSR(args.View),
+                Projection = FSRFormats.FSR(args.Projection),
                 LinearDepthBounds = new()
                 {
                     Min = nearPlane,
@@ -245,229 +184,198 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
                 },
                 RenderSize = new()
                 {
-                    Width = Desc.InputWidth,
-                    Height = Desc.InputHeight
+                    Width = desc.RenderWidth,
+                    Height = desc.RenderHeight
                 },
                 FrameIndex = frameIndex,
-                Flags = (uint)(FSRApiDispatchDenoiserFlags.NonEncodedAlbedo | (args.Reset ? FSRApiDispatchDenoiserFlags.Reset : 0))
+                Flags = (uint)(FSRApiDispatchDenoiserFlags.NonEncodedAlbedo | (reset ? FSRApiDispatchDenoiserFlags.Reset : 0))
             };
-            FSRApiHeader* tail = &dispatchDesc.Header;
-            FSRDispatchDescDenoiserDirectDiffuse directDiffuse = new();
-            FSRDispatchDescDenoiserDirectSpecular directSpecular = new();
-            FSRDispatchDescDenoiserIndirectDiffuse indirectDiffuse = new();
-            FSRDispatchDescDenoiserIndirectSpecular indirectSpecular = new();
 
-            if (SignalOutputs[0] is Texture directDiffuseOutput)
+            FSRDispatchDescDenoiserIndirectDiffuse indirectDiffuse = new()
             {
-                directDiffuse.Signal = new()
+                Signal = new()
                 {
-                    Input = args.DirectDiffuseRadiance.FSR(),
-                    Output = directDiffuseOutput.FSR()
-                };
-                tail->Next = &directDiffuse.Header;
-                tail = &directDiffuse.Header;
-            }
-
-            if (SignalOutputs[1] is Texture directSpecularOutput)
+                    Input = DiffuseRadiance.FSR(),
+                    Output = DenoisedDiffuse.FSR()
+                }
+            };
+            FSRDispatchDescDenoiserIndirectSpecular indirectSpecular = new()
             {
-                directSpecular.Signal = new()
+                Signal = new()
                 {
-                    Input = args.DirectSpecularRadiance.FSR(),
-                    Output = directSpecularOutput.FSR()
-                };
-                tail->Next = &directSpecular.Header;
-                tail = &directSpecular.Header;
-            }
+                    Input = SpecularRadiance.FSR(),
+                    Output = DenoisedSpecular.FSR()
+                }
+            };
 
-            if (SignalOutputs[2] is Texture indirectDiffuseOutput)
-            {
-                indirectDiffuse.Signal = new()
-                {
-                    Input = args.IndirectDiffuseRadiance.FSR(),
-                    Output = indirectDiffuseOutput.FSR()
-                };
-                tail->Next = &indirectDiffuse.Header;
-                tail = &indirectDiffuse.Header;
-            }
+            dispatchDesc.Header.Next = &indirectDiffuse.Header;
+            indirectDiffuse.Header.Next = &indirectSpecular.Header;
 
-            if (SignalOutputs[3] is Texture indirectSpecularOutput)
-            {
-                indirectSpecular.Signal = new()
-                {
-                    Input = args.IndirectSpecularRadiance.FSR(),
-                    Output = indirectSpecularOutput.FSR()
-                };
-                tail->Next = &indirectSpecular.Header;
-            }
+            commandBuffer.BeginExternalCommands();
 
-            Vendor.Dispatch(ref Context, &dispatchDesc.Header);
+            vendor.Dispatch(context, &dispatchDesc.Header);
+
+            commandBuffer.EndExternalCommands();
 
             commandBuffer.Transition(args.SpecularAlbedo, default, TextureLayout.Common, TextureLayout.Sampled);
             commandBuffer.Transition(args.DiffuseAlbedo, default, TextureLayout.Common, TextureLayout.Sampled);
 
-            if (args.DirectDiffuseRadiance is not null)
+            commandBuffer.Transition(linearDepth, default, TextureLayout.Common, TextureLayout.CopySrc);
+            commandBuffer.Transition(previousLinearDepth, default, TextureLayout.Sampled, TextureLayout.CopyDst);
+            commandBuffer.CopyTexture(linearDepth, default, default, previousLinearDepth, default, default, new()
             {
-                commandBuffer.Transition(args.DirectDiffuseRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
+                Width = desc.RenderWidth,
+                Height = desc.RenderHeight,
+                Depth = 1
+            });
+            commandBuffer.Transition(previousLinearDepth, default, TextureLayout.CopyDst, TextureLayout.Sampled);
+            commandBuffer.Transition(linearDepth, default, TextureLayout.CopySrc, TextureLayout.Common);
 
-            if (args.DirectSpecularRadiance is not null)
-            {
-                commandBuffer.Transition(args.DirectSpecularRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
-
-            if (args.IndirectDiffuseRadiance is not null)
-            {
-                commandBuffer.Transition(args.IndirectDiffuseRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
-
-            if (args.IndirectSpecularRadiance is not null)
-            {
-                commandBuffer.Transition(args.IndirectSpecularRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
-            }
+            commandBuffer.Transition(DiffuseRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(SpecularRadiance, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(DenoisedDiffuse, default, TextureLayout.Common, TextureLayout.Sampled);
+            commandBuffer.Transition(DenoisedSpecular, default, TextureLayout.Common, TextureLayout.Sampled);
         }
 
         protected override void Destroy()
         {
-            for (int i = 0; i < SignalOutputs.Length; i++)
-            {
-                SignalOutputs[i]?.Dispose();
-            }
-
+            DenoisedSpecular.Dispose();
+            DenoisedDiffuse.Dispose();
+            SpecularRadiance.Dispose();
+            DiffuseRadiance.Dispose();
             normals.Dispose();
             motionVectors.Dispose();
             linearDepth.Dispose();
+            previousLinearDepth.Dispose();
             pipeline.Dispose();
             constantBuffer.Dispose();
-            Vendor.DestroyContext(ref Context);
+            vendor.DestroyContext(context);
         }
 
-        private void Prepare(CommandBuffer commandBuffer, RayReconstructionArgs args, uint frameIndex)
+        private void Prepare(CommandBuffer commandBuffer, RayReconstructionArgs args, uint frameIndex, bool reset)
         {
             PreparationConstants constants = new()
             {
-                Width = Desc.InputWidth,
-                Height = Desc.InputHeight,
-                SignalFlags = (uint)SignalFlags,
-                ProjectionDepth = new(args.ViewToClip.M33, args.ViewToClip.M34, args.ViewToClip.M43, args.ViewToClip.M44),
+                Width = desc.RenderWidth,
+                Height = desc.RenderHeight,
+                HasHistory = reset ? 0u : 1u,
+                ProjectionDepth = new(args.Projection.M33, args.Projection.M34, args.Projection.M43, args.Projection.M44),
+                Color = args.Color.SampledHandle,
                 Depth = args.Depth.SampledHandle,
                 MotionVectors = args.MotionVectors.SampledHandle,
+                DiffuseAlbedo = args.DiffuseAlbedo.SampledHandle,
+                SpecularAlbedo = args.SpecularAlbedo.SampledHandle,
                 Normals = args.Normals.SampledHandle,
                 Roughness = args.Roughness.SampledHandle,
-                LinearDepthDelta = args.LinearDepthDelta!.SampledHandle,
+                SpecularHitDistance = args.SpecularHitDistance.SampledHandle,
+                PreviousLinearDepth = previousLinearDepth.SampledHandle,
                 LinearDepth = linearDepth.StorageHandle,
                 PackedMotion = motionVectors.StorageHandle,
-                NormalRoughness = normals.StorageHandle
+                NormalRoughness = normals.StorageHandle,
+                DiffuseRadiance = DiffuseRadiance.StorageHandle,
+                SpecularRadiance = SpecularRadiance.StorageHandle
             };
 
-            constantBuffer.Upload(0, new()
+            commandBuffer.Upload(constantBuffer, 0, new()
             {
                 Pointer = (nint)(&constants),
                 SizeInBytes = (uint)sizeof(PreparationConstants)
             });
+            commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.ComputeShading);
 
-            TextureLayout before = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Common;
-            commandBuffer.Transition(linearDepth, default, before, TextureLayout.Storage);
-            commandBuffer.Transition(motionVectors, default, before, TextureLayout.Storage);
-            commandBuffer.Transition(normals, default, before, TextureLayout.Storage);
+            if (frameIndex is 0)
+            {
+                commandBuffer.Transition(previousLinearDepth, default, TextureLayout.Undefined, TextureLayout.Sampled);
+            }
+
+            TextureLayout scratchBefore = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Common;
+            TextureLayout signalBefore = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled;
+            commandBuffer.Transition(linearDepth, default, scratchBefore, TextureLayout.Storage);
+            commandBuffer.Transition(motionVectors, default, scratchBefore, TextureLayout.Storage);
+            commandBuffer.Transition(normals, default, scratchBefore, TextureLayout.Storage);
+            commandBuffer.Transition(DiffuseRadiance, default, signalBefore, TextureLayout.Storage);
+            commandBuffer.Transition(SpecularRadiance, default, signalBefore, TextureLayout.Storage);
 
             commandBuffer.SetPipeline(pipeline);
             commandBuffer.SetConstantBuffer(constantBuffer, 0);
-            commandBuffer.Dispatch((Desc.InputWidth + 7) / 8, (Desc.InputHeight + 7) / 8, 1);
+            commandBuffer.Dispatch((desc.RenderWidth + 7) / 8, (desc.RenderHeight + 7) / 8, 1);
 
             commandBuffer.Transition(linearDepth, default, TextureLayout.Storage, TextureLayout.Common);
             commandBuffer.Transition(motionVectors, default, TextureLayout.Storage, TextureLayout.Common);
             commandBuffer.Transition(normals, default, TextureLayout.Storage, TextureLayout.Common);
+            commandBuffer.Transition(DiffuseRadiance, default, TextureLayout.Storage, TextureLayout.Common);
+            commandBuffer.Transition(SpecularRadiance, default, TextureLayout.Storage, TextureLayout.Common);
         }
     }
 
-    private class CompositionPass : DisposableObject
+    private class CompositionPass(GraphicsContext context, RayReconstructionDesc desc) : DisposableObject
     {
-        private readonly Buffer constantBuffer;
-        private readonly ComputePipeline pipeline;
+        private readonly Buffer constantBuffer = context.CreateBuffer(BufferDesc.Constant((uint)sizeof(CompositionConstants)));
+        private readonly ComputePipeline pipeline = CreatePipeline(context, DirectX12Compose);
 
-        public readonly Texture Color;
+        public readonly Texture Color = CreateTexture(context, PixelFormat.R16G16B16A16Float, desc);
 
-        public readonly Texture? TransparencyMask;
+        private bool transparencyMaskInitialized;
 
-        public CompositionPass(GraphicsContext context, RayReconstructionDesc desc, FSRApiDenoiserSignalFlags signalFlags)
+        public Texture? TransparencyMask { get; private set; }
+
+        public void Dispatch(CommandBuffer commandBuffer,
+                             RayReconstructionArgs args,
+                             Texture diffuseRadiance,
+                             Texture specularRadiance,
+                             Texture denoisedDiffuse,
+                             Texture denoisedSpecular,
+                             uint frameIndex)
         {
-            Desc = desc;
-            SignalFlags = signalFlags;
+            bool hasTransparencyOverlay = args.TransparencyOverlay is not null;
 
-            constantBuffer = context.CreateBuffer(new()
-            {
-                SizeInBytes = (uint)sizeof(CompositionConstants),
-                Usages = BufferUsages.Constant,
-                Residency = MemoryResidency.CpuWriteOnly
-            });
-            pipeline = CreatePipeline(context, DirectX12Compose);
-            Color = CreateTexture(context, PixelFormat.R16G16B16A16Float, desc);
-
-            if (desc.TransparencyOverlayFormat is not null)
+            if (hasTransparencyOverlay && TransparencyMask is null)
             {
                 TransparencyMask = CreateTexture(context, PixelFormat.R8UNorm, desc);
+                transparencyMaskInitialized = false;
             }
-        }
 
-        public RayReconstructionDesc Desc { get; }
-
-        public FSRApiDenoiserSignalFlags SignalFlags { get; }
-
-        public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args, ReadOnlySpan<Texture?> signalOutputs, uint frameIndex)
-        {
             CompositionConstants constants = new()
             {
-                Width = Desc.InputWidth,
-                Height = Desc.InputHeight,
-                SignalFlags = (uint)SignalFlags,
-                HasTransparencyOverlay = TransparencyMask is not null ? 1u : 0u,
+                Width = desc.RenderWidth,
+                Height = desc.RenderHeight,
+                HasTransparencyOverlay = hasTransparencyOverlay ? 1u : 0u,
                 Color = args.Color.SampledHandle,
                 DiffuseAlbedo = args.DiffuseAlbedo.SampledHandle,
                 SpecularAlbedo = args.SpecularAlbedo.SampledHandle,
                 TransparencyOverlay = args.TransparencyOverlay?.SampledHandle ?? default,
-                DirectDiffuse = args.DirectDiffuseRadiance?.SampledHandle ?? default,
-                DirectSpecular = args.DirectSpecularRadiance?.SampledHandle ?? default,
-                IndirectDiffuse = args.IndirectDiffuseRadiance?.SampledHandle ?? default,
-                IndirectSpecular = args.IndirectSpecularRadiance?.SampledHandle ?? default,
-                DenoisedDirectDiffuse = signalOutputs[0]?.SampledHandle ?? default,
-                DenoisedDirectSpecular = signalOutputs[1]?.SampledHandle ?? default,
-                DenoisedIndirectDiffuse = signalOutputs[2]?.SampledHandle ?? default,
-                DenoisedIndirectSpecular = signalOutputs[3]?.SampledHandle ?? default,
+                DiffuseRadiance = diffuseRadiance.SampledHandle,
+                SpecularRadiance = specularRadiance.SampledHandle,
+                DenoisedDiffuse = denoisedDiffuse.SampledHandle,
+                DenoisedSpecular = denoisedSpecular.SampledHandle,
                 CompositedColor = Color.StorageHandle,
-                TransparencyMask = TransparencyMask?.StorageHandle ?? default
+                TransparencyMask = hasTransparencyOverlay ? TransparencyMask!.StorageHandle : default
             };
 
-            constantBuffer.Upload(0, new()
+            commandBuffer.Upload(constantBuffer, 0, new()
             {
                 Pointer = (nint)(&constants),
                 SizeInBytes = (uint)sizeof(CompositionConstants)
             });
+            commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.ComputeShading);
 
-            foreach (Texture? signal in signalOutputs)
+            commandBuffer.Transition(Color, default, frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
+
+            if (hasTransparencyOverlay)
             {
-                if (signal is not null)
-                {
-                    commandBuffer.Transition(signal, default, TextureLayout.Common, TextureLayout.Sampled);
-                }
-            }
-
-            TextureLayout before = frameIndex is 0 ? TextureLayout.Undefined : TextureLayout.Sampled;
-            commandBuffer.Transition(Color, default, before, TextureLayout.Storage);
-
-            if (TransparencyMask is not null)
-            {
-                commandBuffer.Transition(TransparencyMask, default, before, TextureLayout.Storage);
+                commandBuffer.Transition(TransparencyMask!, default, transparencyMaskInitialized ? TextureLayout.Sampled : TextureLayout.Undefined, TextureLayout.Storage);
             }
 
             commandBuffer.SetPipeline(pipeline);
             commandBuffer.SetConstantBuffer(constantBuffer, 0);
-            commandBuffer.Dispatch((Desc.InputWidth + 7) / 8, (Desc.InputHeight + 7) / 8, 1);
+            commandBuffer.Dispatch((desc.RenderWidth + 7) / 8, (desc.RenderHeight + 7) / 8, 1);
 
             commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-            if (TransparencyMask is not null)
+            if (hasTransparencyOverlay)
             {
-                commandBuffer.Transition(TransparencyMask, default, TextureLayout.Storage, TextureLayout.Sampled);
+                commandBuffer.Transition(TransparencyMask!, default, TextureLayout.Storage, TextureLayout.Sampled);
+                transparencyMaskInitialized = true;
             }
         }
 
@@ -481,7 +389,7 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 96)]
+[StructLayout(LayoutKind.Explicit, Size = 144)]
 file struct PreparationConstants
 {
     [FieldOffset(0)]
@@ -491,37 +399,55 @@ file struct PreparationConstants
     public uint Height;
 
     [FieldOffset(8)]
-    public uint SignalFlags;
+    public uint HasHistory;
 
     [FieldOffset(16)]
     public Vector4 ProjectionDepth;
 
     [FieldOffset(32)]
-    public ResourceHandle Depth;
+    public ResourceHandle Color;
 
     [FieldOffset(40)]
-    public ResourceHandle MotionVectors;
+    public ResourceHandle Depth;
 
     [FieldOffset(48)]
-    public ResourceHandle Normals;
+    public ResourceHandle MotionVectors;
 
     [FieldOffset(56)]
-    public ResourceHandle Roughness;
+    public ResourceHandle DiffuseAlbedo;
 
     [FieldOffset(64)]
-    public ResourceHandle LinearDepthDelta;
+    public ResourceHandle SpecularAlbedo;
 
     [FieldOffset(72)]
-    public ResourceHandle LinearDepth;
+    public ResourceHandle Normals;
 
     [FieldOffset(80)]
-    public ResourceHandle PackedMotion;
+    public ResourceHandle Roughness;
 
     [FieldOffset(88)]
+    public ResourceHandle SpecularHitDistance;
+
+    [FieldOffset(96)]
+    public ResourceHandle PreviousLinearDepth;
+
+    [FieldOffset(104)]
+    public ResourceHandle LinearDepth;
+
+    [FieldOffset(112)]
+    public ResourceHandle PackedMotion;
+
+    [FieldOffset(120)]
     public ResourceHandle NormalRoughness;
+
+    [FieldOffset(128)]
+    public ResourceHandle DiffuseRadiance;
+
+    [FieldOffset(136)]
+    public ResourceHandle SpecularRadiance;
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 128)]
+[StructLayout(LayoutKind.Explicit, Size = 96)]
 file struct CompositionConstants
 {
     [FieldOffset(0)]
@@ -531,9 +457,6 @@ file struct CompositionConstants
     public uint Height;
 
     [FieldOffset(8)]
-    public uint SignalFlags;
-
-    [FieldOffset(12)]
     public uint HasTransparencyOverlay;
 
     [FieldOffset(16)]
@@ -549,32 +472,20 @@ file struct CompositionConstants
     public ResourceHandle TransparencyOverlay;
 
     [FieldOffset(48)]
-    public ResourceHandle DirectDiffuse;
+    public ResourceHandle DiffuseRadiance;
 
     [FieldOffset(56)]
-    public ResourceHandle DirectSpecular;
+    public ResourceHandle SpecularRadiance;
 
     [FieldOffset(64)]
-    public ResourceHandle IndirectDiffuse;
+    public ResourceHandle DenoisedDiffuse;
 
     [FieldOffset(72)]
-    public ResourceHandle IndirectSpecular;
+    public ResourceHandle DenoisedSpecular;
 
     [FieldOffset(80)]
-    public ResourceHandle DenoisedDirectDiffuse;
-
-    [FieldOffset(88)]
-    public ResourceHandle DenoisedDirectSpecular;
-
-    [FieldOffset(96)]
-    public ResourceHandle DenoisedIndirectDiffuse;
-
-    [FieldOffset(104)]
-    public ResourceHandle DenoisedIndirectSpecular;
-
-    [FieldOffset(112)]
     public ResourceHandle CompositedColor;
 
-    [FieldOffset(120)]
+    [FieldOffset(88)]
     public ResourceHandle TransparencyMask;
 }

@@ -18,12 +18,7 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public PathTracingPass()
     {
-        constantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(PathTracingConstants),
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
+        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(PathTracingConstants)));
 
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "PathTracingCS"));
 
@@ -32,7 +27,7 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public PathTracingOutput Output { get; private set; } = null!;
 
-    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Vector2 jitterOffsetInPixels, uint frameIndex)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Vector2 jitterOffsetInPixels, uint frameIndex, bool isRayReconstructionEnabled)
     {
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
@@ -50,7 +45,7 @@ internal unsafe class PathTracingPass : DisposableObject
             RenderSize = new(Output.Width, Output.Height),
             JitterOffset = jitterOffsetInPixels,
             FrameIndex = frameIndex,
-            IsRayReconstructionEnabled = Output.LinearDepthDelta is not null ? 1u : 0u,
+            IsRayReconstructionEnabled = isRayReconstructionEnabled ? 1u : 0u,
             Scene = scene.AccelerationStructure,
             Vertices = scene.Vertices,
             Indices = scene.Indices,
@@ -66,19 +61,15 @@ internal unsafe class PathTracingPass : DisposableObject
             SpecularHitDistance = Output.SpecularHitDistance.StorageHandle,
             ReactiveMask = Output.ReactiveMask.StorageHandle,
             PreviousLinearDepth = previousLinearDepth.SampledHandle,
-            CurrentLinearDepth = currentLinearDepth.StorageHandle,
-            LinearDepthDelta = Output.LinearDepthDelta?.StorageHandle ?? default,
-            DirectDiffuseRadiance = Output.DirectDiffuseRadiance?.StorageHandle ?? default,
-            DirectSpecularRadiance = Output.DirectSpecularRadiance?.StorageHandle ?? default,
-            IndirectDiffuseRadiance = Output.IndirectDiffuseRadiance?.StorageHandle ?? default,
-            IndirectSpecularRadiance = Output.IndirectSpecularRadiance?.StorageHandle ?? default
+            CurrentLinearDepth = currentLinearDepth.StorageHandle
         };
 
-        constantBuffer.Upload(0, new()
+        commandBuffer.Upload(constantBuffer, 0, new()
         {
             Pointer = (nint)(&pathTracingConstants),
             SizeInBytes = (uint)sizeof(PathTracingConstants)
         });
+        commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.ComputeShading);
 
         foreach (Texture texture in Output.Textures)
         {
@@ -116,10 +107,10 @@ internal unsafe class PathTracingPass : DisposableObject
         previousViewProjection = viewProjection;
     }
 
-    public void Resize(uint width, uint height, bool isRayReconstructionEnabled)
+    public void Resize(uint width, uint height)
     {
         DestroyOutput();
-        CreateOutput(width, height, isRayReconstructionEnabled);
+        CreateOutput(width, height);
     }
 
     protected override void Destroy()
@@ -129,9 +120,9 @@ internal unsafe class PathTracingPass : DisposableObject
         constantBuffer.Dispose();
     }
 
-    private void CreateOutput(uint width, uint height, bool isRayReconstructionEnabled)
+    private void CreateOutput(uint width, uint height)
     {
-        Output = new(width, height, isRayReconstructionEnabled);
+        Output = new(width, height);
         previousLinearDepth = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R32Float, width, height, 1, SampleCount.Count1) with
         {
             Usages = TextureUsages.Sampled | TextureUsages.TransferDst
@@ -153,7 +144,7 @@ internal unsafe class PathTracingPass : DisposableObject
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 464)]
+[StructLayout(LayoutKind.Explicit, Size = 424)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -230,19 +221,4 @@ file struct PathTracingConstants
 
     [FieldOffset(416)]
     public ResourceHandle CurrentLinearDepth;
-
-    [FieldOffset(424)]
-    public ResourceHandle LinearDepthDelta;
-
-    [FieldOffset(432)]
-    public ResourceHandle DirectDiffuseRadiance;
-
-    [FieldOffset(440)]
-    public ResourceHandle DirectSpecularRadiance;
-
-    [FieldOffset(448)]
-    public ResourceHandle IndirectDiffuseRadiance;
-
-    [FieldOffset(456)]
-    public ResourceHandle IndirectSpecularRadiance;
 }

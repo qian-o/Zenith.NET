@@ -29,16 +29,6 @@ public static class Extensions
 
         public UpscalingCapabilities UpscalingCapabilities => GetBridge(context).Capabilities;
 
-        public UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
-        {
-            return GetBridge(context).GetSuperResolutionInputSize(outputWidth, outputHeight, mode);
-        }
-
-        public UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
-        {
-            return GetBridge(context).GetRayReconstructionInputSize(outputWidth, outputHeight, mode);
-        }
-
         public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
         {
             return GetBridge(context).CreateSuperResolution(desc);
@@ -57,6 +47,24 @@ public static class Extensions
         public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc)
         {
             return GetBridge(context).CreateFrameGenerationSwapChain(desc);
+        }
+
+        internal UpscalingBridge UpscalingBridge => GetBridge(context);
+    }
+
+    extension(PixelFormat pixelFormat)
+    {
+        internal bool IsHdr()
+        {
+            return pixelFormat is PixelFormat.R16Float
+                or PixelFormat.R32Float
+                or PixelFormat.R16G16Float
+                or PixelFormat.R32G32Float
+                or PixelFormat.R9G9B9E5Float
+                or PixelFormat.R11G11B10Float
+                or PixelFormat.R10G10B10A2UNorm
+                or PixelFormat.R16G16B16A16Float
+                or PixelFormat.R32G32B32A32Float;
         }
     }
 

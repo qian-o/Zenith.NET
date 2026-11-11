@@ -26,7 +26,7 @@ internal static class App
     static App()
     {
         Context = PlatformHelper.CreateContext();
-        Context.InitializeUpscaling([UpscalingApi.DLSS, UpscalingApi.FSR, UpscalingApi.MetalFX]);
+        Context.InitializeUpscaling();
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
         window = CreateWindow();
@@ -48,7 +48,7 @@ internal static class App
 
         userInterface = new();
         renderer = new(userInterface.RenderSettings);
-        presentation = new(PlatformHelper.CreateSurface(window), renderer.InputSize, userInterface.IsFrameGenerationEnabled);
+        presentation = new(PlatformHelper.CreateSurface(window), userInterface.IsFrameGenerationEnabled);
     }
 
     public static GraphicsContext Context { get; }
@@ -101,7 +101,7 @@ internal static class App
 
         presentation.WaitForPendingWork();
         renderer.ApplySettings(userInterface.RenderSettings);
-        presentation.Configure(renderer.InputSize, userInterface.IsFrameGenerationEnabled);
+        presentation.Configure(userInterface.IsFrameGenerationEnabled);
     }
 
     private static void OnRender(double deltaSeconds)
@@ -128,7 +128,7 @@ internal static class App
 
         presentation.WaitForPendingWork();
         renderer.Resize();
-        presentation.Configure(renderer.InputSize, userInterface.IsFrameGenerationEnabled);
+        presentation.Configure(userInterface.IsFrameGenerationEnabled);
     }
 
     private static IWindow CreateWindow()

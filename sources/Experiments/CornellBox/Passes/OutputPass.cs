@@ -11,12 +11,7 @@ internal unsafe class OutputPass : DisposableObject
 
     public OutputPass()
     {
-        constantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = 256,
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
+        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant(256));
 
         using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "FullscreenVS"));
         using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "ToneMappingFS"));
@@ -53,11 +48,12 @@ internal unsafe class OutputPass : DisposableObject
             FrameIndex = frameIndex
         };
 
-        constantBuffer.Upload(0, new()
+        commandBuffer.Upload(constantBuffer, 0, new()
         {
             Pointer = (nint)(&toneMappingConstants),
             SizeInBytes = (uint)sizeof(OutputConstants)
         });
+        commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.FragmentShading);
 
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(Color)], null);

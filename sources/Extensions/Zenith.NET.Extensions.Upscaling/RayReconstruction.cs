@@ -6,13 +6,11 @@ public abstract class RayReconstruction(RayReconstructionDesc desc) : Disposable
 
     public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {
-        commandBuffer.BeginExternalCommands();
         commandBuffer.BeginDebugEvent("Ray Reconstruction");
 
         DispatchImpl(commandBuffer, args);
 
         commandBuffer.EndDebugEvent();
-        commandBuffer.EndExternalCommands();
     }
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args);

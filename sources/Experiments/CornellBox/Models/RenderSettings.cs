@@ -4,7 +4,7 @@ namespace CornellBox.Models;
 
 internal struct RenderSettings
 {
-    public UpscalingMode? UpscalingMode;
+    public UpscalingQuality? UpscalingQuality;
 
     public bool IsPaused;
 

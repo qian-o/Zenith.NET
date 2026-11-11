@@ -1,4 +1,5 @@
-﻿using Zenith.NET.Extensions.Upscaling.DLSS;
+﻿using System.Numerics;
+using Zenith.NET.Extensions.Upscaling.DLSS;
 using Zenith.NET.Extensions.Upscaling.FSR;
 using Zenith.NET.Extensions.Upscaling.MetalFX;
 
@@ -14,6 +15,11 @@ internal class UpscalingBridge : DisposableObject
     public UpscalingBridge(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
     {
         Context = context;
+
+        if (apis.IsEmpty)
+        {
+            apis = [UpscalingApi.DLSS, UpscalingApi.FSR, UpscalingApi.MetalFX];
+        }
 
         foreach (UpscalingApi api in apis.ToArray().Distinct())
         {
@@ -49,14 +55,30 @@ internal class UpscalingBridge : DisposableObject
 
     public UpscalingCapabilities Capabilities { get; }
 
-    public UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public SuperResolutionDesc CreateSuperResolutionDesc(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return GetVendor(superResolutionVendor, "super resolution").GetSuperResolutionInputSize(outputWidth, outputHeight, mode);
+        (uint renderWidth, uint renderHeight) = GetVendor(superResolutionVendor, "super resolution").GetSuperResolutionRenderSize(outputWidth, outputHeight, quality);
+
+        return new()
+        {
+            RenderWidth = renderWidth,
+            RenderHeight = renderHeight,
+            OutputWidth = outputWidth,
+            OutputHeight = outputHeight
+        };
     }
 
-    public UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode)
+    public RayReconstructionDesc CreateRayReconstructionDesc(uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return GetVendor(rayReconstructionVendor, "ray reconstruction").GetRayReconstructionInputSize(outputWidth, outputHeight, mode);
+        (uint renderWidth, uint renderHeight) = GetVendor(rayReconstructionVendor, "ray reconstruction").GetRayReconstructionRenderSize(outputWidth, outputHeight, quality);
+
+        return new()
+        {
+            RenderWidth = renderWidth,
+            RenderHeight = renderHeight,
+            OutputWidth = outputWidth,
+            OutputHeight = outputHeight
+        };
     }
 
     public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
@@ -104,17 +126,37 @@ internal class UpscalingBridge : DisposableObject
     }
 }
 
-internal abstract class Vendor : DisposableObject
+internal abstract class Vendor(GraphicsContext context) : DisposableObject
 {
+    public GraphicsContext Context { get; } = context;
+
     public abstract UpscalingCapabilities Capabilities { get; }
 
-    public abstract UpscalingInputSize GetSuperResolutionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+    public abstract (uint Width, uint Height) GetSuperResolutionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality);
 
-    public abstract UpscalingInputSize GetRayReconstructionInputSize(uint outputWidth, uint outputHeight, UpscalingMode mode);
+    public abstract (uint Width, uint Height) GetRayReconstructionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality);
 
     public abstract SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
 
     public abstract RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
 
     public abstract FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc);
+
+    public static (float NearPlane, float FarPlane, float VerticalFieldOfViewInRadians, float AspectRatio, bool DepthReversed, bool DepthInfinite) DecomposePerspective(Matrix4x4 projection)
+    {
+        const float Epsilon = 1e-6f;
+
+        float zeroDenominator = -projection.M33;
+        float unitDenominator = projection.M34 - projection.M33;
+
+        float zeroDepthDistance = MathF.Abs(zeroDenominator) <= Epsilon ? float.PositiveInfinity : MathF.Abs(projection.M43 / zeroDenominator);
+        float unitDepthDistance = MathF.Abs(unitDenominator) <= Epsilon ? float.PositiveInfinity : MathF.Abs(projection.M43 / unitDenominator);
+
+        bool depthReversed = zeroDepthDistance > unitDepthDistance;
+        float nearPlane = MathF.Min(zeroDepthDistance, unitDepthDistance);
+        float farPlane = MathF.Max(zeroDepthDistance, unitDepthDistance);
+        bool depthInfinite = float.IsInfinity(farPlane) || float.IsNaN(farPlane);
+
+        return (nearPlane, farPlane, 2.0f * MathF.Atan(1.0f / MathF.Abs(projection.M22)), MathF.Abs(projection.M22 / projection.M11), depthReversed, depthInfinite);
+    }
 }

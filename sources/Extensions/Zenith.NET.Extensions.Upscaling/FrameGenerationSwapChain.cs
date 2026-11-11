@@ -13,6 +13,11 @@ public class FrameGenerationSwapChain : DisposableObject
 
     public FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSwapChainDesc desc)
     {
+        if (!context.UpscalingCapabilities.FrameGenerationSupported)
+        {
+            throw new NotSupportedException("This device does not support the frame generation with any of the specified upscaling APIs.");
+        }
+
         Context = context;
         Desc = desc;
 
@@ -21,7 +26,7 @@ public class FrameGenerationSwapChain : DisposableObject
         swapChain = context.CreateSwapChain(new()
         {
             Surface = desc.Surface,
-            Format = desc.ColorFormat,
+            Format = desc.Format,
             IsVerticalSyncEnabled = desc.IsVerticalSyncEnabled,
             IsPresentQueueEnabled = true
         });
@@ -33,17 +38,14 @@ public class FrameGenerationSwapChain : DisposableObject
 
     public FrameGenerationSwapChainDesc Desc { get; private set; }
 
-    public Texture Color => resources!.Current.Color;
+    public Texture Drawable => resources!.Current.Color;
 
-    public Texture Depth => resources!.Current.Depth;
-
-    public Texture MotionVectors => resources!.Current.MotionVectors;
-
-    public Texture? Hudless => resources!.Current.Hudless;
-
-    public void Present(TimelineValue rendered, FrameGenerationSwapChainArgs args)
+    public void Present(CommandBuffer commandBuffer, FrameGenerationPresentArgs args)
     {
         Frame frame = resources!.Current;
+        frame.Capture(Context, commandBuffer, args);
+
+        TimelineValue rendered = commandBuffer.Submit();
 
         presenter!.Submit(frame, args, rendered);
         presenter.Wait(resources.Advance());
@@ -135,32 +137,17 @@ public class FrameGenerationSwapChain : DisposableObject
     {
         private readonly Frame[] frames = new Frame[FrameCount];
 
-        public readonly FrameGeneration FrameGeneration;
-
         public readonly Texture Output;
+
+        public FrameGeneration? FrameGeneration;
 
         private int frameIndex;
 
         public Resources(GraphicsContext context, FrameGenerationSwapChainDesc desc)
         {
-            FrameGeneration = context.CreateFrameGeneration(new()
+            Output = context.CreateTexture(TextureDesc.Texture2D(desc.Format, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
             {
-                ColorFormat = desc.ColorFormat,
-                DepthFormat = desc.DepthFormat,
-                MotionVectorsFormat = desc.MotionVectorsFormat,
-                HudlessFormat = desc.HudlessFormat,
-                OutputFormat = desc.ColorFormat,
-                IsHdr = desc.IsHdr,
-                Width = desc.Surface.Width,
-                Height = desc.Surface.Height,
-                AuxiliaryWidth = desc.AuxiliaryWidth,
-                AuxiliaryHeight = desc.AuxiliaryHeight,
-                Flags = desc.Flags
-            });
-
-            Output = context.CreateTexture(TextureDesc.Texture2D(desc.ColorFormat, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
-            {
-                Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst
+                Usages = TextureUsages.Storage | TextureUsages.TransferSrc
             });
 
             for (int i = 0; i < frames.Length; i++)
@@ -178,6 +165,35 @@ public class FrameGenerationSwapChain : DisposableObject
             return Current;
         }
 
+        public FrameGeneration EnsureFrameGeneration(GraphicsContext context, uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight, out bool recreated)
+        {
+            if (FrameGeneration is not null && FrameGeneration.Desc.RenderWidth == renderWidth && FrameGeneration.Desc.RenderHeight == renderHeight && FrameGeneration.Desc.OutputWidth == outputWidth && FrameGeneration.Desc.OutputHeight == outputHeight)
+            {
+                recreated = false;
+
+                return FrameGeneration;
+            }
+
+            if (FrameGeneration is not null)
+            {
+                context.GraphicsQueue.Timeline.Signal().Wait();
+                context.PresentQueue.Timeline.Signal().Wait();
+                FrameGeneration.Dispose();
+            }
+
+            FrameGeneration = context.CreateFrameGeneration(new()
+            {
+                RenderWidth = renderWidth,
+                RenderHeight = renderHeight,
+                OutputWidth = outputWidth,
+                OutputHeight = outputHeight
+            });
+
+            recreated = true;
+
+            return FrameGeneration;
+        }
+
         protected override void Destroy()
         {
             for (int i = 0; i < frames.Length; i++)
@@ -186,7 +202,7 @@ public class FrameGenerationSwapChain : DisposableObject
             }
 
             Output.Dispose();
-            FrameGeneration.Dispose();
+            FrameGeneration?.Dispose();
         }
     }
 
@@ -217,7 +233,7 @@ public class FrameGenerationSwapChain : DisposableObject
             completionHandles[1] = ((IAsyncResult)Completion).AsyncWaitHandle;
         }
 
-        public void Submit(Frame frame, FrameGenerationSwapChainArgs args, TimelineValue rendered)
+        public void Submit(Frame frame, FrameGenerationPresentArgs args, TimelineValue rendered)
         {
             using Lock.Scope _ = @lock.EnterScope();
 
@@ -283,39 +299,47 @@ public class FrameGenerationSwapChain : DisposableObject
             return submitteds.TryDequeue(out submitted);
         }
 
-        private void ProcessFrame(in Submitted submitted)
+        private void ProcessFrame(Submitted submitted)
         {
             Frame frame = submitted.Frame;
-            ref readonly FrameGenerationSwapChainArgs args = ref submitted.Args;
-            bool reset = !hasHistory || args.Reset;
+            FrameGenerationPresentArgs args = submitted.Args;
+
+            FrameGeneration frameGeneration = resources.EnsureFrameGeneration(swapChain.Context,
+                                                                              frame.Depth!.Desc.Width,
+                                                                              frame.Depth.Desc.Height,
+                                                                              frame.Color.Desc.Width,
+                                                                              frame.Color.Desc.Height,
+                                                                              out bool recreated);
+
+            bool reset = !hasHistory || recreated || args.Reset;
             CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
-            frame.Transition(commandBuffer, TextureLayout.Present, TextureLayout.Sampled);
+            commandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.Sampled);
             commandBuffer.Transition(resources.Output, default, TextureLayout.Undefined, TextureLayout.Storage);
 
-            resources.FrameGeneration.Dispatch(commandBuffer, new()
+            frameGeneration.Dispatch(commandBuffer, new()
             {
                 Color = frame.Color,
                 Depth = frame.Depth,
-                MotionVectors = frame.MotionVectors,
-                Hudless = frame.Hudless,
+                MotionVectors = frame.MotionVectors!,
+                Hudless = frame.ActiveHudless,
                 Output = resources.Output,
                 JitterOffset = args.JitterOffset,
-                WorldToView = args.WorldToView,
-                ViewToClip = args.ViewToClip,
+                View = args.View,
+                Projection = args.Projection,
                 DeltaTimeInSeconds = args.DeltaTimeInSeconds,
                 MinLuminanceInNits = args.MinLuminanceInNits,
                 MaxLuminanceInNits = args.MaxLuminanceInNits,
                 Reset = reset
             });
 
-            frame.Transition(commandBuffer, TextureLayout.Sampled, TextureLayout.Present);
+            commandBuffer.Transition(frame.Color, default, TextureLayout.Sampled, TextureLayout.Present);
 
             if (!reset)
             {
                 commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.CopySrc);
                 CopyToDrawable(commandBuffer, resources.Output);
-                commandBuffer.Transition(resources.Output, default, TextureLayout.CopySrc, TextureLayout.Present);
+                commandBuffer.Transition(resources.Output, default, TextureLayout.CopySrc, TextureLayout.Storage);
                 commandBuffer.Submit(submitted.Rendered);
 
                 double elapsedSeconds = Stopwatch.GetElapsedTime(lastPresentationTimestamp).TotalSeconds;
@@ -342,7 +366,6 @@ public class FrameGenerationSwapChain : DisposableObject
             }
             else
             {
-                commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.Present);
                 commandBuffer.Submit(submitted.Rendered).Wait();
 
                 if (tokenSource.IsCancellationRequested)
@@ -406,67 +429,89 @@ public class FrameGenerationSwapChain : DisposableObject
             commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
         }
 
-        private readonly struct Submitted(Frame frame, FrameGenerationSwapChainArgs args, TimelineValue rendered)
+        private readonly struct Submitted(Frame frame, FrameGenerationPresentArgs args, TimelineValue rendered)
         {
             public readonly Frame Frame = frame;
 
-            public readonly FrameGenerationSwapChainArgs Args = args;
+            public readonly FrameGenerationPresentArgs Args = args;
 
             public readonly TimelineValue Rendered = rendered;
         }
     }
 
-    private class Frame : DisposableObject
+    private class Frame(GraphicsContext context, FrameGenerationSwapChainDesc desc) : DisposableObject
     {
         public readonly ManualResetEvent Completion = new(true);
 
-        public readonly Texture Color;
-
-        public readonly Texture Depth;
-
-        public readonly Texture MotionVectors;
-
-        public readonly Texture? Hudless;
-
-        public Frame(GraphicsContext context, FrameGenerationSwapChainDesc desc)
+        public readonly Texture Color = context.CreateTexture(TextureDesc.Texture2D(desc.Format, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
         {
-            Color = CreateTexture(context, desc.ColorFormat, desc.Surface.Width, desc.Surface.Height);
-            Depth = CreateTexture(context, desc.DepthFormat, desc.AuxiliaryWidth, desc.AuxiliaryHeight);
-            MotionVectors = CreateTexture(context, desc.MotionVectorsFormat, desc.AuxiliaryWidth, desc.AuxiliaryHeight);
+            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst
+        });
 
-            if (desc.HudlessFormat is PixelFormat hudlessFormat)
+        public Texture? Depth;
+
+        public Texture? MotionVectors;
+
+        public Texture? Hudless;
+
+        public bool HasHudless;
+
+        public Texture? ActiveHudless => HasHudless ? Hudless : null;
+
+        public void Capture(GraphicsContext context, CommandBuffer commandBuffer, FrameGenerationPresentArgs args)
+        {
+            Depth = EnsureAndCopy(context, commandBuffer, args.Depth, Depth);
+            MotionVectors = EnsureAndCopy(context, commandBuffer, args.MotionVectors, MotionVectors);
+
+            if (args.Hudless is Texture hudless)
             {
-                Hudless = CreateTexture(context, hudlessFormat, desc.Surface.Width, desc.Surface.Height);
+                Hudless = EnsureAndCopy(context, commandBuffer, hudless, Hudless);
+                HasHudless = true;
             }
-        }
-
-        public void Transition(CommandBuffer commandBuffer, TextureLayout before, TextureLayout after)
-        {
-            commandBuffer.Transition(Color, default, before, after);
-            commandBuffer.Transition(Depth, default, before, after);
-            commandBuffer.Transition(MotionVectors, default, before, after);
-
-            if (Hudless is not null)
+            else
             {
-                commandBuffer.Transition(Hudless, default, before, after);
+                HasHudless = false;
             }
         }
 
         protected override void Destroy()
         {
             Hudless?.Dispose();
-            MotionVectors.Dispose();
-            Depth.Dispose();
+            MotionVectors?.Dispose();
+            Depth?.Dispose();
             Color.Dispose();
             Completion.Dispose();
         }
 
-        private static Texture CreateTexture(GraphicsContext context, PixelFormat format, uint width, uint height)
+        private static Texture EnsureAndCopy(GraphicsContext context, CommandBuffer commandBuffer, Texture source, Texture? target)
         {
-            TextureUsages usages = TextureUsages.Sampled | TextureUsages.TransferSrc | TextureUsages.TransferDst;
-            usages |= ZenithHelper.HasDepth(format) ? TextureUsages.DepthStencilAttachment : TextureUsages.ColorAttachment | TextureUsages.Storage;
+            if (target is null || target.Desc.Format != source.Desc.Format || target.Desc.Width != source.Desc.Width || target.Desc.Height != source.Desc.Height)
+            {
+                if (target is not null)
+                {
+                    context.GraphicsQueue.Timeline.Signal().Wait();
+                    context.PresentQueue.Timeline.Signal().Wait();
+                    target.Dispose();
+                }
 
-            return context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with { Usages = usages });
+                target = context.CreateTexture(TextureDesc.Texture2D(source.Desc.Format, source.Desc.Width, source.Desc.Height, 1, SampleCount.Count1) with
+                {
+                    Usages = TextureUsages.Sampled | TextureUsages.TransferDst
+                });
+            }
+
+            commandBuffer.Transition(source, default, TextureLayout.Sampled, TextureLayout.CopySrc);
+            commandBuffer.Transition(target, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+            commandBuffer.CopyTexture(source, default, default, target, default, default, new()
+            {
+                Width = source.Desc.Width,
+                Height = source.Desc.Height,
+                Depth = 1
+            });
+            commandBuffer.Transition(target, default, TextureLayout.CopyDst, TextureLayout.Sampled);
+            commandBuffer.Transition(source, default, TextureLayout.CopySrc, TextureLayout.Sampled);
+
+            return target;
         }
     }
 }
