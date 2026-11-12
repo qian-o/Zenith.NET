@@ -496,7 +496,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
                 target = context.CreateTexture(TextureDesc.Texture2D(source.Desc.Format, source.Desc.Width, source.Desc.Height, 1, SampleCount.Count1) with
                 {
-                    Usages = TextureUsages.Sampled | TextureUsages.TransferDst
+                    Usages = TextureUsages.Sampled | TextureUsages.TransferSrc | TextureUsages.TransferDst
                 });
             }
 

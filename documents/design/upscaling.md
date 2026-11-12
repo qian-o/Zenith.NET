@@ -90,7 +90,7 @@ public static class Extensions
 | 粗糙度 | R 通道保存 `[0, 1]` 线性粗糙度 |
 | 镜面命中距离 | R 通道保存镜面反射射线命中距离 |
 | 曝光 | `Exposure` 为 `null` 时由后端自动计算曝光；提供时为 1×1 `R16Float` 曝光倍率纹理。`PreExposure` 为已乘入线性颜色的预曝光倍率，为 `null` 时按 `1.0f` 处理 |
-| 资源布局与用途 | `Dispatch` 调用前后，所有输入纹理处于 `TextureLayout.Sampled`，`Output` 纹理处于 `TextureLayout.Storage` 且需具备 `TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferDst`（部分后端内部会对输出纹理执行 Clear / RenderTarget 写入）；内部原生状态切换由后端自动完成并恢复 |
+| 资源布局与用途 | `Dispatch` 调用前后，所有输入纹理处于 `TextureLayout.Sampled`（`FrameGeneration` 的 `Color` 与 `Hudless` 还需具备 `TextureUsages.TransferSrc`，部分后端内部会直接拷贝保存历史帧），`Output` 纹理处于 `TextureLayout.Storage` 且需具备 `TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferDst`（部分后端内部会对输出纹理执行 Clear / RenderTarget 写入）；内部原生状态切换由后端自动完成并恢复 |
 
 ### 2.4 超分（`SuperResolution`）
 
