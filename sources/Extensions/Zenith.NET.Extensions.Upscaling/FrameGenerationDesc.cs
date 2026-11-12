@@ -2,6 +2,8 @@
 
 public struct FrameGenerationDesc
 {
+    public PixelFormat Format;
+
     public uint RenderWidth;
 
     public uint RenderHeight;

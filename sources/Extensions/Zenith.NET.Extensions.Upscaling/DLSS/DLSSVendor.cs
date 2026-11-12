@@ -115,6 +115,7 @@ internal unsafe class DLSSVendor : Vendor
         foreach (UpscalingQuality quality in Enum.GetValues<UpscalingQuality>())
         {
             NGXPerfQualityValue perfQualityValue = DLSSFormats.NGX(quality);
+
             if (GetOptimalRenderSize(feature, outputWidth, outputHeight, perfQualityValue) == (renderWidth, renderHeight))
             {
                 return perfQualityValue;
@@ -151,11 +152,12 @@ internal unsafe class DLSSVendor : Vendor
         CompleteCreation(commandBuffer, result);
     }
 
-    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, SuperResolutionArgs args)
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, SuperResolutionArgs args, Texture output)
     {
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
 
         if (args.Exposure is not null)
         {
@@ -170,7 +172,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.BeginExternalCommands();
 
         nint commandList = GetCommandList(commandBuffer);
-        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args) : EvaluateVulkan(commandList, feature, args);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args, output) : EvaluateVulkan(commandList, feature, args, output);
         result.Success();
 
         commandBuffer.EndExternalCommands();
@@ -178,6 +180,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         if (args.Exposure is not null)
         {
@@ -190,7 +193,7 @@ internal unsafe class DLSSVendor : Vendor
         }
     }
 
-    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, RayReconstructionArgs args)
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, RayReconstructionArgs args, Texture output)
     {
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
@@ -200,6 +203,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Normals, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Roughness, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.SpecularHitDistance, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
 
         if (args.Exposure is not null)
         {
@@ -219,7 +223,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.BeginExternalCommands();
 
         nint commandList = GetCommandList(commandBuffer);
-        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args) : EvaluateVulkan(commandList, feature, args);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args, output) : EvaluateVulkan(commandList, feature, args, output);
         result.Success();
 
         commandBuffer.EndExternalCommands();
@@ -232,6 +236,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Normals, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Roughness, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.SpecularHitDistance, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         if (args.Exposure is not null)
         {
@@ -249,11 +254,12 @@ internal unsafe class DLSSVendor : Vendor
         }
     }
 
-    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, FrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFeature feature, FrameGenerationArgs args, Texture output, NGXDLSSGOptEvalParams* optEvalParams)
     {
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
+        commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
 
         if (args.Hudless is not null)
         {
@@ -263,7 +269,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.BeginExternalCommands();
 
         nint commandList = GetCommandList(commandBuffer);
-        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args, optEvalParams) : EvaluateVulkan(commandList, feature, args, optEvalParams);
+        NGXResult result = Context.GraphicsApi is GraphicsApi.DirectX12 ? EvaluateDirectX12(commandList, feature, args, output, optEvalParams) : EvaluateVulkan(commandList, feature, args, output, optEvalParams);
         result.Success();
 
         commandBuffer.EndExternalCommands();
@@ -271,6 +277,7 @@ internal unsafe class DLSSVendor : Vendor
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
+        commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         if (args.Hudless is not null)
         {
@@ -493,14 +500,14 @@ internal unsafe class DLSSVendor : Vendor
         }
     }
 
-    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, SuperResolutionArgs args)
+    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, SuperResolutionArgs args, Texture outputTexture)
     {
         BindDescriptorSet(commandList);
 
         NGXResourceVK color = GetVulkanResource(args.Color);
         NGXResourceVK depth = GetVulkanResource(args.Depth);
         NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors);
-        NGXResourceVK output = GetVulkanResource(args.Output, readWrite: true);
+        NGXResourceVK output = GetVulkanResource(outputTexture, readWrite: true);
 
         NGXVKDLSSEvalParams evalParams = new()
         {
@@ -545,7 +552,7 @@ internal unsafe class DLSSVendor : Vendor
         return Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, RayReconstructionArgs args)
+    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, RayReconstructionArgs args, Texture outputTexture)
     {
         BindDescriptorSet(commandList);
 
@@ -557,7 +564,7 @@ internal unsafe class DLSSVendor : Vendor
         NGXResourceVK normals = GetVulkanResource(args.Normals);
         NGXResourceVK roughness = GetVulkanResource(args.Roughness);
         NGXResourceVK specularHitDistance = GetVulkanResource(args.SpecularHitDistance);
-        NGXResourceVK output = GetVulkanResource(args.Output, readWrite: true);
+        NGXResourceVK output = GetVulkanResource(outputTexture, readWrite: true);
 
         NGXVKDLSSDEvalParams evalParams = new()
         {
@@ -614,14 +621,14 @@ internal unsafe class DLSSVendor : Vendor
         return Ngx.Vulkan.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, FrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
+    private NGXResult EvaluateVulkan(nint commandList, DLSSFeature feature, FrameGenerationArgs args, Texture outputTexture, NGXDLSSGOptEvalParams* optEvalParams)
     {
         BindDescriptorSet(commandList);
 
         NGXResourceVK backbuffer = GetVulkanResource(args.Color);
         NGXResourceVK depth = GetVulkanResource(args.Depth);
         NGXResourceVK motionVectors = GetVulkanResource(args.MotionVectors);
-        NGXResourceVK output = GetVulkanResource(args.Output, readWrite: true);
+        NGXResourceVK output = GetVulkanResource(outputTexture, readWrite: true);
 
         NGXVKDLSSGEvalParams evalParams = new()
         {
@@ -747,14 +754,14 @@ internal unsafe class DLSSVendor : Vendor
         }
     }
 
-    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, SuperResolutionArgs args)
+    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, SuperResolutionArgs args, Texture output)
     {
         NGXD3D12DLSSEvalParams evalParams = new()
         {
             Feature = new()
             {
                 Color = args.Color.GetNativeObject(NativeObjectType.D3D12Resource),
-                Output = args.Output.GetNativeObject(NativeObjectType.D3D12Resource)
+                Output = output.GetNativeObject(NativeObjectType.D3D12Resource)
             },
             Depth = args.Depth.GetNativeObject(NativeObjectType.D3D12Resource),
             MotionVectors = args.MotionVectors.GetNativeObject(NativeObjectType.D3D12Resource),
@@ -778,7 +785,7 @@ internal unsafe class DLSSVendor : Vendor
         return Ngx.D3D12.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, RayReconstructionArgs args)
+    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, RayReconstructionArgs args, Texture output)
     {
         NGXD3D12DLSSDEvalParams evalParams = new()
         {
@@ -787,7 +794,7 @@ internal unsafe class DLSSVendor : Vendor
             Normals = args.Normals.GetNativeObject(NativeObjectType.D3D12Resource),
             Roughness = args.Roughness.GetNativeObject(NativeObjectType.D3D12Resource),
             Color = args.Color.GetNativeObject(NativeObjectType.D3D12Resource),
-            Output = args.Output.GetNativeObject(NativeObjectType.D3D12Resource),
+            Output = output.GetNativeObject(NativeObjectType.D3D12Resource),
             Depth = args.Depth.GetNativeObject(NativeObjectType.D3D12Resource),
             MotionVectors = args.MotionVectors.GetNativeObject(NativeObjectType.D3D12Resource),
             JitterOffsetX = -args.JitterOffset.X,
@@ -814,7 +821,7 @@ internal unsafe class DLSSVendor : Vendor
         return Ngx.D3D12.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams);
     }
 
-    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, FrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
+    private static NGXResult EvaluateDirectX12(nint commandList, DLSSFeature feature, FrameGenerationArgs args, Texture output, NGXDLSSGOptEvalParams* optEvalParams)
     {
         NGXD3D12DLSSGEvalParams evalParams = new()
         {
@@ -822,7 +829,7 @@ internal unsafe class DLSSVendor : Vendor
             Depth = args.Depth.GetNativeObject(NativeObjectType.D3D12Resource),
             MVecs = args.MotionVectors.GetNativeObject(NativeObjectType.D3D12Resource),
             Hudless = args.Hudless?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0,
-            OutputInterpFrame = args.Output.GetNativeObject(NativeObjectType.D3D12Resource)
+            OutputInterpFrame = output.GetNativeObject(NativeObjectType.D3D12Resource)
         };
 
         return Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams);

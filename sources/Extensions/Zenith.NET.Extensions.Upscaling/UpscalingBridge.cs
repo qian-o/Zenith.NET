@@ -55,12 +55,13 @@ internal class UpscalingBridge : DisposableObject
 
     public UpscalingCapabilities Capabilities { get; }
 
-    public SuperResolutionDesc CreateSuperResolutionDesc(uint outputWidth, uint outputHeight, UpscalingQuality quality)
+    public SuperResolutionDesc CreateSuperResolutionDesc(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
         (uint renderWidth, uint renderHeight) = GetVendor(superResolutionVendor, "super resolution").GetSuperResolutionRenderSize(outputWidth, outputHeight, quality);
 
         return new()
         {
+            Format = format,
             RenderWidth = renderWidth,
             RenderHeight = renderHeight,
             OutputWidth = outputWidth,
@@ -68,12 +69,13 @@ internal class UpscalingBridge : DisposableObject
         };
     }
 
-    public RayReconstructionDesc CreateRayReconstructionDesc(uint outputWidth, uint outputHeight, UpscalingQuality quality)
+    public RayReconstructionDesc CreateRayReconstructionDesc(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
         (uint renderWidth, uint renderHeight) = GetVendor(rayReconstructionVendor, "ray reconstruction").GetRayReconstructionRenderSize(outputWidth, outputHeight, quality);
 
         return new()
         {
+            Format = format,
             RenderWidth = renderWidth,
             RenderHeight = renderHeight,
             OutputWidth = outputWidth,
@@ -141,6 +143,14 @@ internal abstract class Vendor(GraphicsContext context) : DisposableObject
     public abstract RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
 
     public abstract FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc);
+
+    public static Texture CreateOutput(GraphicsContext context, PixelFormat format, uint width, uint height)
+    {
+        return context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
+        });
+    }
 
     public static (float NearPlane, float FarPlane, float VerticalFieldOfViewInRadians, float AspectRatio, bool DepthReversed, bool DepthInfinite) DecomposePerspective(Matrix4x4 projection)
     {

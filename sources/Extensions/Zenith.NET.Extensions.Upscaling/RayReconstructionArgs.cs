@@ -26,8 +26,6 @@ public struct RayReconstructionArgs
 
     public Texture? Exposure;
 
-    public Texture Output;
-
     public Vector2 JitterOffset;
 
     public Matrix4x4 View;

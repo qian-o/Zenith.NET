@@ -5,10 +5,10 @@
 ## 1. 原则
 
 1. **参数按语义定义，不按厂商定义。** 字段名来自图形学概念（颜色、深度、运动向量、法线、粗糙度、相机），不出现 `NGX`、`ffx`、`MTLFX` 等原生名字。映射到原生结构、推导衍生参数与布局转换属于后端实现。
-2. **创建描述只声明尺寸或交换链契约，不重复声明资源格式。** 输入与输出纹理自带 `Texture.Desc`，后端按实际传入纹理的格式完成惰性管线创建或缓存复用，不要求调用方在 `Desc` 中重复填写 `PixelFormat`。
+2. **创建描述只声明输出格式、尺寸或交换链契约，不重复声明输入纹理格式。** 功能实例内部自管并公开 `Output` 纹理（自动内置平台所需的全部 `TextureUsages` 并在 `Dispatch` 结束后统一转为 `TextureLayout.Sampled`）；输入纹理自带 `Texture.Desc`，后端按实际传入纹理的格式完成惰性管线创建或缓存复用。
 3. **能够由输入数学推导或合理默认的参数，不暴露冗余开关。** 近远平面、垂直视场角、宽高比、反向 Z 与无限远平面统一从投影矩阵自动推导；是否 HDR 与呈现传输函数从颜色纹理格式推导；不传曝光纹理即启用自动曝光。
 4. **三种能力，统一单路场景输入。** 提供超分、光线重建、帧生成。光线重建始终接收同一套单路带噪线性颜色与几何材质引导图，不要求调用方为特定后端拆分多路辐射度信号；帧生成每次生成一帧。
-5. **资源只传整体对象，风格严格对齐核心 RHI。** 只传完整 `Texture`，不划分子资源或子矩形；尺寸使用成对的 `uint Width` / `uint Height` 字段；结构体与参数列表不使用 `required`、`in`、`ref` 或元组；功能对象只公开 `Desc`。
+5. **资源只传整体对象，风格严格对齐核心 RHI。** 只传完整 `Texture`，不划分子资源或子矩形；尺寸使用成对的 `uint Width` / `uint Height` 字段；结构体与参数列表不使用 `required`、`in`、`ref` 或元组；功能对象只公开 `Desc` 与 `Output`。
 
 ## 2. 公共 API
 
@@ -83,20 +83,22 @@ public static class Extensions
 | 运动向量 | UV 空间，`PreviousUV - CurrentUV`，包含相机与物体运动，不包含抖动；尺寸为 `RenderWidth × RenderHeight` |
 | 深度 | 硬件视口深度（`currentClip.z / currentClip.w`）；尺寸为 `RenderWidth × RenderHeight`；反向 Z 与无限远平面从 `Projection` 自动识别 |
 | 抖动与矩阵 | `JitterOffset` 为渲染分辨率像素单位的采样抖动偏移（以渲染栅格左上角为原点、右下为正，表示本帧相机射线采样点相对像素中心的偏移，范围通常在 `[-0.5, 0.5]`，内部自动按后端要求转换符号）；`View` 为世界到视空间矩阵，`Projection` 为不含抖动的视空间到裁剪空间矩阵；距离以米为单位，矩阵采用 `System.Numerics.Matrix4x4` 行主序行向量约定 |
-| 超分、光线重建颜色 | 线性场景颜色，不含色调映射与 UI；浮点格式（如 `R16G16B16A16Float`、`R11G11B10Float`）按 HDR 线性辐射度处理；输入尺寸为 `RenderWidth × RenderHeight`，`Output` 尺寸为 `OutputWidth × OutputHeight` |
+| 超分、光线重建颜色 | 线性场景颜色，不含色调映射与 UI；浮点格式（如 `R16G16B16A16Float`、`R11G11B10Float`）按 HDR 线性辐射度处理；输入尺寸为 `RenderWidth × RenderHeight`，实例公开的 `Output` 尺寸为 `OutputWidth × OutputHeight` |
 | 帧生成颜色 | 已完成色调映射与颜色编码的呈现帧，尺寸为 `OutputWidth × OutputHeight`；`R8G8B8A8*` / `B8G8R8A8*` 按 sRGB 处理，`R10G10B10A2UNorm` 按 HDR10 PQ 处理，`R16G16B16A16Float` 按线性 scRGB 处理 |
 | 反照度 | 线性反射率，不含光照；`DiffuseAlbedo` 与 `SpecularAlbedo` 分别提供 |
 | 法线 | RGB 保存世界空间单位向量，不做八面体编码或打包 |
 | 粗糙度 | R 通道保存 `[0, 1]` 线性粗糙度 |
 | 镜面命中距离 | R 通道保存镜面反射射线命中距离 |
 | 曝光 | `Exposure` 为 `null` 时由后端自动计算曝光；提供时为 1×1 `R16Float` 曝光倍率纹理。`PreExposure` 为已乘入线性颜色的预曝光倍率，为 `null` 时按 `1.0f` 处理 |
-| 资源布局与用途 | `Dispatch` 调用前后，所有输入纹理处于 `TextureLayout.Sampled`（`FrameGeneration` 的 `Color` 与 `Hudless` 还需具备 `TextureUsages.TransferSrc`，部分后端内部会直接拷贝保存历史帧），`Output` 纹理处于 `TextureLayout.Storage` 且需具备 `TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferDst`（部分后端内部会对输出纹理执行 Clear / RenderTarget 写入）；内部原生状态切换由后端自动完成并恢复 |
+| 资源布局与用途 | `Dispatch` / `Present` 调用前后，所有输入纹理保持 `TextureLayout.Sampled`（`FrameGeneration` 的 `Color` / `Hudless` 与 `FrameGenerationSwapChain` 的输入需具备 `TextureUsages.TransferSrc` 以供快照拷贝）；实例自管的 `Output` 纹理在 `Dispatch` 结束后自动处于 `TextureLayout.Sampled`；内部原生状态切换由后端自动完成并恢复 |
 
 ### 2.4 超分（`SuperResolution`）
 
 ```csharp
 public struct SuperResolutionDesc
 {
+    public PixelFormat Format;
+
     public uint RenderWidth;
 
     public uint RenderHeight;
@@ -105,7 +107,7 @@ public struct SuperResolutionDesc
 
     public uint OutputHeight;
 
-    public static SuperResolutionDesc Quality(GraphicsContext context, uint outputWidth, uint outputHeight, UpscalingQuality quality);
+    public static SuperResolutionDesc Quality(GraphicsContext context, PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality);
 }
 
 public struct SuperResolutionArgs
@@ -120,8 +122,6 @@ public struct SuperResolutionArgs
 
     public Texture? Exposure;
 
-    public Texture Output;
-
     public Vector2 JitterOffset;
 
     public Matrix4x4 Projection;
@@ -133,9 +133,11 @@ public struct SuperResolutionArgs
     public bool Reset;
 }
 
-public abstract class SuperResolution(SuperResolutionDesc desc) : DisposableObject
+public abstract class SuperResolution(GraphicsContext context, SuperResolutionDesc desc) : DisposableObject
 {
     public SuperResolutionDesc Desc { get; }
+
+    public Texture Output { get; }
 
     public void Dispatch(CommandBuffer commandBuffer, SuperResolutionArgs args);
 
@@ -143,7 +145,7 @@ public abstract class SuperResolution(SuperResolutionDesc desc) : DisposableObje
 }
 ```
 
-`RenderWidth/Height` 不大于 `OutputWidth/Height`，相等时执行原分辨率时域抗锯齿。`SuperResolutionDesc.Quality(...)` 根据当前激活的超分后端查询指定 `UpscalingQuality` 对应的最佳渲染尺寸并返回完整描述；调用方创建 `SuperResolution` 后可直接通过 `superResolution.Desc.RenderWidth/Height` 创建渲染目标。
+`RenderWidth/Height` 不大于 `OutputWidth/Height`，相等时执行原分辨率时域抗锯齿。`SuperResolutionDesc.Quality(...)` 根据当前激活的超分后端查询指定 `UpscalingQuality` 对应的最佳渲染尺寸并返回完整描述；调用方创建 `SuperResolution` 后可直接通过 `superResolution.Desc.RenderWidth/Height` 创建渲染目标，并在 `Dispatch` 后直接读取已处于 `TextureLayout.Sampled` 的 `superResolution.Output`。
 
 `ReactiveMask` 为可选反应性遮罩，R 通道值为 `[0, 1]`，数值越大越减少对历史帧的依赖。`DeltaTimeInSeconds` 为相邻真实帧的时间间隔（秒）。`Reset` 在首帧、切镜头或场景突变时置为 `true` 以重置时域历史。
 
@@ -152,6 +154,8 @@ public abstract class SuperResolution(SuperResolutionDesc desc) : DisposableObje
 ```csharp
 public struct RayReconstructionDesc
 {
+    public PixelFormat Format;
+
     public uint RenderWidth;
 
     public uint RenderHeight;
@@ -160,7 +164,7 @@ public struct RayReconstructionDesc
 
     public uint OutputHeight;
 
-    public static RayReconstructionDesc Quality(GraphicsContext context, uint outputWidth, uint outputHeight, UpscalingQuality quality);
+    public static RayReconstructionDesc Quality(GraphicsContext context, PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality);
 }
 
 public struct RayReconstructionArgs
@@ -187,8 +191,6 @@ public struct RayReconstructionArgs
 
     public Texture? Exposure;
 
-    public Texture Output;
-
     public Vector2 JitterOffset;
 
     public Matrix4x4 View;
@@ -202,9 +204,11 @@ public struct RayReconstructionArgs
     public bool Reset;
 }
 
-public abstract class RayReconstruction(RayReconstructionDesc desc) : DisposableObject
+public abstract class RayReconstruction(GraphicsContext context, RayReconstructionDesc desc) : DisposableObject
 {
     public RayReconstructionDesc Desc { get; }
+
+    public Texture Output { get; }
 
     public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args);
 
@@ -212,7 +216,7 @@ public abstract class RayReconstruction(RayReconstructionDesc desc) : Disposable
 }
 ```
 
-`RayReconstruction` 在一次 `Dispatch` 中完成光线追踪降噪与超分。除可选 1×1 `Exposure` 与输出尺寸的 `Output` 外，输入纹理尺寸均为 `RenderWidth × RenderHeight`。
+`RayReconstruction` 在一次 `Dispatch` 中完成光线追踪降噪与超分，并将结果写入实例持有的 `Output`（尺寸为 `OutputWidth × OutputHeight`，`Dispatch` 结束后处于 `TextureLayout.Sampled`）。除可选 1×1 `Exposure` 外，输入纹理尺寸均为 `RenderWidth × RenderHeight`。
 
 `Color` 始终是完整的带噪线性场景颜色；`DiffuseAlbedo`、`SpecularAlbedo`、`Normals`、`Roughness`、`SpecularHitDistance` 为标准物理引导图；`TransparencyOverlay` 为可选的线性 RGBA 透明层叠加（A 通道为不透明度）。调用方无需拆分多路直接/间接辐射度或计算帧间线性深度差。
 
@@ -221,6 +225,8 @@ public abstract class RayReconstruction(RayReconstructionDesc desc) : Disposable
 ```csharp
 public struct FrameGenerationDesc
 {
+    public PixelFormat Format;
+
     public uint RenderWidth;
 
     public uint RenderHeight;
@@ -240,8 +246,6 @@ public struct FrameGenerationArgs
 
     public Texture? Hudless;
 
-    public Texture Output;
-
     public Vector2 JitterOffset;
 
     public Matrix4x4 View;
@@ -257,9 +261,11 @@ public struct FrameGenerationArgs
     public bool Reset;
 }
 
-public abstract class FrameGeneration(FrameGenerationDesc desc) : DisposableObject
+public abstract class FrameGeneration(GraphicsContext context, FrameGenerationDesc desc) : DisposableObject
 {
     public FrameGenerationDesc Desc { get; }
+
+    public Texture Output { get; }
 
     public void Dispatch(CommandBuffer commandBuffer, FrameGenerationArgs args);
 
@@ -271,7 +277,7 @@ public abstract class FrameGeneration(FrameGenerationDesc desc) : DisposableObje
 
 `Color` 是最终呈现的真实帧（可包含 UI）；`Hudless` 是同一帧合成 UI 前的场景颜色，两者在非 UI 区域的内容、曝光与编码一致。`MinLuminanceInNits` 与 `MaxLuminanceInNits` 仅在 HDR 呈现需要显式指定显示器最小/最大峰值亮度（尼特）时传入，未指定时在 HDR 下分别使用标准默认值（`0.001f` 与 `1000.0f`），SDR 下忽略。
 
-每次 `Dispatch` 生成上一真实帧与当前真实帧之间的一张插值帧；首次调用或 `Reset` 为 `true` 时仅初始化历史，该次 `Output` 不用于呈现。
+每次 `Dispatch` 生成上一真实帧与当前真实帧之间的一张插值帧并写入 `Output`（处于 `TextureLayout.Sampled`）；首次调用或 `Reset` 为 `true` 时仅初始化历史，该次 `Output` 不用于呈现。
 
 ## 3. 帧生成交换链（`FrameGenerationSwapChain`）
 
@@ -287,7 +293,7 @@ public struct FrameGenerationSwapChainDesc
     public bool IsVerticalSyncEnabled;
 }
 
-public struct FrameGenerationPresentArgs
+public struct FrameGenerationSwapChainArgs
 {
     public Texture Depth;
 
@@ -318,7 +324,7 @@ public class FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSw
 
     public Texture Drawable { get; }
 
-    public void Present(CommandBuffer commandBuffer, FrameGenerationPresentArgs args);
+    public void Present(CommandBuffer commandBuffer, FrameGenerationSwapChainArgs args);
 
     public void Resize(uint width, uint height);
 
@@ -344,7 +350,7 @@ public class FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSw
 context.InitializeUpscaling();
 
 using SuperResolution upscaler = context.CreateSuperResolution(
-    SuperResolutionDesc.Quality(context, surface.Width, surface.Height, UpscalingQuality.Quality));
+    SuperResolutionDesc.Quality(context, PixelFormat.R16G16B16A16Float, surface.Width, surface.Height, UpscalingQuality.Quality));
 
 using FrameGenerationSwapChain swapChain = context.CreateFrameGenerationSwapChain(new()
 {
@@ -361,13 +367,12 @@ upscaler.Dispatch(commandBuffer, new()
     Color = sceneColor,
     Depth = sceneDepth,
     MotionVectors = motionVectors,
-    Output = upscaledColor,
     JitterOffset = jitter,
     Projection = projection,
     DeltaTimeInSeconds = deltaTime
 });
 
-// 2. 色调映射至 postColor（用作 Hudless），再将最终画面与 UI 绘制到 swapChain.Drawable 并转入 Present 布局...
+// 2. 采样 upscaler.Output 色调映射至 postColor（用作 Hudless），再将最终画面与 UI 绘制到 swapChain.Drawable 并转入 Present 布局...
 
 // 3. 提交并插帧呈现：
 swapChain.Present(commandBuffer, new()
@@ -409,18 +414,20 @@ swapChain.Present(commandBuffer, new()
    - 超分与光线重建根据 `Color.Desc.Format` 是否为 HDR 格式自动设置底层 HDR 标志。
    - 帧生成根据 `Color.Desc.Format` 自动选择传输函数：`R16G16B16A16Float` 映射为线性 scRGB，`R10G10B10A2UNorm` 映射为 PQ，其余 8 位格式映射为 sRGB。
 3. **惰性原生实例与格式缓存**：
-   - 由于创建期不声明 `PixelFormat`，后端在首次 `Dispatch`（或纹理格式组合/曝光模式变化时）读取输入与输出纹理的 `Desc.Format` 创建并预热原生上下文，在后续帧直接复用。
+   - 输出纹理在构造实例时按 `Desc.Format` 创建并持有；输入纹理格式在首次 `Dispatch`（或输入格式组合/曝光模式变化时）按 `Desc.Format` 读取以创建并预热原生上下文，后续帧直接复用。
 
 ### 4.3 超分
 
 | 公共 | DLSS | FSR | MetalFX |
 |---|---|---|---|
+| `Desc.Format` | `Output` 纹理格式 | `Output` 纹理格式 | `OutputTextureFormat` |
 | `Desc` 尺寸 | `Width/Height` = 渲染，`TargetWidth/Height` = 输出 | `MaxRenderSize` / `MaxUpscaleSize` | `InputWidth/Height` / `OutputWidth/Height` |
 | `Color` | `Color` | `Color` | `ColorTexture` |
 | `Depth` | `Depth` | `Depth` | `DepthTexture` |
 | `MotionVectors` | `MotionVectors` | `MotionVectors` | `MotionTexture` |
 | `ReactiveMask` | `BiasCurrentColorMask` | `Reactive` | `ReactiveMaskTexture` |
 | `Exposure` | `ExposureTexture`（空则 `AutoExposure`） | `Exposure`（空则 `AutoExposure`） | `ExposureTexture`（空则 `IsAutoExposureEnabled`） |
+| `Output` | `Output` | `Output` | `OutputTexture` |
 | `PreExposure` | `PreExposure`（默认 `1.0f`） | `PreExposure`（默认 `1.0f`） | `PreExposure`（默认 `1.0f`） |
 | `JitterOffset` | `JitterOffsetX/Y` | `JitterOffset` | `JitterOffsetX/Y` |
 | `DeltaTimeInSeconds` | `FrameTimeDeltaInMsec`（秒转毫秒） | `FrameTimeDelta`（秒转毫秒） | 不读取 |
@@ -443,6 +450,7 @@ FSR 后端在同一个调用方 `CommandBuffer` 中内部串联 **准备（Prepa
 
 | 公共 | DLSS | FSR | MetalFX |
 |---|---|---|---|
+| `Desc.Format` | `NativeBackbufferFormat` 及 `Output` 纹理格式 | `BackBufferFormat` 及 `Output` 纹理格式 | `OutputTextureFormat` |
 | `RenderWidth/Height` | `RenderWidth/Height` 及深度、运动向量尺寸 | `MaxRenderSize` 与当前 `RenderSize` | `InputWidth/Height` 及 `ContentWidth/Height` |
 | `OutputWidth/Height` | `Width/Height` | `DisplaySize` 与 `GenerationRect` | `OutputWidth/Height` |
 | `Color` | `Backbuffer` | `PresentColor` | 有 `Hudless` 时为 `UiTexture`，否则为 `ColorTexture` |

@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc desc) : RayReconstruction(desc)
+internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc desc) : RayReconstruction(vendor.Context, desc)
 {
     private readonly NGXPerfQualityValue perfQualityValue = vendor.FindPerfQualityValue(NGXFeature.RayReconstruction, desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight);
 
@@ -21,12 +21,14 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
             recreated = false;
         }
 
-        vendor.Evaluate(commandBuffer, feature!, args);
+        vendor.Evaluate(commandBuffer, feature!, args, Output);
     }
 
     protected override void Destroy()
     {
         feature?.Dispose();
+
+        base.Destroy();
     }
 
     private void EnsureFeature(NGXDLSSFeatureFlags nextFlags)

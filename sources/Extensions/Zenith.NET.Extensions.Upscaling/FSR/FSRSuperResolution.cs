@@ -2,13 +2,13 @@
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
-internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc desc) : SuperResolution(desc)
+internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc desc) : SuperResolution(vendor.Context, desc)
 {
     private FSRContext context;
     private FSRApiCreateContextUpscaleFlags contextFlags;
     private bool recreated;
 
-    public void Dispatch(CommandBuffer commandBuffer, SuperResolutionArgs args, Texture? transparencyMask)
+    public void Dispatch(CommandBuffer commandBuffer, SuperResolutionArgs args, Texture output, Texture? transparencyMask)
     {
         (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _, bool depthReversed, bool depthInfinite) = Vendor.DecomposePerspective(args.Projection);
         FSRApiCreateContextUpscaleFlags flags = default;
@@ -46,7 +46,7 @@ internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc d
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+        commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Common);
 
         if (args.Exposure is not null)
         {
@@ -72,7 +72,7 @@ internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc d
             Exposure = args.Exposure.FSR(),
             Reactive = args.ReactiveMask.FSR(),
             TransparencyAndComposition = transparencyMask.FSR(),
-            Output = args.Output.FSR(),
+            Output = output.FSR(),
             JitterOffset = new()
             {
                 X = -args.JitterOffset.X,
@@ -111,7 +111,7 @@ internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc d
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+        commandBuffer.Transition(output, default, TextureLayout.Common, TextureLayout.Sampled);
 
         if (args.Exposure is not null)
         {
@@ -131,13 +131,15 @@ internal unsafe class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc d
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
     {
-        Dispatch(commandBuffer, args, null);
+        Dispatch(commandBuffer, args, Output, null);
     }
 
     protected override void Destroy()
     {
         vendor.DestroyContext(context);
         context = default;
+
+        base.Destroy();
     }
 
     private void EnsureContext(FSRApiCreateContextUpscaleFlags flags)

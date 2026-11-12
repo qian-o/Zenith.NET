@@ -14,8 +14,6 @@ public struct SuperResolutionArgs
 
     public Texture? Exposure;
 
-    public Texture Output;
-
     public Vector2 JitterOffset;
 
     public Matrix4x4 Projection;

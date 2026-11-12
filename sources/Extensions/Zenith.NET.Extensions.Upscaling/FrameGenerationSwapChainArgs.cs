@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling;
 
-public struct FrameGenerationPresentArgs
+public struct FrameGenerationSwapChainArgs
 {
     public Texture Depth;
 

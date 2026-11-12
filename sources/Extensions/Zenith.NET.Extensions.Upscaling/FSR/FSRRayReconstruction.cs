@@ -15,12 +15,13 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
     private uint frameIndex;
     private bool hasHistory;
 
-    public FSRRayReconstruction(FSRVendor vendor, RayReconstructionDesc desc) : base(desc)
+    public FSRRayReconstruction(FSRVendor vendor, RayReconstructionDesc desc) : base(vendor.Context, desc)
     {
         denoisingPass = new(vendor, desc);
         compositionPass = new(vendor.Context, desc);
         superResolution = new(vendor, new()
         {
+            Format = desc.Format,
             RenderWidth = desc.RenderWidth,
             RenderHeight = desc.RenderHeight,
             OutputWidth = desc.OutputWidth,
@@ -46,13 +47,12 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
             MotionVectors = args.MotionVectors,
             ReactiveMask = args.ReactiveMask,
             Exposure = args.Exposure,
-            Output = args.Output,
             JitterOffset = args.JitterOffset,
             Projection = args.Projection,
             DeltaTimeInSeconds = args.DeltaTimeInSeconds,
             PreExposure = args.PreExposure,
             Reset = reset
-        }, compositionPass.TransparencyMask);
+        }, Output, compositionPass.TransparencyMask);
 
         previousCameraPosition = cameraPosition;
         hasHistory = true;
@@ -64,6 +64,8 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
         superResolution.Dispose();
         compositionPass.Dispose();
         denoisingPass.Dispose();
+
+        base.Destroy();
     }
 
     private static Texture CreateTexture(GraphicsContext context, PixelFormat format, RayReconstructionDesc desc, TextureUsages additionalUsages = TextureUsages.None)
@@ -315,9 +317,9 @@ internal unsafe partial class FSRRayReconstruction : RayReconstruction
 
         public readonly Texture Color = CreateTexture(context, PixelFormat.R16G16B16A16Float, desc);
 
-        private bool transparencyMaskInitialized;
+        public Texture? TransparencyMask;
 
-        public Texture? TransparencyMask { get; private set; }
+        private bool transparencyMaskInitialized;
 
         public void Dispatch(CommandBuffer commandBuffer,
                              RayReconstructionArgs args,

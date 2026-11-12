@@ -4,17 +4,17 @@ using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc desc) : FrameGeneration(desc)
+internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc desc) : FrameGeneration(vendor.Context, desc)
 {
     private MTL4FXFrameInterpolator interpolator;
-    private (PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? Hudless, PixelFormat Output) key;
+    private (PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? Hudless) key;
     private bool recreated;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
         using NSAutoreleasePool pool = new();
 
-        EnsureInterpolator((args.Color.Desc.Format, args.Depth.Desc.Format, args.MotionVectors.Desc.Format, args.Hudless?.Desc.Format, args.Output.Desc.Format));
+        EnsureInterpolator((args.Color.Desc.Format, args.Depth.Desc.Format, args.MotionVectors.Desc.Format, args.Hudless?.Desc.Format));
 
         if (recreated)
         {
@@ -22,11 +22,15 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
             recreated = false;
         }
 
+        commandBuffer.Transition(Output, default, TextureLayout.Undefined, TextureLayout.Storage);
+
         commandBuffer.BeginExternalCommands();
 
         Encode(commandBuffer.Metal(), args);
 
         commandBuffer.EndExternalCommands();
+
+        commandBuffer.Transition(Output, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
     protected override void Destroy()
@@ -35,9 +39,11 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         {
             interpolator.Dispose();
         }
+
+        base.Destroy();
     }
 
-    private void EnsureInterpolator((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? Hudless, PixelFormat Output) nextKey)
+    private void EnsureInterpolator((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? Hudless) nextKey)
     {
         if (!interpolator.IsNull && key == nextKey)
         {
@@ -56,7 +62,7 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         using MTLFXFrameInterpolatorDescriptor descriptor = new()
         {
             ColorTextureFormat = MetalFXFormats.Metal(nextKey.Hudless ?? nextKey.Color),
-            OutputTextureFormat = MetalFXFormats.Metal(nextKey.Output),
+            OutputTextureFormat = MetalFXFormats.Metal(Desc.Format),
             DepthTextureFormat = MetalFXFormats.Metal(nextKey.Depth),
             MotionTextureFormat = MetalFXFormats.Metal(nextKey.MotionVectors),
             UiTextureFormat = MetalFXFormats.Metal(nextKey.Hudless is not null ? nextKey.Color : null),
@@ -80,7 +86,7 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         interpolator.DepthTexture = args.Depth.Metal();
         interpolator.MotionTexture = args.MotionVectors.Metal();
         interpolator.UiTexture = args.Hudless is not null ? args.Color.Metal() : default;
-        interpolator.OutputTexture = args.Output.Metal();
+        interpolator.OutputTexture = Output.Metal();
         interpolator.ContentWidth = Desc.RenderWidth;
         interpolator.ContentHeight = Desc.RenderHeight;
         interpolator.DeltaTime = args.DeltaTimeInSeconds;
@@ -100,13 +106,12 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         interpolator.Encode(commandBuffer);
     }
 
-    private void WarmUp((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? Hudless, PixelFormat Output) nextKey)
+    private void WarmUp((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? Hudless) nextKey)
     {
         using Texture color = vendor.CreateTexture(nextKey.Color, Desc.OutputWidth, Desc.OutputHeight);
         using Texture depth = vendor.CreateTexture(nextKey.Depth, Desc.RenderWidth, Desc.RenderHeight);
         using Texture motionVectors = vendor.CreateTexture(nextKey.MotionVectors, Desc.RenderWidth, Desc.RenderHeight);
         using Texture? hudless = nextKey.Hudless is PixelFormat hudlessFormat ? vendor.CreateTexture(hudlessFormat, Desc.OutputWidth, Desc.OutputHeight) : null;
-        using Texture output = vendor.CreateTexture(nextKey.Output, Desc.OutputWidth, Desc.OutputHeight);
 
         vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
         {
@@ -114,7 +119,6 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
             Depth = depth,
             MotionVectors = motionVectors,
             Hudless = hudless,
-            Output = output,
             View = Matrix4x4.Identity,
             Projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4.0f, (float)Desc.OutputWidth / Desc.OutputHeight, 0.1f, 100.0f),
             DeltaTimeInSeconds = 1.0f / 60.0f,

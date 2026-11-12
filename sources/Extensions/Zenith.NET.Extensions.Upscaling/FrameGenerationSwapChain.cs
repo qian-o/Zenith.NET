@@ -40,7 +40,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
     public Texture Drawable => resources!.Current.Color;
 
-    public void Present(CommandBuffer commandBuffer, FrameGenerationPresentArgs args)
+    public void Present(CommandBuffer commandBuffer, FrameGenerationSwapChainArgs args)
     {
         Frame frame = resources!.Current;
         frame.Capture(Context, commandBuffer, args);
@@ -137,19 +137,12 @@ public class FrameGenerationSwapChain : DisposableObject
     {
         private readonly Frame[] frames = new Frame[FrameCount];
 
-        public readonly Texture Output;
-
         public FrameGeneration? FrameGeneration;
 
         private int frameIndex;
 
         public Resources(GraphicsContext context, FrameGenerationSwapChainDesc desc)
         {
-            Output = context.CreateTexture(TextureDesc.Texture2D(desc.Format, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
-            {
-                Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst
-            });
-
             for (int i = 0; i < frames.Length; i++)
             {
                 frames[i] = new(context, desc);
@@ -165,9 +158,9 @@ public class FrameGenerationSwapChain : DisposableObject
             return Current;
         }
 
-        public FrameGeneration EnsureFrameGeneration(GraphicsContext context, uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight, out bool recreated)
+        public FrameGeneration EnsureFrameGeneration(GraphicsContext context, PixelFormat format, uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight, out bool recreated)
         {
-            if (FrameGeneration is not null && FrameGeneration.Desc.RenderWidth == renderWidth && FrameGeneration.Desc.RenderHeight == renderHeight && FrameGeneration.Desc.OutputWidth == outputWidth && FrameGeneration.Desc.OutputHeight == outputHeight)
+            if (FrameGeneration is not null && FrameGeneration.Desc.Format == format && FrameGeneration.Desc.RenderWidth == renderWidth && FrameGeneration.Desc.RenderHeight == renderHeight && FrameGeneration.Desc.OutputWidth == outputWidth && FrameGeneration.Desc.OutputHeight == outputHeight)
             {
                 recreated = false;
 
@@ -183,6 +176,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
             FrameGeneration = context.CreateFrameGeneration(new()
             {
+                Format = format,
                 RenderWidth = renderWidth,
                 RenderHeight = renderHeight,
                 OutputWidth = outputWidth,
@@ -201,7 +195,6 @@ public class FrameGenerationSwapChain : DisposableObject
                 frames[i].Dispose();
             }
 
-            Output.Dispose();
             FrameGeneration?.Dispose();
         }
     }
@@ -233,7 +226,7 @@ public class FrameGenerationSwapChain : DisposableObject
             completionHandles[1] = ((IAsyncResult)Completion).AsyncWaitHandle;
         }
 
-        public void Submit(Frame frame, FrameGenerationPresentArgs args, TimelineValue rendered)
+        public void Submit(Frame frame, FrameGenerationSwapChainArgs args, TimelineValue rendered)
         {
             using Lock.Scope _ = @lock.EnterScope();
 
@@ -302,9 +295,10 @@ public class FrameGenerationSwapChain : DisposableObject
         private void ProcessFrame(Submitted submitted)
         {
             Frame frame = submitted.Frame;
-            FrameGenerationPresentArgs args = submitted.Args;
+            FrameGenerationSwapChainArgs args = submitted.Args;
 
             FrameGeneration frameGeneration = resources.EnsureFrameGeneration(swapChain.Context,
+                                                                              frame.Color.Desc.Format,
                                                                               frame.Depth!.Desc.Width,
                                                                               frame.Depth.Desc.Height,
                                                                               frame.Color.Desc.Width,
@@ -315,7 +309,6 @@ public class FrameGenerationSwapChain : DisposableObject
             CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
             commandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.Sampled);
-            commandBuffer.Transition(resources.Output, default, TextureLayout.Undefined, TextureLayout.Storage);
 
             frameGeneration.Dispatch(commandBuffer, new()
             {
@@ -323,7 +316,6 @@ public class FrameGenerationSwapChain : DisposableObject
                 Depth = frame.Depth,
                 MotionVectors = frame.MotionVectors!,
                 Hudless = frame.ActiveHudless,
-                Output = resources.Output,
                 JitterOffset = args.JitterOffset,
                 View = args.View,
                 Projection = args.Projection,
@@ -337,9 +329,9 @@ public class FrameGenerationSwapChain : DisposableObject
 
             if (!reset)
             {
-                commandBuffer.Transition(resources.Output, default, TextureLayout.Storage, TextureLayout.CopySrc);
-                CopyToDrawable(commandBuffer, resources.Output);
-                commandBuffer.Transition(resources.Output, default, TextureLayout.CopySrc, TextureLayout.Storage);
+                commandBuffer.Transition(frameGeneration.Output, default, TextureLayout.Sampled, TextureLayout.CopySrc);
+                CopyToDrawable(commandBuffer, frameGeneration.Output);
+                commandBuffer.Transition(frameGeneration.Output, default, TextureLayout.CopySrc, TextureLayout.Sampled);
                 commandBuffer.Submit(submitted.Rendered);
 
                 double elapsedSeconds = Stopwatch.GetElapsedTime(lastPresentationTimestamp).TotalSeconds;
@@ -429,11 +421,11 @@ public class FrameGenerationSwapChain : DisposableObject
             commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
         }
 
-        private readonly struct Submitted(Frame frame, FrameGenerationPresentArgs args, TimelineValue rendered)
+        private readonly struct Submitted(Frame frame, FrameGenerationSwapChainArgs args, TimelineValue rendered)
         {
             public readonly Frame Frame = frame;
 
-            public readonly FrameGenerationPresentArgs Args = args;
+            public readonly FrameGenerationSwapChainArgs Args = args;
 
             public readonly TimelineValue Rendered = rendered;
         }
@@ -458,7 +450,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
         public Texture? ActiveHudless => HasHudless ? Hudless : null;
 
-        public void Capture(GraphicsContext context, CommandBuffer commandBuffer, FrameGenerationPresentArgs args)
+        public void Capture(GraphicsContext context, CommandBuffer commandBuffer, FrameGenerationSwapChainArgs args)
         {
             Depth = EnsureAndCopy(context, commandBuffer, args.Depth, Depth);
             MotionVectors = EnsureAndCopy(context, commandBuffer, args.MotionVectors, MotionVectors);

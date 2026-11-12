@@ -3,18 +3,16 @@ using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal unsafe class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) : FrameGeneration(desc)
+internal unsafe class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) : FrameGeneration(vendor.Context, desc)
 {
-    private DLSSFeature? feature;
-    private PixelFormat colorFormat;
+    private readonly DLSSFeature feature = CreateFeature(vendor, desc);
+
     private bool hasHistory;
     private Matrix4x4 previousView;
     private Matrix4x4 previousProjection;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
-        EnsureFeature(args.Color.Desc.Format);
-
         Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
         Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToView);
 
@@ -95,7 +93,7 @@ internal unsafe class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc
             }
         };
 
-        vendor.Evaluate(commandBuffer, feature!, args, &optEvalParams);
+        vendor.Evaluate(commandBuffer, feature, args, Output, &optEvalParams);
 
         hasHistory = true;
         previousView = args.View;
@@ -104,37 +102,27 @@ internal unsafe class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc
 
     protected override void Destroy()
     {
-        feature?.Dispose();
+        feature.Dispose();
+
+        base.Destroy();
     }
 
-    private void EnsureFeature(PixelFormat nextColorFormat)
+    private static DLSSFeature CreateFeature(DLSSVendor vendor, FrameGenerationDesc desc)
     {
-        if (feature is not null && colorFormat == nextColorFormat)
-        {
-            return;
-        }
-
-        if (feature is not null)
-        {
-            vendor.Context.GraphicsQueue.Timeline.Signal().Wait();
-            vendor.Context.PresentQueue.Timeline.Signal().Wait();
-            feature.Dispose();
-            hasHistory = false;
-        }
-
-        colorFormat = nextColorFormat;
-        feature = new(vendor);
+        DLSSFeature feature = new(vendor);
         feature.SetUI(Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
         {
-            Width = Desc.OutputWidth,
-            Height = Desc.OutputHeight,
-            NativeBackbufferFormat = vendor.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(nextColorFormat) : DLSSFormats.Vulkan(nextColorFormat).Format,
-            RenderWidth = Desc.RenderWidth,
-            RenderHeight = Desc.RenderHeight
+            Width = desc.OutputWidth,
+            Height = desc.OutputHeight,
+            NativeBackbufferFormat = vendor.Context.GraphicsApi is GraphicsApi.DirectX12 ? DLSSFormats.DirectX12(desc.Format) : DLSSFormats.Vulkan(desc.Format).Format,
+            RenderWidth = desc.RenderWidth,
+            RenderHeight = desc.RenderHeight
         };
 
         vendor.Create(feature, createParams);
+
+        return feature;
     }
 }

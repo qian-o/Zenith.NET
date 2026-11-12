@@ -4,7 +4,7 @@ using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionDesc desc) : RayReconstruction(desc)
+internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionDesc desc) : RayReconstruction(vendor.Context, desc)
 {
     private MTL4FXTemporalDenoisedScaler scaler;
     private (PixelFormat Color,
@@ -17,7 +17,6 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
              PixelFormat SpecularHitDistance,
              PixelFormat? ReactiveMask,
              PixelFormat? TransparencyOverlay,
-             PixelFormat Output,
              bool AutoExposure) key;
     private bool recreated;
 
@@ -37,7 +36,6 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
                       args.SpecularHitDistance.Desc.Format,
                       args.ReactiveMask?.Desc.Format,
                       args.TransparencyOverlay?.Desc.Format,
-                      args.Output.Desc.Format,
                       args.Exposure is null),
                      depthReversed);
 
@@ -47,11 +45,15 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
             recreated = false;
         }
 
+        commandBuffer.Transition(Output, default, TextureLayout.Undefined, TextureLayout.Storage);
+
         commandBuffer.BeginExternalCommands();
 
         Encode(commandBuffer.Metal(), args, depthReversed);
 
         commandBuffer.EndExternalCommands();
+
+        commandBuffer.Transition(Output, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
     protected override void Destroy()
@@ -60,6 +62,8 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
         {
             scaler.Dispose();
         }
+
+        base.Destroy();
     }
 
     private void EnsureScaler((PixelFormat Color,
@@ -72,7 +76,6 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
                                PixelFormat SpecularHitDistance,
                                PixelFormat? ReactiveMask,
                                PixelFormat? TransparencyOverlay,
-                               PixelFormat Output,
                                bool AutoExposure) nextKey,
                               bool depthReversed)
     {
@@ -100,7 +103,7 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
             RoughnessTextureFormat = MetalFXFormats.Metal(nextKey.Roughness),
             SpecularHitDistanceTextureFormat = MetalFXFormats.Metal(nextKey.SpecularHitDistance),
             TransparencyOverlayTextureFormat = MetalFXFormats.Metal(nextKey.TransparencyOverlay),
-            OutputTextureFormat = MetalFXFormats.Metal(nextKey.Output),
+            OutputTextureFormat = MetalFXFormats.Metal(Desc.Format),
             InputWidth = Desc.RenderWidth,
             InputHeight = Desc.RenderHeight,
             OutputWidth = Desc.OutputWidth,
@@ -130,7 +133,7 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
         scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
         scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
         scaler.TransparencyOverlayTexture = args.TransparencyOverlay?.Metal() ?? default;
-        scaler.OutputTexture = args.Output.Metal();
+        scaler.OutputTexture = Output.Metal();
         scaler.JitterOffsetX = -args.JitterOffset.X;
         scaler.JitterOffsetY = -args.JitterOffset.Y;
         scaler.MotionVectorScaleX = Desc.RenderWidth;
@@ -153,7 +156,6 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
                          PixelFormat SpecularHitDistance,
                          PixelFormat? ReactiveMask,
                          PixelFormat? TransparencyOverlay,
-                         PixelFormat Output,
                          bool AutoExposure) nextKey,
                         bool depthReversed)
     {
@@ -168,7 +170,6 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
         using Texture? reactiveMask = nextKey.ReactiveMask is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.RenderWidth, Desc.RenderHeight) : null;
         using Texture? transparencyOverlay = nextKey.TransparencyOverlay is PixelFormat transparencyOverlayFormat ? vendor.CreateTexture(transparencyOverlayFormat, Desc.RenderWidth, Desc.RenderHeight) : null;
         using Texture? exposure = nextKey.AutoExposure ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
-        using Texture output = vendor.CreateTexture(nextKey.Output, Desc.OutputWidth, Desc.OutputHeight);
 
         vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
         {
@@ -183,7 +184,6 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
             ReactiveMask = reactiveMask,
             TransparencyOverlay = transparencyOverlay,
             Exposure = exposure,
-            Output = output,
             View = Matrix4x4.Identity,
             Projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4.0f, (float)Desc.OutputWidth / Desc.OutputHeight, 0.1f, 100.0f),
             PreExposure = 1.0f,

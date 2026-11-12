@@ -2,6 +2,8 @@
 
 public struct SuperResolutionDesc
 {
+    public PixelFormat Format;
+
     public uint RenderWidth;
 
     public uint RenderHeight;
@@ -10,8 +12,8 @@ public struct SuperResolutionDesc
 
     public uint OutputHeight;
 
-    public static SuperResolutionDesc Quality(GraphicsContext context, uint outputWidth, uint outputHeight, UpscalingQuality quality)
+    public static SuperResolutionDesc Quality(GraphicsContext context, PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return context.UpscalingBridge.CreateSuperResolutionDesc(outputWidth, outputHeight, quality);
+        return context.UpscalingBridge.CreateSuperResolutionDesc(format, outputWidth, outputHeight, quality);
     }
 }

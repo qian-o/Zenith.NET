@@ -2,10 +2,10 @@
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
-internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc desc) : SuperResolution(desc)
+internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc desc) : SuperResolution(vendor.Context, desc)
 {
     private MTL4FXTemporalScaler scaler;
-    private (PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, PixelFormat Output, bool AutoExposure) key;
+    private (PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, bool AutoExposure) key;
     private bool recreated;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
@@ -14,7 +14,7 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
 
         (_, _, _, _, bool depthReversed, _) = Vendor.DecomposePerspective(args.Projection);
 
-        EnsureScaler((args.Color.Desc.Format, args.Depth.Desc.Format, args.MotionVectors.Desc.Format, args.ReactiveMask?.Desc.Format, args.Output.Desc.Format, args.Exposure is null), depthReversed);
+        EnsureScaler((args.Color.Desc.Format, args.Depth.Desc.Format, args.MotionVectors.Desc.Format, args.ReactiveMask?.Desc.Format, args.Exposure is null), depthReversed);
 
         if (recreated)
         {
@@ -22,11 +22,15 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
             recreated = false;
         }
 
+        commandBuffer.Transition(Output, default, TextureLayout.Undefined, TextureLayout.Storage);
+
         commandBuffer.BeginExternalCommands();
 
         Encode(commandBuffer.Metal(), args, depthReversed);
 
         commandBuffer.EndExternalCommands();
+
+        commandBuffer.Transition(Output, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
     protected override void Destroy()
@@ -35,9 +39,11 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
         {
             scaler.Dispose();
         }
+
+        base.Destroy();
     }
 
-    private void EnsureScaler((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, PixelFormat Output, bool AutoExposure) nextKey, bool depthReversed)
+    private void EnsureScaler((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, bool AutoExposure) nextKey, bool depthReversed)
     {
         if (!scaler.IsNull && key == nextKey)
         {
@@ -57,7 +63,7 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
             ColorTextureFormat = MetalFXFormats.Metal(nextKey.Color),
             DepthTextureFormat = MetalFXFormats.Metal(nextKey.Depth),
             MotionTextureFormat = MetalFXFormats.Metal(nextKey.MotionVectors),
-            OutputTextureFormat = MetalFXFormats.Metal(nextKey.Output),
+            OutputTextureFormat = MetalFXFormats.Metal(Desc.Format),
             InputWidth = Desc.RenderWidth,
             InputHeight = Desc.RenderHeight,
             OutputWidth = Desc.OutputWidth,
@@ -79,7 +85,7 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
         scaler.MotionTexture = args.MotionVectors.Metal();
         scaler.ExposureTexture = args.Exposure?.Metal() ?? default;
         scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
-        scaler.OutputTexture = args.Output.Metal();
+        scaler.OutputTexture = Output.Metal();
         scaler.InputContentWidth = Desc.RenderWidth;
         scaler.InputContentHeight = Desc.RenderHeight;
         scaler.JitterOffsetX = -args.JitterOffset.X;
@@ -92,14 +98,13 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
         scaler.Encode(commandBuffer);
     }
 
-    private void WarmUp((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, PixelFormat Output, bool AutoExposure) nextKey, bool depthReversed)
+    private void WarmUp((PixelFormat Color, PixelFormat Depth, PixelFormat MotionVectors, PixelFormat? ReactiveMask, bool AutoExposure) nextKey, bool depthReversed)
     {
         using Texture color = vendor.CreateTexture(nextKey.Color, Desc.RenderWidth, Desc.RenderHeight);
         using Texture depth = vendor.CreateTexture(nextKey.Depth, Desc.RenderWidth, Desc.RenderHeight);
         using Texture motionVectors = vendor.CreateTexture(nextKey.MotionVectors, Desc.RenderWidth, Desc.RenderHeight);
         using Texture? exposure = nextKey.AutoExposure ? null : vendor.CreateTexture(PixelFormat.R16Float, 1, 1);
         using Texture? reactiveMask = nextKey.ReactiveMask is PixelFormat reactiveMaskFormat ? vendor.CreateTexture(reactiveMaskFormat, Desc.RenderWidth, Desc.RenderHeight) : null;
-        using Texture output = vendor.CreateTexture(nextKey.Output, Desc.OutputWidth, Desc.OutputHeight);
 
         vendor.WarmUp(commandBuffer => Encode(commandBuffer, new()
         {
@@ -108,7 +113,6 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
             MotionVectors = motionVectors,
             ReactiveMask = reactiveMask,
             Exposure = exposure,
-            Output = output,
             PreExposure = 1.0f,
             Reset = true
         }, depthReversed));

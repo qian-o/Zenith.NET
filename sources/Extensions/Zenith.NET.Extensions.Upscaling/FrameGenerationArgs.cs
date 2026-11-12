@@ -12,8 +12,6 @@ public struct FrameGenerationArgs
 
     public Texture? Hudless;
 
-    public Texture Output;
-
     public Vector2 JitterOffset;
 
     public Matrix4x4 View;

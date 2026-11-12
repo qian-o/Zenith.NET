@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
-internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) : SuperResolution(desc)
+internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) : SuperResolution(vendor.Context, desc)
 {
     private readonly NGXPerfQualityValue perfQualityValue = vendor.FindPerfQualityValue(NGXFeature.SuperSampling, desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight);
 
@@ -21,12 +21,14 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
             recreated = false;
         }
 
-        vendor.Evaluate(commandBuffer, feature!, args);
+        vendor.Evaluate(commandBuffer, feature!, args, Output);
     }
 
     protected override void Destroy()
     {
         feature?.Dispose();
+
+        base.Destroy();
     }
 
     private void EnsureFeature(NGXDLSSFeatureFlags nextFlags)

@@ -3,13 +3,13 @@ using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
-internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc desc) : FrameGeneration(desc)
+internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc desc) : FrameGeneration(vendor.Context, desc)
 {
     private const float DefaultMinLuminanceInNits = 0.001f;
     private const float DefaultMaxLuminanceInNits = 1000.0f;
 
     private FSRContext context;
-    private (FSRApiCreateContextFrameGenerationFlags Flags, PixelFormat ColorFormat, PixelFormat? HudlessFormat) key;
+    private (FSRApiCreateContextFrameGenerationFlags Flags, PixelFormat? HudlessFormat) key;
     private bool recreated;
     private ulong frameIndex;
 
@@ -35,7 +35,7 @@ internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc d
             flags |= FSRApiCreateContextFrameGenerationFlags.DepthInfinite;
         }
 
-        EnsureContext((flags, args.Color.Desc.Format, args.Hudless?.Desc.Format));
+        EnsureContext((flags, args.Hudless?.Desc.Format));
 
         if (recreated)
         {
@@ -46,7 +46,7 @@ internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc d
         commandBuffer.Transition(args.Color, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Sampled, TextureLayout.Common);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Sampled, TextureLayout.Common);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Storage, TextureLayout.Common);
+        commandBuffer.Transition(Output, default, TextureLayout.Undefined, TextureLayout.Common);
 
         if (args.Hudless is not null)
         {
@@ -142,7 +142,7 @@ internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc d
             GenerationRect = generationRect,
             FrameID = frameIndex
         };
-        dispatchDesc.Outputs[0] = args.Output.FSR();
+        dispatchDesc.Outputs[0] = Output.FSR();
         dispatchDesc.MinMaxLuminance[0] = args.MinLuminanceInNits ?? DefaultMinLuminanceInNits;
         dispatchDesc.MinMaxLuminance[1] = args.MaxLuminanceInNits ?? DefaultMaxLuminanceInNits;
 
@@ -153,7 +153,7 @@ internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc d
         commandBuffer.Transition(args.Color, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.Depth, default, TextureLayout.Common, TextureLayout.Sampled);
         commandBuffer.Transition(args.MotionVectors, default, TextureLayout.Common, TextureLayout.Sampled);
-        commandBuffer.Transition(args.Output, default, TextureLayout.Common, TextureLayout.Storage);
+        commandBuffer.Transition(Output, default, TextureLayout.Common, TextureLayout.Sampled);
 
         if (args.Hudless is not null)
         {
@@ -167,9 +167,11 @@ internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc d
     {
         vendor.DestroyContext(context);
         context = default;
+
+        base.Destroy();
     }
 
-    private void EnsureContext((FSRApiCreateContextFrameGenerationFlags Flags, PixelFormat ColorFormat, PixelFormat? HudlessFormat) nextKey)
+    private void EnsureContext((FSRApiCreateContextFrameGenerationFlags Flags, PixelFormat? HudlessFormat) nextKey)
     {
         if (!context.IsNull && key == nextKey)
         {
@@ -201,7 +203,7 @@ internal unsafe class FSRFrameGeneration(FSRVendor vendor, FrameGenerationDesc d
                 Width = Desc.RenderWidth,
                 Height = Desc.RenderHeight
             },
-            BackBufferFormat = (uint)FSRFormats.FSR(nextKey.ColorFormat)
+            BackBufferFormat = (uint)FSRFormats.FSR(Desc.Format)
         };
         createDesc.Header.Next = &version.Header;
 
