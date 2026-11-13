@@ -72,6 +72,7 @@ internal class MTLSwapChain : SwapChain
         drawable = null;
 
         MetalDrawable.Dispose();
+        MetalLayer.Dispose();
 
         Initialize();
     }
@@ -85,6 +86,7 @@ internal class MTLSwapChain : SwapChain
         drawable?.Dispose();
 
         MetalDrawable.Dispose();
+        MetalLayer.Dispose();
     }
 
     private void Initialize()
@@ -102,6 +104,6 @@ internal class MTLSwapChain : SwapChain
             MetalLayer.DisplaySyncEnabled = Desc.IsVerticalSyncEnabled;
         }
 
-        MetalDrawable = NSAutorelease.NextDrawable(MetalLayer);
+        MetalDrawable = NSAutorelease.NextDrawable(MetalLayer.Retain());
     }
 }
