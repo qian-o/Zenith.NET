@@ -15,6 +15,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
         });
 
         using MTL4PrimitiveAccelerationStructureDescriptor descriptor = Descriptor(desc);
+
         MTLAccelerationStructureSizes sizes = context.Device.AccelerationStructureSizes(descriptor);
 
         context.Register(AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize));

@@ -44,45 +44,43 @@ internal class MTLMeshShadingPipeline : MeshShadingPipeline
             {
                 ColorAttachmentBlendState state = desc.RenderState.Blend.IsIndependentBlendEnabled ? states[i] : states[0];
 
-                MTL4RenderPipelineColorAttachmentDescriptor colorAttachmentDescriptor = descriptor.ColorAttachments[(uint)i];
-                colorAttachmentDescriptor.PixelFormat = MTLFormats.Metal(desc.AttachmentFormats.ColorFormats[i]);
-                colorAttachmentDescriptor.BlendingState = state.IsBlendingEnabled ? MTL4BlendState.Enabled : MTL4BlendState.Disabled;
-                colorAttachmentDescriptor.SourceRGBBlendFactor = MTLFormats.Metal(state.SrcRgbFactor);
-                colorAttachmentDescriptor.DestinationRGBBlendFactor = MTLFormats.Metal(state.DstRgbFactor);
-                colorAttachmentDescriptor.RgbBlendOperation = MTLFormats.Metal(state.RgbOp);
-                colorAttachmentDescriptor.SourceAlphaBlendFactor = MTLFormats.Metal(state.SrcAlphaFactor);
-                colorAttachmentDescriptor.DestinationAlphaBlendFactor = MTLFormats.Metal(state.DstAlphaFactor);
-                colorAttachmentDescriptor.AlphaBlendOperation = MTLFormats.Metal(state.AlphaOp);
-                colorAttachmentDescriptor.WriteMask = MTLFormats.Metal(state.ColorWrites);
+                MTL4RenderPipelineColorAttachmentDescriptor colorAttachment = descriptor.ColorAttachments[(uint)i];
+                colorAttachment.PixelFormat = MTLFormats.Metal(desc.AttachmentFormats.ColorFormats[i]);
+                colorAttachment.BlendingState = state.IsBlendingEnabled ? MTL4BlendState.Enabled : MTL4BlendState.Disabled;
+                colorAttachment.SourceRGBBlendFactor = MTLFormats.Metal(state.SrcRgbFactor);
+                colorAttachment.DestinationRGBBlendFactor = MTLFormats.Metal(state.DstRgbFactor);
+                colorAttachment.RgbBlendOperation = MTLFormats.Metal(state.RgbOp);
+                colorAttachment.SourceAlphaBlendFactor = MTLFormats.Metal(state.SrcAlphaFactor);
+                colorAttachment.DestinationAlphaBlendFactor = MTLFormats.Metal(state.DstAlphaFactor);
+                colorAttachment.AlphaBlendOperation = MTLFormats.Metal(state.AlphaOp);
+                colorAttachment.WriteMask = MTLFormats.Metal(state.ColorWrites);
             }
-
-            using MTLStencilDescriptor frontFaceStencil = desc.RenderState.DepthStencil.IsStencilEnabled ? new()
-            {
-                StencilCompareFunction = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.CompareOp),
-                StencilFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.FailOp),
-                DepthFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.DepthFailOp),
-                DepthStencilPassOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.PassOp),
-                ReadMask = desc.RenderState.DepthStencil.StencilReadMask,
-                WriteMask = desc.RenderState.DepthStencil.StencilWriteMask
-            } : default;
-
-            using MTLStencilDescriptor backFaceStencil = desc.RenderState.DepthStencil.IsStencilEnabled ? new()
-            {
-                StencilCompareFunction = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.CompareOp),
-                StencilFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.FailOp),
-                DepthFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.DepthFailOp),
-                DepthStencilPassOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.PassOp),
-                ReadMask = desc.RenderState.DepthStencil.StencilReadMask,
-                WriteMask = desc.RenderState.DepthStencil.StencilWriteMask
-            } : default;
 
             using MTLDepthStencilDescriptor depthStencilDescriptor = new()
             {
                 DepthCompareFunction = desc.RenderState.DepthStencil.IsDepthEnabled ? MTLFormats.Metal(desc.RenderState.DepthStencil.DepthCompareOp) : MTLCompareFunction.Always,
-                IsDepthWriteEnabled = desc.RenderState.DepthStencil.IsDepthWriteEnabled,
-                FrontFaceStencil = frontFaceStencil,
-                BackFaceStencil = backFaceStencil
+                IsDepthWriteEnabled = desc.RenderState.DepthStencil.IsDepthWriteEnabled
             };
+
+            if (desc.RenderState.DepthStencil.IsStencilEnabled)
+            {
+                MTLStencilDescriptor frontFaceStencil = depthStencilDescriptor.FrontFaceStencil;
+                frontFaceStencil.StencilCompareFunction = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.CompareOp);
+                frontFaceStencil.StencilFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.FailOp);
+                frontFaceStencil.DepthFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.DepthFailOp);
+                frontFaceStencil.DepthStencilPassOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.PassOp);
+                frontFaceStencil.ReadMask = desc.RenderState.DepthStencil.StencilReadMask;
+                frontFaceStencil.WriteMask = desc.RenderState.DepthStencil.StencilWriteMask;
+
+                MTLStencilDescriptor backFaceStencil = depthStencilDescriptor.BackFaceStencil;
+                backFaceStencil.StencilCompareFunction = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.CompareOp);
+                backFaceStencil.StencilFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.FailOp);
+                backFaceStencil.DepthFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.DepthFailOp);
+                backFaceStencil.DepthStencilPassOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.PassOp);
+                backFaceStencil.ReadMask = desc.RenderState.DepthStencil.StencilReadMask;
+                backFaceStencil.WriteMask = desc.RenderState.DepthStencil.StencilWriteMask;
+            }
+
             DepthStencilState = context.Device.MakeDepthStencilState(depthStencilDescriptor);
         }
 

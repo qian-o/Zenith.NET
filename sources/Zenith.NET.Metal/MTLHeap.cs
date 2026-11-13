@@ -14,6 +14,7 @@ internal class MTLHeap : Heap
             ResourceOptions = MTLFormats.Metal(desc.Residency),
             Type = MTLHeapType.Placement
         };
+
         Heap = context.Device.MakeHeap(descriptor);
     }
 

@@ -25,6 +25,7 @@ internal class MTLSampler : Sampler
             CompareFunction = MTLFormats.Metal(desc.CompareOp),
             SupportArgumentBuffers = true
         };
+
         SamplerState = context.Device.MakeSamplerState(descriptor);
 
         Handle = SamplerState.GpuResourceID.Impl.ToHandle();

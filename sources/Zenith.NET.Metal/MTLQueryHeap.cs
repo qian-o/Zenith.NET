@@ -13,6 +13,7 @@ internal unsafe class MTLQueryHeap : QueryHeap
             Type = MTL4CounterHeapType.Timestamp,
             Count = desc.Count
         };
+
         CounterHeap = context.Device.MakeCounterHeap(descriptor, out NSError error);
         error.Success();
 

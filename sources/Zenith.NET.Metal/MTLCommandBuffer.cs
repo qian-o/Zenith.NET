@@ -41,6 +41,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             MaxBufferBindCount = 16,
             SupportAttributeStrides = true
         };
+
         ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
         error.Success();
 

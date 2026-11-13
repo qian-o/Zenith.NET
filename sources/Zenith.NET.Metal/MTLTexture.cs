@@ -9,6 +9,7 @@ internal class MTLTexture : Texture
     public MTLTexture(MTLGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
         using MTLTextureDescriptor descriptor = Descriptor(desc);
+
         context.Register(Texture = context.Device.MakeTexture(descriptor));
 
         View = new(context, new()

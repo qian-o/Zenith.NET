@@ -6,7 +6,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 {
     private readonly Lock @lock = new();
 
-    public MTLDevice Device = MTLDevice.CreateSystemDefaultDevice();
+    public MTLDevice Device;
 
     public MTL4Compiler Compiler;
 
@@ -45,6 +45,8 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
                                        out CommandQueue presentQueue,
                                        out ValidationLayer? validationLayer)
     {
+        Device = MTLDevice.CreateSystemDefaultDevice();
+
         if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
         {
             throw new NotSupportedException("This device does not support Metal 4.0 or higher.");
@@ -86,6 +88,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
         using MTLTextureDescriptor descriptor = MTLTexture.Descriptor(desc);
+
         MTLSizeAndAlign sizeAndAlign = Device.HeapTextureSizeAndAlign(descriptor);
 
         return new(sizeAndAlign.Size, sizeAndAlign.Align);

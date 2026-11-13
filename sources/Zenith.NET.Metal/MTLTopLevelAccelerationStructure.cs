@@ -15,6 +15,7 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
         });
 
         using MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(desc);
+
         MTLAccelerationStructureSizes sizes = context.Device.AccelerationStructureSizes(descriptor);
 
         context.Register(AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize));

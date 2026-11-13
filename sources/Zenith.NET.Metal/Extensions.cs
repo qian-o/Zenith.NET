@@ -20,8 +20,6 @@ public static class Extensions
             if (!error.IsNull)
             {
                 Debug.WriteLine($"Metal call failed with error: {error.LocalizedDescription}");
-
-                error.Dispose();
             }
         }
     }

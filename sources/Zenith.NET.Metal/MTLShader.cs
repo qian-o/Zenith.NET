@@ -11,6 +11,7 @@ internal class MTLShader : Shader
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
         using DispatchData data = DispatchData.Create(desc.CodeBytes);
+
         Library = context.Device.MakeLibrary(data, out NSError error);
         error.Success();
 
