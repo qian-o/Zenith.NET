@@ -1,3 +1,3 @@
 ﻿namespace Zenith.NET;
 
-public abstract class Pipeline(GraphicsContext context) : GraphicsResource(context);
+public closed class Pipeline(GraphicsContext context) : GraphicsResource(context);

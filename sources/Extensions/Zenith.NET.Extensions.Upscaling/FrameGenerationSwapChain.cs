@@ -204,7 +204,7 @@ public class FrameGenerationSwapChain : DisposableObject
         private readonly SwapChain swapChain;
         private readonly Resources resources;
         private readonly Lock @lock = new();
-        private readonly Queue<Submitted> submitteds = new(FrameCount);
+        private readonly Queue<Submitted> submitteds = [with(FrameCount)];
         private readonly CancellationTokenSource tokenSource = new();
         private readonly AutoResetEvent available = new(false);
         private readonly WaitHandle[] completionHandles = new WaitHandle[2];

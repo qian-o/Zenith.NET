@@ -12,7 +12,61 @@ internal class CornellBoxGeometry
     private const int InitialVertexCapacity = 40_000;
     private const int InitialIndexCapacity = 200_000;
 
-    private static readonly Material[] MaterialTable =
+    private static readonly Matrix4x4[] CubeTilts =
+    [
+        Matrix4x4.CreateRotationX(0.35f) * Matrix4x4.CreateRotationZ(0.25f),
+        Matrix4x4.CreateRotationX(0.35f + 0.3f) * Matrix4x4.CreateRotationZ(0.25f + 0.2f),
+        Matrix4x4.CreateRotationX(0.35f + (2 * 0.3f)) * Matrix4x4.CreateRotationZ(0.25f + (2 * 0.2f))
+    ];
+
+    private readonly List<Vertex> vertices = [with(InitialVertexCapacity)];
+    private readonly List<uint> indices = [with(InitialIndexCapacity)];
+    private readonly List<Mesh> meshes = [];
+
+    public CornellBoxGeometry()
+    {
+        AddRoom();
+        AddCourtyard();
+        FinishMesh();
+
+        AddSphere(Vector3.Zero, 45.0f, MaterialId.Mirror);
+        FinishMesh();
+
+        AddTorus(75.0f, 2.4f, MaterialId.Copper);
+        FinishMesh();
+
+        AddTorus(62.0f, 2.1f, MaterialId.Porcelain);
+        FinishMesh();
+
+        AddTorus(49.0f, 1.8f, MaterialId.BlueMetal);
+        FinishMesh();
+
+        ReadOnlySpan<float> cubeSizes = [35.0f, 28.0f, 22.0f];
+        ReadOnlySpan<MaterialId> cubeMaterials = [MaterialId.Gold, MaterialId.Mirror, MaterialId.Copper];
+        for (int i = 0; i < SculpturePartCount; i++)
+        {
+            Vector3 halfSize = new(cubeSizes[i]);
+
+            AddBox(-halfSize, halfSize, cubeMaterials[i]);
+            FinishMesh();
+        }
+
+        ReadOnlySpan<float> sphereRadii = [48.0f, 32.0f, 22.0f];
+        ReadOnlySpan<MaterialId> sphereMaterials = [MaterialId.BlueMetal, MaterialId.Gold, MaterialId.BlueMetal];
+        for (int i = 0; i < SculpturePartCount; i++)
+        {
+            AddSphere(Vector3.Zero, sphereRadii[i], sphereMaterials[i]);
+            FinishMesh();
+        }
+    }
+
+    public ReadOnlySpan<Vertex> Vertices => CollectionsMarshal.AsSpan(vertices);
+
+    public ReadOnlySpan<uint> Indices => CollectionsMarshal.AsSpan(indices);
+
+    public ReadOnlySpan<Mesh> Meshes => CollectionsMarshal.AsSpan(meshes);
+
+    public static Material[] Materials { get; } =
     [
         new()
         {
@@ -165,62 +219,6 @@ internal class CornellBoxGeometry
             Roughness = 0.82f
         }
     ];
-
-    private static readonly Matrix4x4[] CubeTilts =
-    [
-        Matrix4x4.CreateRotationX(0.35f) * Matrix4x4.CreateRotationZ(0.25f),
-        Matrix4x4.CreateRotationX(0.35f + 0.3f) * Matrix4x4.CreateRotationZ(0.25f + 0.2f),
-        Matrix4x4.CreateRotationX(0.35f + (2 * 0.3f)) * Matrix4x4.CreateRotationZ(0.25f + (2 * 0.2f))
-    ];
-
-    private readonly List<Vertex> vertices = new(InitialVertexCapacity);
-    private readonly List<uint> indices = new(InitialIndexCapacity);
-    private readonly List<Mesh> meshes = [];
-
-    public CornellBoxGeometry()
-    {
-        AddRoom();
-        AddCourtyard();
-        FinishMesh();
-
-        AddSphere(Vector3.Zero, 45.0f, MaterialId.Mirror);
-        FinishMesh();
-
-        AddTorus(75.0f, 2.4f, MaterialId.Copper);
-        FinishMesh();
-
-        AddTorus(62.0f, 2.1f, MaterialId.Porcelain);
-        FinishMesh();
-
-        AddTorus(49.0f, 1.8f, MaterialId.BlueMetal);
-        FinishMesh();
-
-        ReadOnlySpan<float> cubeSizes = [35.0f, 28.0f, 22.0f];
-        ReadOnlySpan<MaterialId> cubeMaterials = [MaterialId.Gold, MaterialId.Mirror, MaterialId.Copper];
-        for (int i = 0; i < SculpturePartCount; i++)
-        {
-            Vector3 halfSize = new(cubeSizes[i]);
-
-            AddBox(-halfSize, halfSize, cubeMaterials[i]);
-            FinishMesh();
-        }
-
-        ReadOnlySpan<float> sphereRadii = [48.0f, 32.0f, 22.0f];
-        ReadOnlySpan<MaterialId> sphereMaterials = [MaterialId.BlueMetal, MaterialId.Gold, MaterialId.BlueMetal];
-        for (int i = 0; i < SculpturePartCount; i++)
-        {
-            AddSphere(Vector3.Zero, sphereRadii[i], sphereMaterials[i]);
-            FinishMesh();
-        }
-    }
-
-    public ReadOnlySpan<Vertex> Vertices => CollectionsMarshal.AsSpan(vertices);
-
-    public ReadOnlySpan<uint> Indices => CollectionsMarshal.AsSpan(indices);
-
-    public ReadOnlySpan<Material> Materials => MaterialTable;
-
-    public ReadOnlySpan<Mesh> Meshes => CollectionsMarshal.AsSpan(meshes);
 
     private void FinishMesh()
     {

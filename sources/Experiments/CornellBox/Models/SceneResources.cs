@@ -21,7 +21,7 @@ internal unsafe class SceneResources : DisposableObject
 
         vertexBuffer = CreateBuffer(geometry.Vertices);
         indexBuffer = CreateBuffer(geometry.Indices);
-        materialBuffer = CreateBuffer(geometry.Materials);
+        materialBuffer = CreateBuffer(CornellBoxGeometry.Materials);
 
         Span<Matrix4x4> transforms = stackalloc Matrix4x4[meshes.Length];
         CornellBoxGeometry.WriteTransforms(0.0f, transforms);

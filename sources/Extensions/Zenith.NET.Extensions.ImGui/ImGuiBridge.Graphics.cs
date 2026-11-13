@@ -9,7 +9,7 @@ internal unsafe partial class ImGuiBridge
 {
     private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
     private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];
-    private readonly SortedList<ImTextureID, ResourceHandle> resourceHandleBindings = new(Comparer<ImTextureID>.Create(static (x, y) => x.Handle.CompareTo(y.Handle)));
+    private readonly SortedList<ImTextureID, ResourceHandle> resourceHandleBindings = [with(Comparer<ImTextureID>.Create(static (x, y) => x.Handle.CompareTo(y.Handle)))];
     private readonly Dictionary<ImTextureID, Texture> drawDataTextures = [];
 
     private Sampler sampler = null!;
