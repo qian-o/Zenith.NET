@@ -46,7 +46,7 @@ public static class ZenithCompiler
         return new()
         {
             Name = name,
-            CodeBytes = SlangCompiler.CompileWithReflection($"{Preamble}{Environment.NewLine}{source}", Arguments(graphicsApi, name, searchPaths), out SlangReflection reflection),
+            CodeBytes = SlangCompiler.CompileWithReflection(Preamble + Environment.NewLine + source, Arguments(graphicsApi, name, searchPaths), out SlangReflection reflection),
             ThreadGroupSize = ThreadGroupSize(reflection, name)
         };
     }
