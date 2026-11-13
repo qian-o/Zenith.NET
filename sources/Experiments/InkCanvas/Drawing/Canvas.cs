@@ -263,7 +263,8 @@ internal class Canvas : DisposableObject
 
         strokePaint.StrokeWidth = EraserRadius * 2.0f;
 
-        using SKPath eraser = strokePaint.GetFillPath(centerline)!;
+        using SKPath eraser = strokePaint.GetFillPath(centerline);
+
         SKRect eraserBounds = eraser.Bounds;
 
         isErasePending = false;

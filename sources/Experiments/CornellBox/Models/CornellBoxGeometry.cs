@@ -324,8 +324,7 @@ internal class CornellBoxGeometry
         AddPlinth(new(-320.0f, 840.0f), 140.0f, 45.0f);
         AddPlinth(new(876.0f, 840.0f), 140.0f, 45.0f);
 
-        ReadOnlySpan<float> benchPositions = [-320.0f, 876.0f];
-        foreach (float x in benchPositions)
+        foreach (float x in (ReadOnlySpan<float>)[-320.0f, 876.0f])
         {
             AddBench(new(x, -700.0f));
         }
@@ -342,8 +341,7 @@ internal class CornellBoxGeometry
 
     private void AddExhibitPaving()
     {
-        ReadOnlySpan<float> pavingCenters = [-670.0f, 1226.0f];
-        foreach (float x in pavingCenters)
+        foreach (float x in (ReadOnlySpan<float>)[-670.0f, 1226.0f])
         {
             for (int i = 0; i < 3; i++)
             {
@@ -408,8 +406,7 @@ internal class CornellBoxGeometry
         AddSphere(new(x + 40.0f, 100.0f, z + 28.0f), 56.0f, MaterialId.Foliage, 12, 8);
         AddSphere(new(x, 145.0f, z + 5.0f), 62.0f, MaterialId.Foliage, 12, 8);
 
-        ReadOnlySpan<Vector2> pebbleOffsets = [new(-77.0f, -72.0f), new(-28.0f, -80.0f), new(30.0f, -78.0f), new(78.0f, -65.0f)];
-        foreach (Vector2 offset in pebbleOffsets)
+        foreach (Vector2 offset in (ReadOnlySpan<Vector2>)[new(-77.0f, -72.0f), new(-28.0f, -80.0f), new(30.0f, -78.0f), new(78.0f, -65.0f)])
         {
             AddSphere(new(x + offset.X, 62.0f, z + offset.Y), 6.0f, MaterialId.Limestone, 8, 6);
         }
@@ -453,8 +450,7 @@ internal class CornellBoxGeometry
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
         uint startIndex = (uint)vertices.Count;
 
-        ReadOnlySpan<Vector3> positions = [v0, v1, v2, v3];
-        foreach (Vector3 position in positions)
+        foreach (Vector3 position in (ReadOnlySpan<Vector3>)[v0, v1, v2, v3])
         {
             vertices.Add(new()
             {
