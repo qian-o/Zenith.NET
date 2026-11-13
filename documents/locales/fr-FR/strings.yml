@@ -376,12 +376,12 @@ tutorial.pipeline.title: 'Pipeline graphique'
 tutorial.presentation.title: 'Contexte graphique et présentation'
 tutorial.project.context: 'Activez {emphasis} ({allowUnsafeBlocks}) dans les paramètres de compilation. Les appels natifs de la classe auxiliaire de fenêtre et le transfert des sommets nécessitent du code non sécurisé.'
 tutorial.project.context.emphasis: Autoriser le code non sécurisé
-tutorial.project.description: 'Créez un projet console C# nommé {firstTriangle} ciblant .NET 10.'
+tutorial.project.description: 'Créez un projet console C# nommé {firstTriangle} ciblant la dernière version de .NET.'
 tutorial.project.details: 'Ajoutez les paquets NuGet suivants au projet :'
 tutorial.project.guidance: '{zenithNET} fournit l’API commune pour le rendu et le calcul ; les trois paquets propres aux API graphiques l’implémentent. {zenithNETCompiler} compile les shaders Slang pour l’API choisie.'
 tutorial.project.title: 'Configuration du projet'
 tutorial.requirements.description: 'Vous devez disposer du {emphasis} et connaître les bases de C#. Le GPU et son pilote doivent prendre en charge les capacités graphiques suivantes selon la plateforme :'
-tutorial.requirements.description.emphasis: SDK .NET 10
+tutorial.requirements.description.emphasis: SDK .NET
 tutorial.requirements.guidance: 'Zenith.NET effectue le rendu sur une surface native fournie par l’application. Silk.NET.Windowing crée la fenêtre et traite ses événements.'
 tutorial.requirements.table.headings.graphicsSupport: 'Prise en charge graphique'
 tutorial.requirements.table.headings.platform: Plateforme

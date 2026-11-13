@@ -376,12 +376,12 @@ tutorial.pipeline.title: 'Grafikpipeline'
 tutorial.presentation.title: 'Grafikkontext und Präsentation'
 tutorial.project.context: 'Aktivieren Sie {emphasis} ({allowUnsafeBlocks}) in den Buildeinstellungen. Die nativen Aufrufe der Fensterhilfsklasse und der Vertexupload benötigen unsicheren Code.'
 tutorial.project.context.emphasis: Unsicheren Code zulassen
-tutorial.project.description: 'Erstellen Sie ein C#-Konsolenprojekt namens {firstTriangle} mit .NET 10 als Zielframework.'
+tutorial.project.description: 'Erstellen Sie ein C#-Konsolenprojekt namens {firstTriangle} mit der neuesten .NET-Version als Zielframework.'
 tutorial.project.details: 'Fügen Sie dem Projekt die folgenden NuGet-Pakete hinzu:'
 tutorial.project.guidance: '{zenithNET} liefert die gemeinsame Grafik- und Compute-API; die drei Grafik-API-Pakete implementieren sie. {zenithNETCompiler} kompiliert Slang-Shader für die gewählte API.'
 tutorial.project.title: 'Projekteinrichtung'
 tutorial.requirements.description: 'Sie benötigen das {emphasis} und C#-Grundkenntnisse. GPU und Treiber müssen für Ihre Plattform folgende Grafikfunktionen unterstützen:'
-tutorial.requirements.description.emphasis: .NET 10 SDK
+tutorial.requirements.description.emphasis: .NET SDK
 tutorial.requirements.guidance: 'Zenith.NET rendert in ein von der Anwendung bereitgestelltes natives Präsentationsziel. Silk.NET.Windowing erstellt das Fenster und verarbeitet seine Ereignisse.'
 tutorial.requirements.table.headings.graphicsSupport: 'Grafikunterstützung'
 tutorial.requirements.table.headings.platform: Plattform

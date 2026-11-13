@@ -376,12 +376,12 @@ tutorial.pipeline.title: 'Графический конвейер'
 tutorial.presentation.title: 'Графический контекст и вывод'
 tutorial.project.context: 'В настройках сборки включите «{emphasis}» ({allowUnsafeBlocks}). Небезопасный код нужен для нативных вызовов вспомогательного класса для окна и загрузки вершин.'
 tutorial.project.context.emphasis: Разрешить небезопасный код
-tutorial.project.description: 'Создайте консольный проект C# с именем {firstTriangle} для .NET 10.'
+tutorial.project.description: 'Создайте консольный проект C# с именем {firstTriangle} для последней версии .NET.'
 tutorial.project.details: 'Добавьте в проект следующие пакеты NuGet:'
 tutorial.project.guidance: '{zenithNET} предоставляет общий API для графики и вычислений; три пакета для графических API реализуют его. {zenithNETCompiler} компилирует шейдеры Slang для выбранного API.'
 tutorial.project.title: 'Настройка проекта'
 tutorial.requirements.description: 'Нужны {emphasis} и базовые знания C#. GPU и драйвер должны поддерживать следующие графические возможности для вашей платформы:'
-tutorial.requirements.description.emphasis: .NET 10 SDK
+tutorial.requirements.description.emphasis: .NET SDK
 tutorial.requirements.guidance: 'Zenith.NET выполняет рендеринг на нативной поверхности, предоставленной приложением. Silk.NET.Windowing создаёт окно и обрабатывает его события.'
 tutorial.requirements.table.headings.graphicsSupport: 'Требования к графике'
 tutorial.requirements.table.headings.platform: Платформа

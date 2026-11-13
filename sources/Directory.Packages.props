@@ -9,7 +9,7 @@
         <PackageVersion Include="FSR.NET" Version="2.4.0" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
         <PackageVersion Include="Metal.NET" Version="3.0.0-alpha.2" />
-        <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.130" />
+        <PackageVersion Include="Microsoft.Maui.Controls" Version="11.0.10" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
         <PackageVersion Include="NGX.NET" Version="310.9.16" />
         <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
@@ -22,9 +22,9 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.NVX" Version="2.23.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="4.1.3" />
-        <PackageVersion Include="SkiaSharp" Version="4.155.0" />
-        <PackageVersion Include="Slangc.NET" Version="2026.21.0" />
-        <PackageVersion Include="Uno.WinUI" Version="6.7.359" />
+        <PackageVersion Include="SkiaSharp" Version="4.156.0" />
+        <PackageVersion Include="Slangc.NET" Version="2026.22.0" />
+        <PackageVersion Include="Uno.WinUI" Version="7.0.32" />
     </ItemGroup>
 
 </Project>

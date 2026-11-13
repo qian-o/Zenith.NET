@@ -33,7 +33,7 @@ Zenith.NET is a rendering hardware interface (RHI) for .NET, with a shared C# AP
 
 ## Getting started
 
-Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) to create a .NET 10 console application and draw your first triangle.
+Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) to create a .NET console application and draw your first triangle.
 
 Continue with [Learn](https://qian-o.github.io/Zenith.NET/learn/index.html) for the core concepts, or browse [Samples](https://qian-o.github.io/Zenith.NET/learn/samples.html) for graphics and compute examples.
 

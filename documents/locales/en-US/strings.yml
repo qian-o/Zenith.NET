@@ -643,14 +643,14 @@ tutorial.presentation.title: Graphics context and presentation
 tutorial.project.context: Enable {emphasis} ({allowUnsafeBlocks}) in the project's build settings. Native calls
   in the window helper class and the vertex upload require unsafe code.
 tutorial.project.context.emphasis: Allow unsafe code
-tutorial.project.description: Create a C# console project named {firstTriangle} targeting .NET 10.
+tutorial.project.description: Create a C# console project named {firstTriangle} targeting the latest .NET version.
 tutorial.project.details: 'Add the following NuGet packages to the project:'
 tutorial.project.guidance: '{zenithNET} provides the shared graphics and compute API; the three graphics API packages
   implement it. {zenithNETCompiler} compiles Slang shaders for the selected API.'
 tutorial.project.title: Project setup
 tutorial.requirements.description: 'You need the {emphasis} and basic C# knowledge. Your GPU and driver must support
   these graphics capabilities for your platform:'
-tutorial.requirements.description.emphasis: .NET 10 SDK
+tutorial.requirements.description.emphasis: .NET SDK
 tutorial.requirements.guidance: Zenith.NET renders into a native surface provided by the application. Silk.NET.Windowing
   creates the window and processes its events.
 tutorial.requirements.table.headings.graphicsSupport: Graphics support

@@ -376,12 +376,12 @@ tutorial.pipeline.title: '그래픽스 파이프라인'
 tutorial.presentation.title: '그래픽스 컨텍스트와 표시'
 tutorial.project.context: '프로젝트 빌드 설정에서 {emphasis}({allowUnsafeBlocks})를 켭니다. 창 보조 클래스의 네이티브 호출과 정점 업로드에는 unsafe 코드가 필요합니다.'
 tutorial.project.context.emphasis: 안전하지 않은 코드 허용
-tutorial.project.description: '.NET 10을 대상으로 하는 {firstTriangle} C# 콘솔 프로젝트를 만듭니다.'
+tutorial.project.description: '최신 .NET 버전을 대상으로 하는 {firstTriangle} C# 콘솔 프로젝트를 만듭니다.'
 tutorial.project.details: '다음 NuGet 패키지를 프로젝트에 추가합니다.'
 tutorial.project.guidance: '{zenithNET}은 그래픽스와 컴퓨트를 위한 공통 API를 제공하고, 그래픽스 API별 패키지 세 개가 이를 구현합니다. {zenithNETCompiler}는 선택한 API에 맞게 Slang 셰이더를 컴파일합니다.'
 tutorial.project.title: '프로젝트 준비'
 tutorial.requirements.description: '{emphasis}와 기본 C# 지식이 필요합니다. GPU와 드라이버는 플랫폼에 맞는 다음 그래픽스 기능을 지원해야 합니다.'
-tutorial.requirements.description.emphasis: .NET 10 SDK
+tutorial.requirements.description.emphasis: .NET SDK
 tutorial.requirements.guidance: 'Zenith.NET은 애플리케이션이 제공하는 네이티브 서피스에 렌더링합니다. Silk.NET.Windowing은 창을 만들고 이벤트를 처리합니다.'
 tutorial.requirements.table.headings.graphicsSupport: '그래픽스 지원 조건'
 tutorial.requirements.table.headings.platform: 플랫폼

@@ -39,7 +39,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 
 - Maintain the canonical prose in American English in `documents/locales/en-US/strings.yml`. Other `documents/locales/<language>/` directories hold translated dictionaries and follow that directory's permanent `translation.md`. Keep C# identifiers and namespace names exact.
 - Describe the current API directly. Avoid release histories, migration narratives, product-version badges, "new in" labels and temporary preview-package instructions. A new package release alone does not require a documentation edit when the documented behavior remains accurate.
-- List required NuGet packages by package ID in alphabetical order, without package versions. Necessary platform/SDK prerequisites and target frameworks may be stated when needed to run the example; these are environment requirements, not a product-version narrative.
+- List required NuGet packages by package ID in alphabetical order, without package versions. State platform, .NET SDK, and target-framework prerequisites in version-agnostic terms rather than hard-coding a major .NET release.
 - Keep setup instructions specific to the example: its project type and name, target framework, and required packages. Assume readers know the basic operations for creating, opening, building, and running a .NET project and obtaining a repository. Avoid routine workflow narration and phrases such as "in your usual development environment." Do not prescribe shell commands or require a particular editor, IDE, or Git client.
 - Request validation by default with `useValidationLayer: true` in documented context creation. Runnable tutorials should connect `ValidationMessage` to console output so reported diagnostics are visible.
 - Verify behavior against `sources/` and runnable examples before writing. Read the implementation when ownership, synchronization or platform support is unclear; do not infer it from a type's name. If package behavior and repository source differ, resolve the mismatch before calling an example runnable.
@@ -50,7 +50,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 - Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Use the existing shared Markdown/HTML components with resource-bound text; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
 - Keep diagrams small enough to read on a phone. Prefer a vertical sequence to a wide horizontal graph when scaling would make its labels too small.
 - Keep the homepage, Learn overview and README consistent with the documentation's contents. Do not publish placeholder pages or temporary validation notes.
-- Call DirectX 12, Metal 4 and Vulkan 1.4 graphics APIs, and describe their packages as implementations of the shared API. Use full graphics API versions when stating support; generic API names are appropriate when discussing behavior independent of a version. State .NET versions where readers need a concrete SDK or target framework to build or run an example, rather than in general project descriptions. Refer to framework controls as UI integrations or rendering controls.
+- Call DirectX 12, Metal 4 and Vulkan 1.4 graphics APIs, and describe their packages as implementations of the shared API. Use full graphics API versions when stating support; generic API names are appropriate when discussing behavior independent of a version. Keep .NET SDK and target-framework descriptions version-agnostic rather than pinning a specific .NET release in prose. Refer to framework controls as UI integrations or rendering controls.
 
 ## Editorial style
 
@@ -200,7 +200,7 @@ The binding is implemented inside the existing template system: one native resou
 
 ## Validation
 
-Install DocFX as a .NET tool and use the repository's .NET 10 SDK, required workloads, and platform SDKs. Full API extraction loads the projects under `sources/`, including the MAUI integration; its workload and Android SDK must be available even when only reviewing documentation.
+Install DocFX as a .NET tool and use the .NET SDK required by the repository, along with the required workloads and platform SDKs. Full API extraction loads the projects under `sources/`, including the MAUI integration; its workload and Android SDK must be available even when only reviewing documentation.
 
 On a fresh checkout, or after changing C# source or XML comments, run the full extraction and build from the repository root:
 

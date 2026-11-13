@@ -15,4 +15,4 @@ For guided examples, see the [samples](https://qian-o.github.io/Zenith.NET/learn
 
 ## Requirements
 
-Use the .NET 10 SDK and a graphics driver that supports the selected backend. The graphical applications select DirectX 12 on Windows, Metal on macOS, and Vulkan on Linux.
+Use the .NET SDK required by [Directory.Build.props](../Directory.Build.props) and a graphics driver that supports the selected backend. The graphical applications select DirectX 12 on Windows, Metal on macOS, and Vulkan on Linux.

@@ -1,7 +1,7 @@
 ﻿<Project>
 
     <PropertyGroup>
-        <StandardTargetFramework>net10.0</StandardTargetFramework>
+        <StandardTargetFramework>net11.0</StandardTargetFramework>
 
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
