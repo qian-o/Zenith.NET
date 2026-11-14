@@ -42,17 +42,17 @@ internal class UpscalingBridge : DisposableObject
 
     public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
-        return GetVendor(superResolutionVendor, "super resolution").CreateSuperResolution(desc);
+        return superResolutionVendor!.CreateSuperResolution(desc);
     }
 
     public RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc)
     {
-        return GetVendor(rayReconstructionVendor, "ray reconstruction").CreateRayReconstruction(desc);
+        return rayReconstructionVendor!.CreateRayReconstruction(desc);
     }
 
     public FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc)
     {
-        return GetVendor(frameGenerationVendor, "frame generation").CreateFrameGeneration(desc);
+        return frameGenerationVendor!.CreateFrameGeneration(desc);
     }
 
     public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc)
@@ -83,10 +83,5 @@ internal class UpscalingBridge : DisposableObject
         {
             vendor.Dispose();
         }
-    }
-
-    private static Vendor GetVendor(Vendor? vendor, string feature)
-    {
-        return vendor ?? throw new NotSupportedException($"This device does not support {feature}.");
     }
 }

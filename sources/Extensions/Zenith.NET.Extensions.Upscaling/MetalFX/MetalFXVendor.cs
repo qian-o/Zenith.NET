@@ -1,26 +1,43 @@
-﻿namespace Zenith.NET.Extensions.Upscaling.MetalFX;
+﻿using Metal.NET;
 
-internal class MetalFXVendor(GraphicsContext context) : Vendor(context)
+namespace Zenith.NET.Extensions.Upscaling.MetalFX;
+
+internal class MetalFXVendor : Vendor
 {
-    public override UpscalingCapabilities Capabilities => throw new NotImplementedException();
+    public MTLDevice Device;
+
+    public MTL4Compiler Compiler;
+
+    public MetalFXVendor(GraphicsContext context) : base(context)
+    {
+        Device = context.Metal();
+
+        using MTL4CompilerDescriptor descriptor = new();
+        Compiler = Device.MakeCompiler(descriptor, out NSError error);
+        error.Success();
+
+        Capabilities = new(MTLFXTemporalScalerDescriptor.SupportsMetal4FX(Device), MTLFXTemporalDenoisedScalerDescriptor.SupportsMetal4FX(Device), MTLFXFrameInterpolatorDescriptor.SupportsMetal4FX(Device));
+    }
+
+    public override UpscalingCapabilities Capabilities { get; }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
-        throw new NotImplementedException();
+        return new MetalFXSuperResolution(this, desc);
     }
 
     public override RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc)
     {
-        throw new NotImplementedException();
+        return new MetalFXRayReconstruction(this, desc);
     }
 
     public override FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc)
     {
-        throw new NotImplementedException();
+        return new MetalFXFrameGeneration(this, desc);
     }
 
     protected override void Destroy()
     {
-        throw new NotImplementedException();
+        Compiler.Dispose();
     }
 }
