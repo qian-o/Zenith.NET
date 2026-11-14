@@ -48,8 +48,6 @@ public static class Extensions
         {
             return GetBridge(context).CreateFrameGenerationSwapChain(desc);
         }
-
-        internal UpscalingBridge UpscalingBridge => GetBridge(context);
     }
 
     private static UpscalingBridge GetBridge(GraphicsContext context)

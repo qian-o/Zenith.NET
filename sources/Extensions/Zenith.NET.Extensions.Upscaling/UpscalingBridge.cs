@@ -40,34 +40,6 @@ internal class UpscalingBridge : DisposableObject
 
     public UpscalingCapabilities Capabilities { get; }
 
-    public SuperResolutionDesc CreateSuperResolutionDesc(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
-    {
-        (uint renderWidth, uint renderHeight) = GetVendor(superResolutionVendor, "super resolution").GetSuperResolutionRenderSize(outputWidth, outputHeight, quality);
-
-        return new()
-        {
-            Format = format,
-            RenderWidth = renderWidth,
-            RenderHeight = renderHeight,
-            OutputWidth = outputWidth,
-            OutputHeight = outputHeight
-        };
-    }
-
-    public RayReconstructionDesc CreateRayReconstructionDesc(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
-    {
-        (uint renderWidth, uint renderHeight) = GetVendor(rayReconstructionVendor, "ray reconstruction").GetRayReconstructionRenderSize(outputWidth, outputHeight, quality);
-
-        return new()
-        {
-            Format = format,
-            RenderWidth = renderWidth,
-            RenderHeight = renderHeight,
-            OutputWidth = outputWidth,
-            OutputHeight = outputHeight
-        };
-    }
-
     public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
         return GetVendor(superResolutionVendor, "super resolution").CreateSuperResolution(desc);

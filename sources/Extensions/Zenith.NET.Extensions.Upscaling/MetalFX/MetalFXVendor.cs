@@ -4,16 +4,6 @@ internal class MetalFXVendor(GraphicsContext context) : Vendor(context)
 {
     public override UpscalingCapabilities Capabilities => throw new NotImplementedException();
 
-    public override (uint Width, uint Height) GetSuperResolutionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override (uint Width, uint Height) GetRayReconstructionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
-    {
-        throw new NotImplementedException();
-    }
-
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
         throw new NotImplementedException();

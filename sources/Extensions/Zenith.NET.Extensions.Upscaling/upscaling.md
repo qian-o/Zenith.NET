@@ -29,7 +29,7 @@ public enum UpscalingQuality
 }
 ```
 
-`UpscalingQuality` 用于通过描述符静态工厂（`SuperResolutionDesc.Quality`、`RayReconstructionDesc.Quality`）创建包含推荐渲染尺寸的描述。`Native` 表示原分辨率时域抗锯齿或原分辨率光线重建。
+`UpscalingQuality` 定义协议统一的标准缩放预设（`Native = 1.0`、`Quality = 1.5`、`Balanced = 1.7`、`Performance = 2.0`、`UltraPerformance = 3.0`），用于通过纯值静态工厂（`SuperResolutionDesc.Preset`、`RayReconstructionDesc.Preset`）直接构造包含目标渲染尺寸的描述。`Native` 表示原分辨率时域抗锯齿或原分辨率光线重建。
 
 ### 2.2 能力与入口
 
@@ -128,7 +128,7 @@ public struct SuperResolutionDesc
 
     public uint OutputHeight;
 
-    public static SuperResolutionDesc Quality(GraphicsContext context, PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality);
+    public static SuperResolutionDesc Preset(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality);
 }
 
 public struct SuperResolutionArgs
@@ -164,7 +164,7 @@ public abstract class SuperResolution : DisposableObject
 }
 ```
 
-`RenderWidth/Height` 不大于 `OutputWidth/Height`，相等时执行原分辨率时域抗锯齿。`SuperResolutionDesc.Quality(...)` 根据当前激活的超分后端查询指定 `UpscalingQuality` 对应的最佳渲染尺寸并返回完整描述；调用方创建 `SuperResolution` 后可直接通过 `superResolution.Desc.RenderWidth/Height` 创建渲染目标，并在 `Dispatch` 后直接读取已处于 `TextureLayout.Sampled` 的 `superResolution.Output`。
+`RenderWidth/Height` 不大于 `OutputWidth/Height`，相等时执行原分辨率时域抗锯齿。`SuperResolutionDesc.Preset(...)` 按协议标准缩放比直接构造包含渲染尺寸的纯值描述（不依赖 `GraphicsContext`，三端输出完全一致的渲染尺寸）；调用方也可在 `RenderWidth/Height` 中手动指定自定义渲染尺寸。`Dispatch` 结束后可直接采样已处于 `TextureLayout.Sampled` 的 `superResolution.Output`。
 
 `ReactiveMask` 为可选反应性遮罩，R 通道值为 `[0, 1]`，数值越大越减少对历史帧的依赖。`DeltaTimeInSeconds` 为相邻真实帧的时间间隔（秒）。首帧与内部配置重建时自动初始化历史，调用方仅需在切镜头或场景突变时将 `Reset` 置为 `true`。
 
@@ -183,7 +183,7 @@ public struct RayReconstructionDesc
 
     public uint OutputHeight;
 
-    public static RayReconstructionDesc Quality(GraphicsContext context, PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality);
+    public static RayReconstructionDesc Preset(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality);
 }
 
 public struct RayReconstructionArgs
@@ -355,7 +355,7 @@ public class FrameGenerationSwapChain : DisposableObject
 context.InitializeUpscaling();
 
 using SuperResolution upscaler = context.CreateSuperResolution(
-    SuperResolutionDesc.Quality(context, PixelFormat.R16G16B16A16Float, surface.Width, surface.Height, UpscalingQuality.Quality));
+    SuperResolutionDesc.Preset(PixelFormat.R16G16B16A16Float, surface.Width, surface.Height, UpscalingQuality.Quality));
 
 using FrameGenerationSwapChain swapChain = context.CreateFrameGenerationSwapChain(new()
 {

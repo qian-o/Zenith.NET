@@ -12,8 +12,17 @@ public struct RayReconstructionDesc
 
     public uint OutputHeight;
 
-    public static RayReconstructionDesc Quality(GraphicsContext context, PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
+    public static RayReconstructionDesc Preset(PixelFormat format, uint outputWidth, uint outputHeight, UpscalingQuality quality)
     {
-        return context.UpscalingBridge.CreateRayReconstructionDesc(format, outputWidth, outputHeight, quality);
+        (uint renderWidth, uint renderHeight) = UpscalingHelper.RenderSize(outputWidth, outputHeight, quality);
+
+        return new()
+        {
+            Format = format,
+            RenderWidth = renderWidth,
+            RenderHeight = renderHeight,
+            OutputWidth = outputWidth,
+            OutputHeight = outputHeight
+        };
     }
 }

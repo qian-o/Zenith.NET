@@ -76,11 +76,11 @@ internal class UpscalingPass : DisposableObject
     {
         if (IsRayReconstructionEnabled)
         {
-            rayReconstruction = App.Context.CreateRayReconstruction(RayReconstructionDesc.Quality(App.Context, PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, Quality));
+            rayReconstruction = App.Context.CreateRayReconstruction(RayReconstructionDesc.Preset(PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, Quality));
         }
         else
         {
-            superResolution = App.Context.CreateSuperResolution(SuperResolutionDesc.Quality(App.Context, PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, Quality));
+            superResolution = App.Context.CreateSuperResolution(SuperResolutionDesc.Preset(PathTracingOutput.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, Quality));
         }
     }
 

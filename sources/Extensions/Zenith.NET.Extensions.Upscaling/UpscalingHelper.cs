@@ -74,6 +74,26 @@ public static class UpscalingHelper
         return JitterProjection(projection, jitterOffset, desc.RenderWidth, desc.RenderHeight);
     }
 
+    internal static (uint Width, uint Height) RenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality)
+    {
+        float scale = quality switch
+        {
+            UpscalingQuality.Native => 1.0f,
+            UpscalingQuality.Quality => 1.5f,
+            UpscalingQuality.Balanced => 1.7f,
+            UpscalingQuality.Performance => 2.0f,
+            UpscalingQuality.UltraPerformance => 3.0f,
+            _ => 1.0f
+        };
+
+        return (ScaleDimension(outputWidth, scale), ScaleDimension(outputHeight, scale));
+    }
+
+    private static uint ScaleDimension(uint size, float scale)
+    {
+        return size is 0 ? 0u : Math.Max((uint)MathF.Floor((size / scale) + 0.5f), 1u);
+    }
+
     private static float Halton(uint index, uint radix)
     {
         float result = 0.0f;

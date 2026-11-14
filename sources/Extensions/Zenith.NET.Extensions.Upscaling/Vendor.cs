@@ -6,10 +6,6 @@ internal abstract class Vendor(GraphicsContext context) : DisposableObject
 
     public abstract UpscalingCapabilities Capabilities { get; }
 
-    public abstract (uint Width, uint Height) GetSuperResolutionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality);
-
-    public abstract (uint Width, uint Height) GetRayReconstructionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality);
-
     public abstract SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
 
     public abstract RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
