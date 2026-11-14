@@ -1,10 +1,16 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public abstract class FrameGeneration(GraphicsContext context, FrameGenerationDesc desc) : DisposableObject
+public abstract class FrameGeneration : DisposableObject
 {
-    public FrameGenerationDesc Desc { get; } = desc;
+    internal FrameGeneration(GraphicsContext context, FrameGenerationDesc desc)
+    {
+        Desc = desc;
+        Output = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+    }
 
-    public Texture Output { get; } = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+    public FrameGenerationDesc Desc { get; }
+
+    public Texture Output { get; }
 
     public void Dispatch(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {

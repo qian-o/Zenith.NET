@@ -20,9 +20,5 @@ public struct FrameGenerationArgs
 
     public float DeltaTimeInSeconds;
 
-    public float? MinLuminanceInNits;
-
-    public float? MaxLuminanceInNits;
-
     public bool Reset;
 }

@@ -18,7 +18,7 @@ public struct RayReconstructionArgs
 
     public Texture Roughness;
 
-    public Texture SpecularHitDistance;
+    public Texture? SpecularHitDistance;
 
     public Texture? ReactiveMask;
 

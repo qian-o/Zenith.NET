@@ -64,9 +64,11 @@ internal class Presentation : DisposableObject
         App.Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
         commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
+        TimelineValue rendered = commandBuffer.Submit();
+
         if (frameGenerationSwapChain is not null)
         {
-            frameGenerationSwapChain.Present(commandBuffer, new()
+            frameGenerationSwapChain.Present(new()
             {
                 Depth = frame.Depth,
                 MotionVectors = frame.MotionVectors,
@@ -80,7 +82,7 @@ internal class Presentation : DisposableObject
         }
         else
         {
-            commandBuffer.Submit().Wait();
+            rendered.Wait();
             swapChain!.Present();
         }
     }

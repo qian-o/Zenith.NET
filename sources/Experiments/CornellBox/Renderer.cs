@@ -52,8 +52,7 @@ internal class Renderer : DisposableObject
 
     public RenderedFrame Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
-        uint sampleIndex = frameIndex + 1u;
-        Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : new(GetHaltonSample(sampleIndex, 2u) - 0.5f, GetHaltonSample(sampleIndex, 3u) - 0.5f);
+        Vector2 jitterOffsetInPixels = upscalingPass is null ? Vector2.Zero : UpscalingHelper.JitterOffset(frameIndex, upscalingPass.RenderWidth, upscalingPass.RenderHeight, App.PhysicalWidth, App.PhysicalHeight);
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
         float deltaTimeInSeconds = (float)deltaSeconds;
@@ -127,20 +126,5 @@ internal class Renderer : DisposableObject
         outputPass.Dispose();
         pathTracingPass.Dispose();
         scene.Dispose();
-    }
-
-    private static float GetHaltonSample(uint index, uint radix)
-    {
-        float value = 0.0f;
-        float weight = 1.0f;
-
-        while (index > 0u)
-        {
-            weight /= radix;
-            value += weight * (index % radix);
-            index /= radix;
-        }
-
-        return value;
     }
 }

@@ -5,10 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Remove="Shaders\**\*.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 

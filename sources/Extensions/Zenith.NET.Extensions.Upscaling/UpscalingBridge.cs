@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using Zenith.NET.Extensions.Upscaling.DLSS;
+﻿using Zenith.NET.Extensions.Upscaling.DLSS;
 using Zenith.NET.Extensions.Upscaling.FSR;
 using Zenith.NET.Extensions.Upscaling.MetalFX;
 
@@ -8,44 +7,30 @@ namespace Zenith.NET.Extensions.Upscaling;
 internal class UpscalingBridge : DisposableObject
 {
     private readonly List<Vendor> vendors = [];
-    private readonly Vendor? superResolutionVendor;
-    private readonly Vendor? rayReconstructionVendor;
-    private readonly Vendor? frameGenerationVendor;
 
-    public UpscalingBridge(GraphicsContext context, ReadOnlySpan<UpscalingApi> apis)
+    private Vendor? superResolutionVendor;
+    private Vendor? rayReconstructionVendor;
+    private Vendor? frameGenerationVendor;
+
+    public UpscalingBridge(GraphicsContext context)
     {
         Context = context;
 
-        if (apis.IsEmpty)
+        switch (context.GraphicsApi)
         {
-            apis = [UpscalingApi.DLSS, UpscalingApi.FSR, UpscalingApi.MetalFX];
-        }
+            case GraphicsApi.DirectX12:
+            case GraphicsApi.Vulkan:
+                Register(new DLSSVendor(context));
 
-        foreach (UpscalingApi api in apis.ToArray().Distinct())
-        {
-            if (superResolutionVendor is not null && rayReconstructionVendor is not null && frameGenerationVendor is not null)
-            {
+                if (superResolutionVendor is null || rayReconstructionVendor is null || frameGenerationVendor is null)
+                {
+                    Register(new FSRVendor(context));
+                }
                 break;
-            }
 
-            if (CreateVendor(context, api) is not Vendor vendor)
-            {
-                continue;
-            }
-
-            UpscalingCapabilities capabilities = vendor.Capabilities;
-            superResolutionVendor ??= capabilities.SuperResolutionSupported ? vendor : null;
-            rayReconstructionVendor ??= capabilities.RayReconstructionSupported ? vendor : null;
-            frameGenerationVendor ??= capabilities.FrameGenerationSupported ? vendor : null;
-
-            if (vendor == superResolutionVendor || vendor == rayReconstructionVendor || vendor == frameGenerationVendor)
-            {
-                vendors.Add(vendor);
-            }
-            else
-            {
-                vendor.Dispose();
-            }
+            case GraphicsApi.Metal:
+                Register(new MetalFXVendor(context));
+                break;
         }
 
         Capabilities = new(superResolutionVendor is not null, rayReconstructionVendor is not null, frameGenerationVendor is not null);
@@ -105,68 +90,32 @@ internal class UpscalingBridge : DisposableObject
 
     protected override void Destroy()
     {
-        for (int i = 0; i < vendors.Count; i++)
+        for (int i = vendors.Count - 1; i >= 0; i--)
         {
             vendors[i].Dispose();
         }
+        vendors.Clear();
     }
 
-    private static Vendor? CreateVendor(GraphicsContext context, UpscalingApi api)
+    private void Register(Vendor vendor)
     {
-        return api switch
+        UpscalingCapabilities capabilities = vendor.Capabilities;
+        superResolutionVendor ??= capabilities.SuperResolutionSupported ? vendor : null;
+        rayReconstructionVendor ??= capabilities.RayReconstructionSupported ? vendor : null;
+        frameGenerationVendor ??= capabilities.FrameGenerationSupported ? vendor : null;
+
+        if (vendor == superResolutionVendor || vendor == rayReconstructionVendor || vendor == frameGenerationVendor)
         {
-            UpscalingApi.DLSS when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => new DLSSVendor(context),
-            UpscalingApi.FSR when context.GraphicsApi is GraphicsApi.DirectX12 or GraphicsApi.Vulkan => new FSRVendor(context),
-            UpscalingApi.MetalFX when context.GraphicsApi is GraphicsApi.Metal => new MetalFXVendor(context),
-            _ => default
-        };
+            vendors.Add(vendor);
+        }
+        else
+        {
+            vendor.Dispose();
+        }
     }
 
     private static Vendor GetVendor(Vendor? vendor, string feature)
     {
-        return vendor ?? throw new NotSupportedException($"This device does not support the {feature} with any of the specified upscaling APIs.");
-    }
-}
-
-internal abstract class Vendor(GraphicsContext context) : DisposableObject
-{
-    public GraphicsContext Context { get; } = context;
-
-    public abstract UpscalingCapabilities Capabilities { get; }
-
-    public abstract (uint Width, uint Height) GetSuperResolutionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality);
-
-    public abstract (uint Width, uint Height) GetRayReconstructionRenderSize(uint outputWidth, uint outputHeight, UpscalingQuality quality);
-
-    public abstract SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
-
-    public abstract RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
-
-    public abstract FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc);
-
-    public static Texture CreateOutput(GraphicsContext context, PixelFormat format, uint width, uint height)
-    {
-        return context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
-        });
-    }
-
-    public static (float NearPlane, float FarPlane, float VerticalFieldOfViewInRadians, float AspectRatio, bool DepthReversed, bool DepthInfinite) DecomposePerspective(Matrix4x4 projection)
-    {
-        const float Epsilon = 1e-6f;
-
-        float zeroDenominator = -projection.M33;
-        float unitDenominator = projection.M34 - projection.M33;
-
-        float zeroDepthDistance = MathF.Abs(zeroDenominator) <= Epsilon ? float.PositiveInfinity : MathF.Abs(projection.M43 / zeroDenominator);
-        float unitDepthDistance = MathF.Abs(unitDenominator) <= Epsilon ? float.PositiveInfinity : MathF.Abs(projection.M43 / unitDenominator);
-
-        bool depthReversed = zeroDepthDistance > unitDepthDistance;
-        float nearPlane = MathF.Min(zeroDepthDistance, unitDepthDistance);
-        float farPlane = MathF.Max(zeroDepthDistance, unitDepthDistance);
-        bool depthInfinite = float.IsInfinity(farPlane) || float.IsNaN(farPlane);
-
-        return (nearPlane, farPlane, 2.0f * MathF.Atan(1.0f / MathF.Abs(projection.M22)), MathF.Abs(projection.M22 / projection.M11), depthReversed, depthInfinite);
+        return vendor ?? throw new NotSupportedException($"This device does not support {feature}.");
     }
 }

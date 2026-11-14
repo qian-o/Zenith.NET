@@ -19,8 +19,8 @@ internal class PathTracingOutput : DisposableObject
     public PathTracingOutput(uint width, uint height)
     {
         Color = CreateTexture(ColorFormat, width, height);
-        Depth = CreateTexture(DepthFormat, width, height, TextureUsages.TransferSrc);
-        MotionVectors = CreateTexture(MotionVectorsFormat, width, height, TextureUsages.TransferSrc);
+        Depth = CreateTexture(DepthFormat, width, height);
+        MotionVectors = CreateTexture(MotionVectorsFormat, width, height);
         DiffuseAlbedo = CreateTexture(DiffuseAlbedoFormat, width, height);
         SpecularAlbedo = CreateTexture(SpecularAlbedoFormat, width, height);
         Normals = CreateTexture(NormalsFormat, width, height);
@@ -63,11 +63,11 @@ internal class PathTracingOutput : DisposableObject
         }
     }
 
-    private static Texture CreateTexture(PixelFormat format, uint width, uint height, TextureUsages additionalUsages = TextureUsages.None)
+    private static Texture CreateTexture(PixelFormat format, uint width, uint height)
     {
         return App.Context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.Sampled | TextureUsages.Storage | additionalUsages
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
     }
 }

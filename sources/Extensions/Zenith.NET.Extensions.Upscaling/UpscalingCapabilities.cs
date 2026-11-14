@@ -1,10 +1,17 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public class UpscalingCapabilities(bool superResolutionSupported, bool rayReconstructionSupported, bool frameGenerationSupported)
+public class UpscalingCapabilities
 {
-    public bool SuperResolutionSupported { get; } = superResolutionSupported;
+    internal UpscalingCapabilities(bool superResolutionSupported, bool rayReconstructionSupported, bool frameGenerationSupported)
+    {
+        SuperResolutionSupported = superResolutionSupported;
+        RayReconstructionSupported = rayReconstructionSupported;
+        FrameGenerationSupported = frameGenerationSupported;
+    }
 
-    public bool RayReconstructionSupported { get; } = rayReconstructionSupported;
+    public bool SuperResolutionSupported { get; }
 
-    public bool FrameGenerationSupported { get; } = frameGenerationSupported;
+    public bool RayReconstructionSupported { get; }
+
+    public bool FrameGenerationSupported { get; }
 }

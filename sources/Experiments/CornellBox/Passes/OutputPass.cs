@@ -79,10 +79,7 @@ internal unsafe class OutputPass : DisposableObject
 
     private void CreateOutput()
     {
-        Color = App.Context.CreateTexture(TextureDesc.Texture2D(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled | TextureUsages.TransferSrc
-        });
+        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1));
     }
 
     private void DestroyOutput()

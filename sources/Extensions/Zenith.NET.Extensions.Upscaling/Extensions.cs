@@ -7,13 +7,13 @@ public static class Extensions
 
     extension(GraphicsContext context)
     {
-        public void InitializeUpscaling(params ReadOnlySpan<UpscalingApi> apis)
+        public void InitializeUpscaling()
         {
             using Lock.Scope _ = @lock.EnterScope();
 
             if (!bridges.ContainsKey(context))
             {
-                bridges[context] = new(context, apis);
+                bridges[context] = new(context);
 
                 context.Disposing += static (sender, _) =>
                 {
@@ -50,22 +50,6 @@ public static class Extensions
         }
 
         internal UpscalingBridge UpscalingBridge => GetBridge(context);
-    }
-
-    extension(PixelFormat pixelFormat)
-    {
-        internal bool IsHdr()
-        {
-            return pixelFormat is PixelFormat.R16Float
-                or PixelFormat.R32Float
-                or PixelFormat.R16G16Float
-                or PixelFormat.R32G32Float
-                or PixelFormat.R9G9B9E5Float
-                or PixelFormat.R11G11B10Float
-                or PixelFormat.R10G10B10A2UNorm
-                or PixelFormat.R16G16B16A16Float
-                or PixelFormat.R32G32B32A32Float;
-        }
     }
 
     private static UpscalingBridge GetBridge(GraphicsContext context)

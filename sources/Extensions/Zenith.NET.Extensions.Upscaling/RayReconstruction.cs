@@ -1,10 +1,16 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public abstract class RayReconstruction(GraphicsContext context, RayReconstructionDesc desc) : DisposableObject
+public abstract class RayReconstruction : DisposableObject
 {
-    public RayReconstructionDesc Desc { get; } = desc;
+    internal RayReconstruction(GraphicsContext context, RayReconstructionDesc desc)
+    {
+        Desc = desc;
+        Output = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+    }
 
-    public Texture Output { get; } = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+    public RayReconstructionDesc Desc { get; }
+
+    public Texture Output { get; }
 
     public void Dispatch(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {
