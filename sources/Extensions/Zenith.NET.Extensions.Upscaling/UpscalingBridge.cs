@@ -71,10 +71,9 @@ internal class UpscalingBridge : DisposableObject
 
     private void Register(Vendor vendor)
     {
-        UpscalingCapabilities capabilities = vendor.Capabilities;
-        superResolutionVendor ??= capabilities.SuperResolutionSupported ? vendor : null;
-        rayReconstructionVendor ??= capabilities.RayReconstructionSupported ? vendor : null;
-        frameGenerationVendor ??= capabilities.FrameGenerationSupported ? vendor : null;
+        superResolutionVendor ??= vendor.Capabilities.SuperResolutionSupported ? vendor : null;
+        rayReconstructionVendor ??= vendor.Capabilities.RayReconstructionSupported ? vendor : null;
+        frameGenerationVendor ??= vendor.Capabilities.FrameGenerationSupported ? vendor : null;
 
         if (vendor == superResolutionVendor || vendor == rayReconstructionVendor || vendor == frameGenerationVendor)
         {
