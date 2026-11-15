@@ -7,7 +7,7 @@ internal static class Extensions
 {
     extension(NSError error)
     {
-        internal void Success()
+        public void Success()
         {
             if (!error.IsNull)
             {
@@ -18,7 +18,7 @@ internal static class Extensions
 
     extension(CommandBuffer commandBuffer)
     {
-        internal MTL4CommandBuffer Metal()
+        public MTL4CommandBuffer Metal()
         {
             return new(commandBuffer.GetNativeObject(NativeObjectType.MTL4CommandBuffer));
         }
@@ -26,7 +26,7 @@ internal static class Extensions
 
     extension(GraphicsContext context)
     {
-        internal MTLDevice Metal()
+        public MTLDevice Metal()
         {
             return new(context.GetNativeObject(NativeObjectType.MTLDevice));
         }
@@ -34,7 +34,7 @@ internal static class Extensions
 
     extension(Texture texture)
     {
-        internal MTLTexture Metal()
+        public MTLTexture Metal()
         {
             return new(texture.GetNativeObject(NativeObjectType.MTLTexture));
         }

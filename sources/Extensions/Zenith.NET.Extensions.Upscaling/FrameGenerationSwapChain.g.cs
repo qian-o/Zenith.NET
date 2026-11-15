@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.Upscaling;
 
-public unsafe partial class FrameGenerationSwapChain
+public partial class FrameGenerationSwapChain
 {
     #region DirectX12
     private static readonly ShaderDesc DirectX12CaptureInputs = new()

@@ -68,7 +68,7 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, string[] entryPoints)
 
     builder.AppendLine($"namespace {NamespaceName};");
     builder.AppendLine();
-    builder.AppendLine($"public unsafe partial class {ClassName}");
+    builder.AppendLine($"public partial class {ClassName}");
     builder.AppendLine("{");
 
     for (int graphicsApiIndex = 0; graphicsApiIndex < graphicsApis.Length; graphicsApiIndex++)
