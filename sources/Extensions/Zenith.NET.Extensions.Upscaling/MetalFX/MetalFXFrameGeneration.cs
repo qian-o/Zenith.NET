@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using Metal.NET;
+﻿using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
@@ -34,8 +32,8 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         interpolator.FarPlane = depthInfinite ? float.PositiveInfinity : farPlane;
         interpolator.FieldOfView = float.RadiansToDegrees(verticalFieldOfViewInRadians);
         interpolator.AspectRatio = aspectRatio;
-        interpolator.WorldToViewMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.View);
-        interpolator.ViewToClipMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.Projection);
+        interpolator.WorldToViewMatrix = MetalFXFormats.Metal(args.View);
+        interpolator.ViewToClipMatrix = MetalFXFormats.Metal(args.Projection);
         interpolator.UiTexture = args.Hudless is not null ? args.Color.Metal() : default;
         interpolator.JitterOffsetX = -args.JitterOffset.X;
         interpolator.JitterOffsetY = -args.JitterOffset.Y;

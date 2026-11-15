@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using Metal.NET;
+﻿using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
@@ -41,8 +39,8 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
         scaler.MotionVectorScaleY = Desc.RenderHeight;
         scaler.ShouldResetHistory = args.Reset;
         scaler.IsDepthReversed = UpscalingHelper.IsDepthReversed(args.Projection);
-        scaler.WorldToViewMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.View);
-        scaler.ViewToClipMatrix = Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(args.Projection);
+        scaler.WorldToViewMatrix = MetalFXFormats.Metal(args.View);
+        scaler.ViewToClipMatrix = MetalFXFormats.Metal(args.Projection);
         scaler.Encode(commandBuffer.Metal());
 
         commandBuffer.EndExternalCommands();

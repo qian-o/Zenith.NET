@@ -16,19 +16,19 @@ internal static class Extensions
         }
     }
 
-    extension(GraphicsContext context)
-    {
-        internal MTLDevice Metal()
-        {
-            return new(context.GetNativeObject(NativeObjectType.MTLDevice));
-        }
-    }
-
     extension(CommandBuffer commandBuffer)
     {
         internal MTL4CommandBuffer Metal()
         {
             return new(commandBuffer.GetNativeObject(NativeObjectType.MTL4CommandBuffer));
+        }
+    }
+
+    extension(GraphicsContext context)
+    {
+        internal MTLDevice Metal()
+        {
+            return new(context.GetNativeObject(NativeObjectType.MTLDevice));
         }
     }
 

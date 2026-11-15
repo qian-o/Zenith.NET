@@ -1,9 +1,16 @@
-﻿using Metal.NET;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
+using Metal.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal static class MetalFXFormats
 {
+    public static SimdFloat4x4 Metal(Matrix4x4 matrix4x4)
+    {
+        return Unsafe.BitCast<Matrix4x4, SimdFloat4x4>(matrix4x4);
+    }
+
     public static MTLPixelFormat Metal(PixelFormat? pixelFormat)
     {
         return pixelFormat switch
@@ -116,7 +123,7 @@ internal static class MetalFXFormats
             PixelFormat.ASTC12x12SRgb => MTLPixelFormat.ASTC_12x12_sRGB,
             PixelFormat.ASTC12x12Float => MTLPixelFormat.ASTC_12x12_HDR,
 
-            _ => MTLPixelFormat.Invalid
+            _ => default
         };
     }
 }
