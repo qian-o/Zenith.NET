@@ -346,7 +346,7 @@ public class FrameGenerationSwapChain : DisposableObject
 ### 3.2 后台呈现节奏与生命周期
 
 每个 `FrameGenerationSwapChain` 内部管理环形帧槽与独立后台呈现线程：
-- **插帧呈现**：在 GPU 完成本帧渲染与帧槽捕获后，后台生成上一真实帧与当前真实帧之间的插值帧，并根据真实帧提交间隔平滑调度“插值帧 → 当前真实帧”等距上屏（开启垂直同步时自动预留 VBlank 安全裕量）；首帧、尺寸重建或 `Reset` 为 `true` 时重置历史并在单次提交中直接呈现当前真实帧。
+- **插帧呈现**：`Present(args)` 在 `GraphicsQueue` 上直接生成上一真实帧与当前真实帧之间的插值帧，随后由后台呈现线程等待本帧 GPU 工作完成，并根据真实帧提交间隔平滑调度“插值帧 → 当前真实帧”等距上屏（开启垂直同步时自动预留 VBlank 安全裕量）；首帧、尺寸重建或 `Reset` 为 `true` 时重置历史并直接呈现当前真实帧。
 - **尺寸更新与释放**：`Resize` 与 `Refresh` 等待在途帧完成后更新呈现尺寸或 `Surface` 并重置历史；`Dispose` 安全停止后台线程并释放内部资源。
 
 ### 3.3 使用示例
@@ -472,4 +472,4 @@ FSR 后端在同一个调用方 `CommandBuffer` 中内部串联 **准备（Prepa
 1. **不做纯降噪。** `RayReconstruction` 始终输出同时完成降噪与超分的图像。
 2. **光线重建不向公共层暴露分路辐射度。** 单路 `Color` + 几何材质引导图是三家后端的最大公约物理模型，FSR 分通道降噪所需的线性深度差与辐射度解调完全由后端 Compute Shader 内部完成。
 3. **帧生成只做单帧插值。** 每次调用生成一张中间帧。
-4. **`FrameGenerationSwapChain` 与核心 `SwapChain` 职责正交。** `FrameGenerationSwapChain` 专用于插帧呈现，调用方自主提交渲染 `CommandBuffer` 后调用 `Present(args)`，内部自动在帧槽中只读采样辅助纹理并调度后台插帧上屏，不再绑定渲染尺寸或辅助纹理格式。
+4. **`FrameGenerationSwapChain` 与核心 `SwapChain` 职责正交。** `FrameGenerationSwapChain` 专用于插帧呈现，调用方自主提交渲染 `CommandBuffer` 后调用 `Present(args)`，内部原位只读采样辅助纹理生成插值帧并交由后台线程等距调度上屏，不再绑定渲染尺寸或辅助纹理格式。
