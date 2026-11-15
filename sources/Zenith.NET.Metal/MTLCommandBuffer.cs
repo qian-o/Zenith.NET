@@ -521,8 +521,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     protected override void EndExternalCommandsImpl()
     {
         BeginComputeEncoding();
-
-        Compute.BarrierAfterQueueStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
     }
 
     protected override void BeginImpl()
@@ -581,6 +579,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
     {
         Render = NSAutorelease.MakeRenderCommandEncoder(CommandBuffer, descriptor);
+        Render.BarrierAfterQueueStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Object | MTLRenderStages.Mesh);
 
         if (todoGraphicsPipeline is not null)
@@ -650,6 +649,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private void BeginComputeEncoding()
     {
         Compute = NSAutorelease.MakeComputeCommandEncoder(CommandBuffer);
+        Compute.BarrierAfterQueueStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         Compute.SetArgumentTable(ArgumentTable);
 
         if (todoComputePipeline is not null)
