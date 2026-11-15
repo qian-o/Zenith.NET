@@ -5,7 +5,7 @@ public abstract class RayReconstruction : DisposableObject
     internal RayReconstruction(GraphicsContext context, RayReconstructionDesc desc)
     {
         Desc = desc;
-        Output = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+        Output = UpscalingBridge.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
     }
 
     public RayReconstructionDesc Desc { get; }

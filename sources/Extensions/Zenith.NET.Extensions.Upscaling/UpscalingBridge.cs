@@ -84,4 +84,25 @@ internal class UpscalingBridge : DisposableObject
             vendor.Dispose();
         }
     }
+
+    public static Texture CreateOutput(GraphicsContext context, PixelFormat format, uint width, uint height)
+    {
+        return context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
+        });
+    }
+}
+
+internal abstract class Vendor(GraphicsContext context) : DisposableObject
+{
+    public GraphicsContext Context { get; } = context;
+
+    public abstract UpscalingCapabilities Capabilities { get; }
+
+    public abstract SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
+
+    public abstract RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc);
+
+    public abstract FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc);
 }

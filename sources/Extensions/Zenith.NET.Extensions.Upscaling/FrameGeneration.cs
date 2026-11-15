@@ -5,7 +5,7 @@ public abstract class FrameGeneration : DisposableObject
     internal FrameGeneration(GraphicsContext context, FrameGenerationDesc desc)
     {
         Desc = desc;
-        Output = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+        Output = UpscalingBridge.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
     }
 
     public FrameGenerationDesc Desc { get; }

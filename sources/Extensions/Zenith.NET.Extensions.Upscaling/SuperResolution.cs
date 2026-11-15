@@ -5,7 +5,7 @@ public abstract class SuperResolution : DisposableObject
     internal SuperResolution(GraphicsContext context, SuperResolutionDesc desc)
     {
         Desc = desc;
-        Output = Vendor.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
+        Output = UpscalingBridge.CreateOutput(context, desc.Format, desc.OutputWidth, desc.OutputHeight);
     }
 
     public SuperResolutionDesc Desc { get; }
