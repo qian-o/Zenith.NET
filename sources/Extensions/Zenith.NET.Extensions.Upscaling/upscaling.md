@@ -460,7 +460,7 @@ FSR 后端在同一个调用方 `CommandBuffer` 中内部串联 **准备（Prepa
 | 公共 | DLSS | FSR | MetalFX |
 |---|---|---|---|
 | `Desc.Format` | `NativeBackbufferFormat` 及 `Output` 纹理格式 | `BackBufferFormat` 及 `Output` 纹理格式 | `OutputTextureFormat` |
-| `RenderWidth/Height` | `RenderWidth/Height` 及深度、运动向量尺寸 | `MaxRenderSize` 与当前 `RenderSize` | `InputWidth/Height` 及 `ContentWidth/Height` |
+| `RenderWidth/Height` | `RenderWidth/Height` 及深度、运动向量尺寸 | `MaxRenderSize` 与当前 `RenderSize` | `InputWidth/Height` |
 | `OutputWidth/Height` | `Width/Height` | `DisplaySize` 与 `GenerationRect` | `OutputWidth/Height` |
 | `Color` | `Backbuffer` | `PresentColor` | 有 `Hudless` 时为 `UiTexture`，否则为 `ColorTexture` |
 | `Hudless` | `Hudless` | `HUDLessColor` | `ColorTexture`（启用 `IsUITextureComposited`） |

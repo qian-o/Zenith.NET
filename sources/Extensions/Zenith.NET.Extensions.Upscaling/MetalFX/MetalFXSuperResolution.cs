@@ -20,8 +20,6 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
 
         commandBuffer.BeginExternalCommands();
 
-        scaler.InputContentWidth = Desc.RenderWidth;
-        scaler.InputContentHeight = Desc.RenderHeight;
         scaler.ColorTexture = args.Color.Metal();
         scaler.DepthTexture = args.Depth.Metal();
         scaler.MotionTexture = args.MotionVectors.Metal();

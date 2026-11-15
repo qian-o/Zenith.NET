@@ -521,6 +521,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     protected override void EndExternalCommandsImpl()
     {
         BeginComputeEncoding();
+
+        Compute.BarrierAfterQueueStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
     }
 
     protected override void BeginImpl()
