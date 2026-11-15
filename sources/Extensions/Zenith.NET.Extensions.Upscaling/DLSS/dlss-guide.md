@@ -11,7 +11,7 @@
    - 光线重建（DLSS Ray Reconstruction / DLSSD）
    - 帧生成（DLSS Frame Generation / DLSS-G）
 2. **已封板红线（严禁擅自改动）**：
-   - 根目录下的全部 16 个公共 API 类型、`UpscalingBridge.cs`、`Vendor.cs`、`FrameGenerationSwapChain.cs`、`upscaling.md` 已完成封板。
+   - 根目录下的全部 16 个公共 API 类型、`UpscalingBridge.cs`（内含 `UpscalingBridge` 与 `Vendor` 抽象基类）、`FrameGenerationSwapChain.cs`、`upscaling.md` 已完成封板；根目录下严禁新增任何内部辅助文件。
    - `MetalFX/` 已完成真机封板，是**唯一标准参考范本**；实现前必须先完整阅读 `upscaling.md`、`FrameGenerationSwapChain.cs` 以及 `MetalFX/` 下的全部 6 个文件。
    - `FSR/FSRVendor.cs` 保持 `throw new NotImplementedException();` 占位符，本次不触碰。
    - 严禁让 `Zenith.NET.Extensions.Upscaling` 引用 `Zenith.NET.DirectX12` 或 `Zenith.NET.Vulkan` 项目；所有底层句柄一律通过 `GraphicsContext` / `CommandBuffer` / `Texture` 的 `GetNativeObject(NativeObjectType)` 获取。
