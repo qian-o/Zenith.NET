@@ -4,8 +4,6 @@
 
     uint Height;
 
-    uint2 Padding0;
-
     DescriptorHandle<Texture2D<float4>> SrcColor;
 
     DescriptorHandle<Texture2D<float>> SrcDepth;
@@ -15,8 +13,6 @@
     DescriptorHandle<RWTexture2D<float>> DstDepth;
 
     DescriptorHandle<RWTexture2D<float2>> DstMotionVectors;
-
-    uint2 Padding1;
 };
 
 ConstantBuffer<CaptureConstants> capture;

@@ -20,7 +20,7 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
 
         commandBuffer.BeginExternalCommands();
 
-        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite);
+        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool _);
 
         interpolator.ColorTexture = (args.Hudless ?? args.Color).Metal();
         interpolator.DepthTexture = args.Depth.Metal();
@@ -29,7 +29,7 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         interpolator.MotionVectorScaleY = Desc.RenderHeight;
         interpolator.DeltaTime = args.DeltaTimeInSeconds;
         interpolator.NearPlane = nearPlane;
-        interpolator.FarPlane = depthInfinite ? float.PositiveInfinity : farPlane;
+        interpolator.FarPlane = farPlane;
         interpolator.FieldOfView = float.RadiansToDegrees(verticalFieldOfViewInRadians);
         interpolator.AspectRatio = aspectRatio;
         interpolator.WorldToViewMatrix = MetalFXFormats.Metal(args.View);

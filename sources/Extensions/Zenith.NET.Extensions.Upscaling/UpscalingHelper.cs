@@ -14,7 +14,7 @@ public static class UpscalingHelper
         float scaleX = MathF.Max((float)outputWidth / renderWidth, 1.0f);
         float scaleY = MathF.Max((float)outputHeight / renderHeight, 1.0f);
 
-        return Math.Max((uint)MathF.Ceiling(8.0f * scaleX * scaleY), 8u);
+        return Math.Max((uint)MathF.Ceiling(8.0f * scaleX * scaleY), 8);
     }
 
     public static uint JitterPhaseCount(SuperResolutionDesc desc)
@@ -34,9 +34,9 @@ public static class UpscalingHelper
             return Vector2.Zero;
         }
 
-        uint sampleIndex = (frameIndex % phaseCount) + 1u;
+        uint sampleIndex = (frameIndex % phaseCount) + 1;
 
-        return new(Halton(sampleIndex, 2u) - 0.5f, Halton(sampleIndex, 3u) - 0.5f);
+        return new(Halton(sampleIndex, 2) - 0.5f, Halton(sampleIndex, 3) - 0.5f);
     }
 
     public static Vector2 JitterOffset(uint frameIndex, uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)
@@ -110,13 +110,19 @@ public static class UpscalingHelper
         nearPlane = MathF.Min(zeroDepthDistance, unitDepthDistance);
         farPlane = MathF.Max(zeroDepthDistance, unitDepthDistance);
         depthInfinite = float.IsInfinity(farPlane) || float.IsNaN(farPlane);
+
+        if (depthInfinite)
+        {
+            farPlane = float.PositiveInfinity;
+        }
+
         verticalFieldOfViewInRadians = 2.0f * MathF.Atan(1.0f / MathF.Abs(projection.M22));
         aspectRatio = MathF.Abs(projection.M22 / projection.M11);
     }
 
     private static uint ScaleDimension(uint size, float scale)
     {
-        return size is 0 ? 0u : Math.Max((uint)MathF.Floor((size / scale) + 0.5f), 1u);
+        return size is 0 ? 0 : Math.Max((uint)MathF.Floor((size / scale) + 0.5f), 1);
     }
 
     private static float Halton(uint index, uint radix)
@@ -124,7 +130,7 @@ public static class UpscalingHelper
         float result = 0.0f;
         float fraction = 1.0f;
 
-        while (index > 0u)
+        while (index > 0)
         {
             fraction /= radix;
             result += fraction * (index % radix);

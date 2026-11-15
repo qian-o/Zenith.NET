@@ -19,6 +19,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
     private readonly SwapChain swapChain;
     private readonly Frame[] frames = new Frame[FrameCount];
 
+    private FrameGenerationSwapChainDesc desc;
     private FrameGeneration? frameGeneration;
     private CancellationTokenSource? tokenSource;
     private BlockingCollection<Submission>? submissions;
@@ -32,7 +33,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
     internal FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSwapChainDesc desc)
     {
         this.context = context;
-        Desc = desc;
+        this.desc = desc;
 
         using Shader computeShader = context.CreateShader(context.GraphicsApi switch
         {
@@ -71,7 +72,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
         CreateResources();
     }
 
-    public FrameGenerationSwapChainDesc Desc { get; private set; }
+    public FrameGenerationSwapChainDesc Desc => desc;
 
     public Texture Drawable => frames[frameIndex].Color;
 
@@ -100,14 +101,8 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        Desc = Desc with
-        {
-            Surface = Desc.Surface with
-            {
-                Width = width,
-                Height = height
-            }
-        };
+        desc.Surface.Width = width;
+        desc.Surface.Height = height;
 
         DestroyResources();
         swapChain.Resize(width, height);
@@ -116,7 +111,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
 
     public void Refresh(Surface surface)
     {
-        Desc = Desc with { Surface = surface };
+        desc.Surface = surface;
 
         DestroyResources();
         swapChain.Refresh(surface);
@@ -144,7 +139,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
     {
         for (int i = 0; i < frames.Length; i++)
         {
-            frames[i] = new(context, Desc);
+            frames[i] = new(context, desc);
         }
 
         frameIndex = 0;
@@ -196,14 +191,14 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
         frame.Depth = EnsureTexture(context, frame.Depth, PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
         frame.MotionVectors = EnsureTexture(context, frame.MotionVectors, PixelFormat.R32G32Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
 
-        if (args.Hudless is Texture hudless)
+        if (args.Hudless is not null)
         {
-            frame.Hudless = EnsureTexture(context, frame.Hudless, hudless.Desc.Format, hudless.Desc.Width, hudless.Desc.Height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-            frame.HasHudless = true;
+            frame.Hudless = EnsureTexture(context, frame.Hudless, args.Hudless.Desc.Format, args.Hudless.Desc.Width, args.Hudless.Desc.Height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         }
         else
         {
-            frame.HasHudless = false;
+            frame.Hudless?.Dispose();
+            frame.Hudless = null;
         }
 
         CaptureConstants constants = new()
@@ -224,7 +219,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
             Pointer = (nint)(&constants),
             SizeInBytes = (uint)sizeof(CaptureConstants)
         });
-        commandBuffer.Barrier(BarrierStages.Copy, frame.HasHudless ? BarrierStages.ComputeShading | BarrierStages.FragmentShading : BarrierStages.ComputeShading);
+        commandBuffer.Barrier(BarrierStages.Copy, frame.Hudless is not null ? BarrierStages.ComputeShading | BarrierStages.FragmentShading : BarrierStages.ComputeShading);
 
         commandBuffer.Transition(frame.Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(frame.MotionVectors, default, TextureLayout.Undefined, TextureLayout.Storage);
@@ -238,15 +233,15 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
         commandBuffer.Transition(frame.Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(frame.MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        if (frame.HasHudless)
+        if (frame.Hudless is not null)
         {
-            commandBuffer.Transition(frame.Hudless!, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-            commandBuffer.BeginRenderPass([ColorAttachment.DontCare(frame.Hudless!)], null);
-            commandBuffer.SetPipeline(GetColorPipeline(frame.Hudless!.Desc.Format));
+            commandBuffer.Transition(frame.Hudless, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+            commandBuffer.BeginRenderPass([ColorAttachment.DontCare(frame.Hudless)], null);
+            commandBuffer.SetPipeline(GetColorPipeline(frame.Hudless.Desc.Format));
             commandBuffer.SetConstantBuffer(frame.ConstantBuffer, 0);
             commandBuffer.Draw(3, 1, 0, 0);
             commandBuffer.EndRenderPass();
-            commandBuffer.Transition(frame.Hudless!, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+            commandBuffer.Transition(frame.Hudless, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
         }
 
         commandBuffer.EndDebugEvent();
@@ -312,7 +307,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
             Color = frame.Color,
             Depth = frame.Depth,
             MotionVectors = frame.MotionVectors!,
-            Hudless = frame.HasHudless ? frame.Hudless : null,
+            Hudless = frame.Hudless,
             JitterOffset = args.JitterOffset,
             View = args.View,
             Projection = args.Projection,
@@ -469,8 +464,6 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
 
         public Texture? Hudless;
 
-        public bool HasHudless;
-
         protected override void Destroy()
         {
             Hudless?.Dispose();
@@ -494,7 +487,7 @@ public unsafe partial class FrameGenerationSwapChain : DisposableObject
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 64)]
+[StructLayout(LayoutKind.Explicit, Size = 48)]
 file struct CaptureConstants
 {
     [FieldOffset(0)]
@@ -503,18 +496,18 @@ file struct CaptureConstants
     [FieldOffset(4)]
     public uint Height;
 
-    [FieldOffset(16)]
+    [FieldOffset(8)]
     public ResourceHandle SrcColor;
 
-    [FieldOffset(24)]
+    [FieldOffset(16)]
     public ResourceHandle SrcDepth;
 
-    [FieldOffset(32)]
+    [FieldOffset(24)]
     public ResourceHandle SrcMotionVectors;
 
-    [FieldOffset(40)]
+    [FieldOffset(32)]
     public ResourceHandle DstDepth;
 
-    [FieldOffset(48)]
+    [FieldOffset(40)]
     public ResourceHandle DstMotionVectors;
 }
