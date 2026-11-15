@@ -341,7 +341,7 @@ public class FrameGenerationSwapChain : DisposableObject
 
 1. **创建与提交边界一致。** `FrameGenerationSwapChainDesc` 只声明 `Surface`、`Format` 与 `IsVerticalSyncEnabled`（字段顺序对齐核心 `SwapChainDesc`），不耦合渲染分辨率与辅助纹理格式；调用方与使用核心 `SwapChain` 一样自主调用 `commandBuffer.Submit(...)` 提交渲染工作（完整保留 `TimelineValue` 跨队列等待与多命令缓冲区组织能力），随后调用 `swapChain.Present(args)`。切换超分档位导致 `Depth` / `MotionVectors` 尺寸变化时，交换链内部自动重建 `FrameGeneration` 实例，无需销毁重建窗口交换链。创建前要求设备支持帧生成（`UpscalingCapabilities.FrameGenerationSupported` 为 `true`），不启用帧生成时使用核心 `SwapChain`。
 2. **统一 `Drawable` 画布。** 调用方每帧将最终呈现画面（含 UI）渲染到 `swapChain.Drawable`（用法与 `SwapChain.Drawable` 一致，绘制完成后转换到 `TextureLayout.Present`）。
-3. **直接传入已有辅助纹理，零隐式用途约束。** 调用方提交本帧命令缓冲区后，直接把本帧产出的 `Depth`、`MotionVectors` 及可选 `Hudless`（均只需 `TextureUsages.Sampled` 并保持 `TextureLayout.Sampled`）传给 `Present(args)`。交换链内部在 `GraphicsQueue` 上通过着色器只读采样捕获帧槽快照，随后唤醒后台呈现线程完成插帧与平滑节奏调度上屏。
+3. **直接传入已有辅助纹理，零隐式用途约束。** 调用方提交本帧命令缓冲区后，直接把本帧产出的 `Depth`、`MotionVectors` 及可选 `Hudless`（均只需 `TextureUsages.Sampled` 并保持 `TextureLayout.Sampled`）传给 `Present(args)`。交换链内部在 `GraphicsQueue` 上直接原位只读采样这些纹理生成插值帧，随后将插值帧与当前真实帧交由后台呈现线程按平滑节奏调度上屏。
 
 ### 3.2 后台呈现节奏与生命周期
 
