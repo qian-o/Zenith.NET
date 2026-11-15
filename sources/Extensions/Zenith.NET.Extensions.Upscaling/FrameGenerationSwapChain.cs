@@ -131,7 +131,7 @@ public class FrameGenerationSwapChain : DisposableObject
         presentStopwatch.Reset();
 
         tokenSource = new();
-        submissions = new(FrameCount);
+        submissions = [with(FrameCount)];
         presenterThread = new(PresentLoop)
         {
             Name = nameof(FrameGenerationSwapChain),
