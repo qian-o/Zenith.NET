@@ -4,11 +4,10 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) : SuperResolution(vendor.Context, desc)
 {
-    public readonly NGXParameter Parameters = vendor.AllocateParameters();
-
-    public NGXHandle Handle;
+    private readonly NGXParameter parameters = vendor.CreateParameters();
 
     private Key key;
+    private NGXHandle handle;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
     {
@@ -21,7 +20,7 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.Evaluate(commandBuffer, this, args);
+        vendor.EvaluateFeature(commandBuffer, parameters, handle, Desc, args, Output);
 
         commandBuffer.EndExternalCommands();
 
@@ -30,8 +29,8 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
     protected override void Destroy()
     {
-        vendor.ReleaseFeature(Handle);
-        vendor.DestroyParameters(Parameters);
+        vendor.DestroyFeature(handle);
+        vendor.DestroyParameters(parameters);
 
         base.Destroy();
     }
@@ -47,7 +46,8 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
         key = newKey;
 
-        vendor.Create(this, args);
+        vendor.DestroyFeature(handle);
+        handle = vendor.CreateFeature(parameters, Desc, args);
 
         return true;
     }

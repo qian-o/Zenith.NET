@@ -4,11 +4,10 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc desc) : RayReconstruction(vendor.Context, desc)
 {
-    public readonly NGXParameter Parameters = vendor.AllocateParameters();
-
-    public NGXHandle Handle;
+    private readonly NGXParameter parameters = vendor.CreateParameters();
 
     private Key key;
+    private NGXHandle handle;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {
@@ -21,7 +20,7 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.Evaluate(commandBuffer, this, args);
+        vendor.EvaluateFeature(commandBuffer, parameters, handle, Desc, args, Output);
 
         commandBuffer.EndExternalCommands();
 
@@ -30,8 +29,8 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
 
     protected override void Destroy()
     {
-        vendor.ReleaseFeature(Handle);
-        vendor.DestroyParameters(Parameters);
+        vendor.DestroyFeature(handle);
+        vendor.DestroyParameters(parameters);
 
         base.Destroy();
     }
@@ -47,7 +46,8 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
 
         key = newKey;
 
-        vendor.Create(this, args);
+        vendor.DestroyFeature(handle);
+        handle = vendor.CreateFeature(parameters, Desc, args);
 
         return true;
     }

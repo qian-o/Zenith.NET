@@ -5,15 +5,12 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) : FrameGeneration(vendor.Context, desc)
 {
-    public readonly NGXParameter Parameters = vendor.AllocateParameters();
-
-    public NGXHandle Handle;
-
-    public Matrix4x4 PreviousView;
-
-    public Matrix4x4 PreviousProjection;
+    private readonly NGXParameter parameters = vendor.CreateParameters();
 
     private Key key;
+    private NGXHandle handle;
+    private Matrix4x4 previousView;
+    private Matrix4x4 previousProjection;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
@@ -26,17 +23,20 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.Evaluate(commandBuffer, this, args);
+        vendor.EvaluateFeature(commandBuffer, parameters, handle, previousView, previousProjection, args, Output);
 
         commandBuffer.EndExternalCommands();
 
         commandBuffer.Transition(Output, default, TextureLayout.Storage, TextureLayout.Sampled);
+
+        previousView = args.View;
+        previousProjection = args.Projection;
     }
 
     protected override void Destroy()
     {
-        vendor.ReleaseFeature(Handle);
-        vendor.DestroyParameters(Parameters);
+        vendor.DestroyFeature(handle);
+        vendor.DestroyParameters(parameters);
 
         base.Destroy();
     }
@@ -52,7 +52,8 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
         key = newKey;
 
-        vendor.Create(this);
+        vendor.DestroyFeature(handle);
+        handle = vendor.CreateFeature(parameters, Desc);
 
         return true;
     }

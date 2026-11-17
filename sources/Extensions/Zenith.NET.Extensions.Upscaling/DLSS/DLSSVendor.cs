@@ -73,7 +73,7 @@ internal unsafe partial class DLSSVendor : Vendor
         return new DLSSFrameGeneration(this, desc);
     }
 
-    public NGXParameter AllocateParameters()
+    public NGXParameter CreateParameters()
     {
         NGXParameter parameters = default;
 
@@ -107,8 +107,117 @@ internal unsafe partial class DLSSVendor : Vendor
         }
     }
 
-    public void ReleaseFeature(NGXHandle handle)
+    public NGXHandle CreateFeature(NGXParameter parameters, SuperResolutionDesc desc, SuperResolutionArgs args)
     {
+        DLSSHelper.ResetParameters(parameters);
+
+        if (args.Exposure is not null)
+        {
+            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetDLAA, (uint)NGXDLSSHintRenderPreset.K);
+            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetQuality, (uint)NGXDLSSHintRenderPreset.K);
+            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetBalanced, (uint)NGXDLSSHintRenderPreset.K);
+            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetPerformance, (uint)NGXDLSSHintRenderPreset.K);
+            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetUltraPerformance, (uint)NGXDLSSHintRenderPreset.K);
+        }
+
+        NGXDLSSCreateParams createParams = new()
+        {
+            Feature = new()
+            {
+                Width = desc.RenderWidth,
+                Height = desc.RenderHeight,
+                TargetWidth = desc.OutputWidth,
+                TargetHeight = desc.OutputHeight,
+                PerfQualityValue = DLSSHelper.PerfQuality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight)
+            },
+            FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
+        };
+
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+        NGXHandle handle = Context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, &createParams),
+            GraphicsApi.Vulkan => CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, &createParams),
+            _ => default
+        };
+
+        commandBuffer.Submit().Wait();
+
+        return handle;
+    }
+
+    public NGXHandle CreateFeature(NGXParameter parameters, RayReconstructionDesc desc, RayReconstructionArgs args)
+    {
+        DLSSHelper.ResetParameters(parameters);
+
+        NGXDLSSDCreateParams createParams = new()
+        {
+            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
+            RoughnessMode = NGXDLSSRoughnessMode.Unpacked,
+            UseHWDepth = NGXDLSSDepthType.Hw,
+            Width = desc.RenderWidth,
+            Height = desc.RenderHeight,
+            TargetWidth = desc.OutputWidth,
+            TargetHeight = desc.OutputHeight,
+            PerfQualityValue = DLSSHelper.PerfQuality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight),
+            FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
+        };
+
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+        NGXHandle handle = Context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, &createParams),
+            GraphicsApi.Vulkan => CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, &createParams),
+            _ => default
+        };
+
+        commandBuffer.Submit().Wait();
+
+        return handle;
+    }
+
+    public NGXHandle CreateFeature(NGXParameter parameters, FrameGenerationDesc desc)
+    {
+        DLSSHelper.ResetParameters(parameters);
+        DLSSHelper.SetUI(parameters, Ngx.DLSSGParameterMvecJittered, 0);
+
+        NGXDLSSGCreateParams createParams = new()
+        {
+            Width = desc.OutputWidth,
+            Height = desc.OutputHeight,
+            NativeBackbufferFormat = Context.GraphicsApi switch
+            {
+                GraphicsApi.DirectX12 => DLSSFormats.DirectX12(desc.Format),
+                GraphicsApi.Vulkan => (uint)DLSSFormats.Vulkan(desc.Format),
+                _ => default
+            },
+            RenderWidth = desc.RenderWidth,
+            RenderHeight = desc.RenderHeight
+        };
+
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+        NGXHandle handle = Context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, &createParams),
+            GraphicsApi.Vulkan => CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, &createParams),
+            _ => default
+        };
+
+        commandBuffer.Submit().Wait();
+
+        return handle;
+    }
+
+    public void DestroyFeature(NGXHandle handle)
+    {
+        if (handle.IsNull)
+        {
+            return;
+        }
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -121,228 +230,46 @@ internal unsafe partial class DLSSVendor : Vendor
         }
     }
 
-    public void Create(DLSSSuperResolution feature, SuperResolutionArgs args)
-    {
-        PrepareFeature(feature.Handle, feature.Parameters);
-
-        if (args.Exposure is not null)
-        {
-            DLSSHelper.SetUI(feature.Parameters, Ngx.ParameterDLSSHintRenderPresetDLAA, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(feature.Parameters, Ngx.ParameterDLSSHintRenderPresetQuality, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(feature.Parameters, Ngx.ParameterDLSSHintRenderPresetBalanced, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(feature.Parameters, Ngx.ParameterDLSSHintRenderPresetPerformance, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(feature.Parameters, Ngx.ParameterDLSSHintRenderPresetUltraPerformance, (uint)NGXDLSSHintRenderPreset.K);
-        }
-
-        NGXDLSSCreateParams createParams = new()
-        {
-            Feature = new()
-            {
-                Width = feature.Desc.RenderWidth,
-                Height = feature.Desc.RenderHeight,
-                TargetWidth = feature.Desc.OutputWidth,
-                TargetHeight = feature.Desc.OutputHeight,
-                PerfQualityValue = DLSSHelper.PerfQuality(feature.Desc.RenderWidth, feature.Desc.RenderHeight, feature.Desc.OutputWidth, feature.Desc.OutputHeight)
-            },
-            FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
-        };
-
-        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-
-        switch (Context.GraphicsApi)
-        {
-            case GraphicsApi.DirectX12:
-                CreateDirectX12(commandBuffer.DirectX12(), feature, &createParams);
-                break;
-
-            case GraphicsApi.Vulkan:
-                CreateVulkan(commandBuffer.Vulkan(), feature, &createParams);
-                break;
-        }
-
-        commandBuffer.Submit().Wait();
-    }
-
-    public void Create(DLSSRayReconstruction feature, RayReconstructionArgs args)
-    {
-        PrepareFeature(feature.Handle, feature.Parameters);
-
-        NGXDLSSDCreateParams createParams = new()
-        {
-            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
-            RoughnessMode = NGXDLSSRoughnessMode.Unpacked,
-            UseHWDepth = NGXDLSSDepthType.Hw,
-            Width = feature.Desc.RenderWidth,
-            Height = feature.Desc.RenderHeight,
-            TargetWidth = feature.Desc.OutputWidth,
-            TargetHeight = feature.Desc.OutputHeight,
-            PerfQualityValue = DLSSHelper.PerfQuality(feature.Desc.RenderWidth, feature.Desc.RenderHeight, feature.Desc.OutputWidth, feature.Desc.OutputHeight),
-            FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
-        };
-
-        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-
-        switch (Context.GraphicsApi)
-        {
-            case GraphicsApi.DirectX12:
-                CreateDirectX12(commandBuffer.DirectX12(), feature, &createParams);
-                break;
-
-            case GraphicsApi.Vulkan:
-                CreateVulkan(commandBuffer.Vulkan(), feature, &createParams);
-                break;
-        }
-
-        commandBuffer.Submit().Wait();
-    }
-
-    public void Create(DLSSFrameGeneration feature)
-    {
-        PrepareFeature(feature.Handle, feature.Parameters);
-        DLSSHelper.SetUI(feature.Parameters, Ngx.DLSSGParameterMvecJittered, 0);
-
-        NGXDLSSGCreateParams createParams = new()
-        {
-            Width = feature.Desc.OutputWidth,
-            Height = feature.Desc.OutputHeight,
-            NativeBackbufferFormat = Context.GraphicsApi switch
-            {
-                GraphicsApi.DirectX12 => DLSSFormats.DirectX12(feature.Desc.Format),
-                GraphicsApi.Vulkan => (uint)DLSSFormats.Vulkan(feature.Desc.Format),
-                _ => default
-            },
-            RenderWidth = feature.Desc.RenderWidth,
-            RenderHeight = feature.Desc.RenderHeight
-        };
-
-        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-
-        switch (Context.GraphicsApi)
-        {
-            case GraphicsApi.DirectX12:
-                CreateDirectX12(commandBuffer.DirectX12(), feature, &createParams);
-                break;
-
-            case GraphicsApi.Vulkan:
-                CreateVulkan(commandBuffer.Vulkan(), feature, &createParams);
-                break;
-        }
-
-        commandBuffer.Submit().Wait();
-    }
-
-    public void Evaluate(CommandBuffer commandBuffer, DLSSSuperResolution feature, SuperResolutionArgs args)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, SuperResolutionDesc desc, SuperResolutionArgs args, Texture output)
     {
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandBuffer.DirectX12(), feature, args);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, desc, args, output);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandBuffer.Vulkan(), feature, args);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, desc, args, output);
                 break;
         }
     }
 
-    public void Evaluate(CommandBuffer commandBuffer, DLSSRayReconstruction feature, RayReconstructionArgs args)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, RayReconstructionDesc desc, RayReconstructionArgs args, Texture output)
     {
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandBuffer.DirectX12(), feature, args);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, desc, args, output);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandBuffer.Vulkan(), feature, args);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, desc, args, output);
                 break;
         }
     }
 
-    public void Evaluate(CommandBuffer commandBuffer, DLSSFrameGeneration feature, FrameGenerationArgs args)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousView, Matrix4x4 previousProjection, FrameGenerationArgs args, Texture output)
     {
-        const float FallbackInfiniteFarScale = 100000.0f;
-
-        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite);
-
-        Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
-        Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToCameraView);
-
-        Matrix4x4 clipToPrevClip = Matrix4x4.Identity;
-        Matrix4x4 prevClipToClip = Matrix4x4.Identity;
-        if (!args.Reset)
-        {
-            Matrix4x4.Invert(feature.PreviousView, out Matrix4x4 previousViewToWorld);
-            Matrix4x4.Invert(feature.PreviousProjection, out Matrix4x4 previousClipToView);
-
-            Matrix4x4 relativeViewToWorld = viewToWorld;
-            relativeViewToWorld.Translation -= previousViewToWorld.Translation;
-
-            Matrix4x4 relativeWorldToPreviousView = feature.PreviousView;
-            relativeWorldToPreviousView.Translation = Vector3.Zero;
-
-            Matrix4x4 viewToPreviousView = relativeViewToWorld * relativeWorldToPreviousView;
-            Matrix4x4.Invert(viewToPreviousView, out Matrix4x4 previousViewToView);
-
-            clipToPrevClip = clipToCameraView * viewToPreviousView * feature.PreviousProjection;
-            prevClipToClip = previousClipToView * previousViewToView * args.Projection;
-        }
-
-        Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
-
-        NGXDimensions renderDimensions = new()
-        {
-            Width = feature.Desc.RenderWidth,
-            Height = feature.Desc.RenderHeight
-        };
-
-        NGXDimensions outputDimensions = new()
-        {
-            Width = feature.Desc.OutputWidth,
-            Height = feature.Desc.OutputHeight
-        };
-
-        NGXDLSSGOptEvalParams optEvalParams = new()
-        {
-            CameraViewToClip = args.Projection,
-            ClipToCameraView = clipToCameraView,
-            ClipToLensClip = Matrix4x4.Identity,
-            ClipToPrevClip = clipToPrevClip,
-            PrevClipToClip = prevClipToClip,
-            JitterOffset = -args.JitterOffset,
-            MvecScale = new(feature.Desc.RenderWidth, feature.Desc.RenderHeight),
-            CameraPos = viewToWorld.Translation,
-            CameraUp = Vector3.Normalize(new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23)),
-            CameraRight = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13)),
-            CameraFwd = Vector3.Normalize(args.Projection.M34 < 0.0f ? -forward : forward),
-            CameraNear = nearPlane,
-            CameraFar = depthInfinite ? MathF.Max(nearPlane * FallbackInfiniteFarScale, FallbackInfiniteFarScale) : farPlane,
-            CameraFOV = verticalFieldOfViewInRadians,
-            CameraAspectRatio = aspectRatio,
-            ColorBuffersHDR = args.Color.Desc.Format is PixelFormat.R10G10B10A2UNorm || UpscalingHelper.IsFloat(args.Color.Desc.Format),
-            DepthInverted = depthReversed,
-            CameraMotionIncluded = true,
-            Reset = args.Reset,
-            MvecsSubrectSize = renderDimensions,
-            DepthSubrectSize = renderDimensions,
-            HudLessSubrectSize = args.Hudless is not null ? outputDimensions : default,
-            BackbufferSubrectSize = outputDimensions,
-            OutputInterpSubrectSize = outputDimensions
-        };
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandBuffer.DirectX12(), feature, args, &optEvalParams);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, previousView, previousProjection, args, output);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandBuffer.Vulkan(), feature, args, &optEvalParams);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, previousView, previousProjection, args, output);
                 break;
         }
-
-        feature.PreviousView = args.View;
-        feature.PreviousProjection = args.Projection;
     }
 
     protected override void Destroy()
@@ -357,16 +284,5 @@ internal unsafe partial class DLSSVendor : Vendor
                 ShutdownVulkan();
                 break;
         }
-    }
-
-    private void PrepareFeature(NGXHandle handle, NGXParameter parameters)
-    {
-        if (!handle.IsNull)
-        {
-            Context.GraphicsQueue.Timeline.Signal().Wait();
-            ReleaseFeature(handle);
-        }
-
-        DLSSHelper.ResetParameters(parameters);
     }
 }
