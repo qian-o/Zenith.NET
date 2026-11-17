@@ -164,7 +164,7 @@ internal unsafe partial class DLSSVendor : Vendor
     {
         NGXHelper.ResetParameters(parameters);
 
-        NGXDLSSGCreateParams createParams = NGXHelper.CreationParams(Context.GraphicsApi, desc);
+        NGXDLSSGCreateParams createParams = NGXHelper.CreationParams(desc, Context.GraphicsApi);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -297,7 +297,7 @@ file static unsafe class NGXHelper
         };
     }
 
-    public static NGXDLSSGCreateParams CreationParams(GraphicsApi graphicsApi, FrameGenerationDesc desc)
+    public static NGXDLSSGCreateParams CreationParams(FrameGenerationDesc desc, GraphicsApi graphicsApi)
     {
         return new()
         {
@@ -325,8 +325,7 @@ file static unsafe class NGXHelper
         Matrix4x4 prevClipToClip = Matrix4x4.Identity;
         if (!args.Reset)
         {
-            Matrix4x4.Invert(args.View * args.Projection, out Matrix4x4 clipToWorld);
-            clipToPrevClip = clipToWorld * previousViewProjection;
+            clipToPrevClip = clipToCameraView * viewToWorld * previousViewProjection;
             Matrix4x4.Invert(clipToPrevClip, out prevClipToClip);
         }
 

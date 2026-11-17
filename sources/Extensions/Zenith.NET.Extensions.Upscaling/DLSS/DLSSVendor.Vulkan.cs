@@ -6,7 +6,7 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 internal unsafe partial class DLSSVendor
 {
     private readonly Lock @lock = new();
-    private readonly Dictionary<(Texture Texture, bool IsStorage), NGXResourceVK> resources = [];
+    private readonly Dictionary<Texture, NGXResourceVK> resources = [];
 
     private delegate* unmanaged<nint, void*, void*, out ulong, int> createImageView;
     private delegate* unmanaged<nint, ulong, void*, void> destroyImageView;
@@ -250,18 +250,9 @@ internal unsafe partial class DLSSVendor
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!resources.TryGetValue((texture, isStorage), out NGXResourceVK resource))
+        if (!resources.TryGetValue(texture, out NGXResourceVK resource))
         {
             NGXVkFormat format = DLSSFormats.Vulkan(texture.Desc.Format);
-            if (isStorage)
-            {
-                format = format switch
-                {
-                    NGXVkFormat.R8G8B8A8Srgb => NGXVkFormat.R8G8B8A8Unorm,
-                    NGXVkFormat.B8G8R8A8Srgb => NGXVkFormat.B8G8R8A8Unorm,
-                    _ => format
-                };
-            }
 
             NGXVkImageSubresourceRange subresourceRange = new()
             {
@@ -270,16 +261,9 @@ internal unsafe partial class DLSSVendor
                 LayerCount = 1
             };
 
-            VkImageViewUsageCreateInfo imageViewUsageCreateInfo = new()
-            {
-                SType = 1000117002,
-                Usage = 4
-            };
-
             VkImageViewCreateInfo imageViewCreateInfo = new()
             {
                 SType = 15,
-                PNext = !isStorage && texture.Desc.Format is PixelFormat.R8G8B8A8SRgb or PixelFormat.B8G8R8A8SRgb ? &imageViewUsageCreateInfo : null,
                 Image = (ulong)texture.Vulkan(),
                 ViewType = 1,
                 Format = format,
@@ -288,20 +272,20 @@ internal unsafe partial class DLSSVendor
 
             createImageView(device, &imageViewCreateInfo, null, out ulong imageView).Success();
 
-            resources[(texture, isStorage)] = resource = Ngx.CreateImageViewResourceVK((nint)imageView, texture.Vulkan(), subresourceRange, format, texture.Desc.Width, texture.Desc.Height, isStorage);
+            resources[texture] = resource = Ngx.CreateImageViewResourceVK((nint)imageView, texture.Vulkan(), subresourceRange, format, texture.Desc.Width, texture.Desc.Height, false);
 
             texture.Disposing += (sender, _) =>
             {
                 using Lock.Scope scope = @lock.EnterScope();
 
-                if (resources.Remove(((Texture)sender!, isStorage), out NGXResourceVK disposedResource))
+                if (resources.Remove((Texture)sender!, out NGXResourceVK disposedResource))
                 {
                     destroyImageView(device, (ulong)disposedResource.Resource.ImageViewInfo.ImageView, null);
                 }
             };
         }
 
-        return resource;
+        return resource with { ReadWrite = isStorage };
     }
 }
 
@@ -373,16 +357,6 @@ file unsafe struct VkDescriptorSetAllocateInfo
     public uint DescriptorSetCount;
 
     public ulong* PSetLayouts;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-file unsafe struct VkImageViewUsageCreateInfo
-{
-    public int SType;
-
-    public void* PNext;
-
-    public uint Usage;
 }
 
 [StructLayout(LayoutKind.Sequential)]
