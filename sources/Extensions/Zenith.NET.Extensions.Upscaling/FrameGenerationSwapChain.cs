@@ -254,6 +254,13 @@ public class FrameGenerationSwapChain : DisposableObject
             presentStopwatch.Restart();
         }
 
+        if (cancellationToken.IsCancellationRequested)
+        {
+            frame.Ready.Set();
+
+            return;
+        }
+
         CopyToDrawable(frame.Color, submission.Interpolated ? [] : [submission.Rendered]);
         frame.Ready.Set();
 

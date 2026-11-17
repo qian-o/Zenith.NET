@@ -230,8 +230,8 @@ internal unsafe class VKSwapChain : SwapChain
             ImageColorSpace = surfaceFormat.ColorSpace,
             ImageExtent = new()
             {
-                Width = uint.Clamp(capabilities.MinImageExtent.Width, Desc.Surface.Width, capabilities.MaxImageExtent.Width),
-                Height = uint.Clamp(capabilities.MinImageExtent.Height, Desc.Surface.Height, capabilities.MaxImageExtent.Height)
+                Width = uint.Clamp(Desc.Surface.Width, capabilities.MinImageExtent.Width, capabilities.MaxImageExtent.Width),
+                Height = uint.Clamp(Desc.Surface.Height, capabilities.MinImageExtent.Height, capabilities.MaxImageExtent.Height)
             },
             ImageArrayLayers = 1,
             ImageUsage = ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit,
@@ -295,8 +295,9 @@ internal unsafe class VKSwapChain : SwapChain
 
     private void AcquireNextImage()
     {
-        Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, ref index).Success();
-
-        fence.Wait();
+        if (Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, ref index) is Result.Success or Result.SuboptimalKhr)
+        {
+            fence.Wait();
+        }
     }
 }
