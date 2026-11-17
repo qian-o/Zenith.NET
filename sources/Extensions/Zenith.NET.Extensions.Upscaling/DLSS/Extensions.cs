@@ -25,9 +25,9 @@ internal static class Extensions
             return context.GetNativeObject(NativeObjectType.D3D12Device);
         }
 
-        public (nint Instance, nint PhysicalDevice, nint Device, nint GetInstanceProcAddr, nint GetDeviceProcAddr) Vulkan()
+        public nint Vulkan()
         {
-            return (context.GetNativeObject(NativeObjectType.VulkanInstance), context.GetNativeObject(NativeObjectType.VulkanPhysicalDevice), context.GetNativeObject(NativeObjectType.VulkanDevice), context.GetNativeObject(NativeObjectType.VulkanGetInstanceProcAddr), context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr));
+            return context.GetNativeObject(NativeObjectType.VulkanDevice);
         }
     }
 

@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
@@ -20,21 +19,23 @@ internal unsafe partial class DLSSVendor
     private ulong descriptorPool;
     private ulong descriptorSet;
 
-    private void InitializeVulkan(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo* commonInfo)
+    private void InitializeVulkan(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo featureInfo)
     {
         const int VkStructureTypePipelineLayoutCreateInfo = 30;
         const int VkStructureTypeDescriptorSetLayoutCreateInfo = 32;
         const int VkStructureTypeDescriptorPoolCreateInfo = 33;
         const int VkStructureTypeDescriptorSetAllocateInfo = 34;
 
-        (nint instance, nint physicalDevice, device, nint getInstanceProcAddr, nint getDeviceProcAddr) = Context.Vulkan();
+        nint instance = Context.GetNativeObject(NativeObjectType.VulkanInstance);
+        nint physicalDevice = Context.GetNativeObject(NativeObjectType.VulkanPhysicalDevice);
+        nint getInstanceProcAddr = Context.GetNativeObject(NativeObjectType.VulkanGetInstanceProcAddr);
+        nint getDeviceProcAddr = Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr);
 
-        Ngx.Vulkan.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, instance, physicalDevice, device, getInstanceProcAddr, getDeviceProcAddr, commonInfo, NGXVersion.Api).Success();
-
-        using ZenithMarshal.Scope scope = new();
+        Ngx.Vulkan.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, instance, physicalDevice, device, getInstanceProcAddr, getDeviceProcAddr, &featureInfo, NGXVersion.Api).Success();
 
         nint GetProcAddr(string name)
         {
+            using ZenithMarshal.Scope scope = new();
             return ((delegate* unmanaged<nint, byte*, nint>)getDeviceProcAddr)(device, (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8));
         }
 
@@ -85,7 +86,7 @@ internal unsafe partial class DLSSVendor
         ((delegate* unmanaged<nint, void*, out ulong, int>)GetProcAddr("vkAllocateDescriptorSets"))(device, &setAllocateInfo, out descriptorSet).Success();
     }
 
-    private void ShutdownVulkan()
+    private void DestroyVulkan()
     {
         foreach (NGXResourceVK resource in resources.Values)
         {
@@ -100,46 +101,46 @@ internal unsafe partial class DLSSVendor
         Ngx.Vulkan.Shutdown1(device).Success();
     }
 
-    private NGXHandle CreateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXDLSSCreateParams* createParams)
+    private NGXHandle CreateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXDLSSCreateParams createParams)
     {
-        BindDescriptorSet(commandBuffer);
+        BindDescriptorSetVulkan(commandBuffer);
 
         NGXHandle handle = default;
-        Ngx.Vulkan.CreateDLSSExt1(device, commandBuffer, 1, 1, &handle, parameters, createParams).Success();
+        Ngx.Vulkan.CreateDLSSExt1(device, commandBuffer, 1, 1, &handle, parameters, &createParams).Success();
 
         return handle;
     }
 
-    private NGXHandle CreateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXDLSSDCreateParams* createParams)
+    private NGXHandle CreateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXDLSSDCreateParams createParams)
     {
-        BindDescriptorSet(commandBuffer);
+        BindDescriptorSetVulkan(commandBuffer);
 
         NGXHandle handle = default;
-        Ngx.Vulkan.CreateDLSSDExt1(device, commandBuffer, 1, 1, &handle, parameters, createParams).Success();
+        Ngx.Vulkan.CreateDLSSDExt1(device, commandBuffer, 1, 1, &handle, parameters, &createParams).Success();
 
         return handle;
     }
 
-    private NGXHandle CreateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXDLSSGCreateParams* createParams)
+    private NGXHandle CreateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXDLSSGCreateParams createParams)
     {
-        BindDescriptorSet(commandBuffer);
+        BindDescriptorSetVulkan(commandBuffer);
 
         NGXHandle handle = default;
-        Ngx.Vulkan.CreateDLSSG(commandBuffer, 1, 1, &handle, parameters, createParams).Success();
+        Ngx.Vulkan.CreateDLSSG(commandBuffer, 1, 1, &handle, parameters, &createParams).Success();
 
         return handle;
     }
 
     private void EvaluateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXHandle handle, SuperResolutionArgs args, Texture output)
     {
-        BindDescriptorSet(commandBuffer);
+        BindDescriptorSetVulkan(commandBuffer);
 
-        NGXResourceVK vkColor = EnsureVulkanResource(args.Color, false);
-        NGXResourceVK vkOutput = EnsureVulkanResource(output, true);
-        NGXResourceVK vkDepth = EnsureVulkanResource(args.Depth, false);
-        NGXResourceVK vkMotionVectors = EnsureVulkanResource(args.MotionVectors, false);
-        NGXResourceVK vkExposure = args.Exposure is not null ? EnsureVulkanResource(args.Exposure, false) : default;
-        NGXResourceVK vkReactiveMask = args.ReactiveMask is not null ? EnsureVulkanResource(args.ReactiveMask, false) : default;
+        NGXResourceVK vkColor = GetResourceVulkan(args.Color, false);
+        NGXResourceVK vkOutput = GetResourceVulkan(output, true);
+        NGXResourceVK vkDepth = GetResourceVulkan(args.Depth, false);
+        NGXResourceVK vkMotionVectors = GetResourceVulkan(args.MotionVectors, false);
+        NGXResourceVK vkExposure = args.Exposure is not null ? GetResourceVulkan(args.Exposure, false) : default;
+        NGXResourceVK vkReactiveMask = args.ReactiveMask is not null ? GetResourceVulkan(args.ReactiveMask, false) : default;
 
         NGXVKDLSSEvalParams evalParams = new()
         {
@@ -152,7 +153,11 @@ internal unsafe partial class DLSSVendor
             MotionVectors = &vkMotionVectors,
             JitterOffsetX = -args.JitterOffset.X,
             JitterOffsetY = -args.JitterOffset.Y,
-            RenderSubrectDimensions = DLSSHelper.Dimensions(args.Color),
+            RenderSubrectDimensions = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
             Reset = args.Reset ? 1 : 0,
             MVScaleX = args.MotionVectors.Desc.Width,
             MVScaleY = args.MotionVectors.Desc.Height,
@@ -168,20 +173,20 @@ internal unsafe partial class DLSSVendor
 
     private void EvaluateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXHandle handle, RayReconstructionArgs args, Texture output)
     {
-        BindDescriptorSet(commandBuffer);
+        BindDescriptorSetVulkan(commandBuffer);
 
-        NGXResourceVK vkDiffuseAlbedo = EnsureVulkanResource(args.DiffuseAlbedo, false);
-        NGXResourceVK vkSpecularAlbedo = EnsureVulkanResource(args.SpecularAlbedo, false);
-        NGXResourceVK vkNormals = EnsureVulkanResource(args.Normals, false);
-        NGXResourceVK vkRoughness = EnsureVulkanResource(args.Roughness, false);
-        NGXResourceVK vkColor = EnsureVulkanResource(args.Color, false);
-        NGXResourceVK vkOutput = EnsureVulkanResource(output, true);
-        NGXResourceVK vkDepth = EnsureVulkanResource(args.Depth, false);
-        NGXResourceVK vkMotionVectors = EnsureVulkanResource(args.MotionVectors, false);
-        NGXResourceVK vkExposure = args.Exposure is not null ? EnsureVulkanResource(args.Exposure, false) : default;
-        NGXResourceVK vkReactiveMask = args.ReactiveMask is not null ? EnsureVulkanResource(args.ReactiveMask, false) : default;
-        NGXResourceVK vkSpecularHitDistance = args.SpecularHitDistance is not null ? EnsureVulkanResource(args.SpecularHitDistance, false) : default;
-        NGXResourceVK vkTransparencyOverlay = args.TransparencyOverlay is not null ? EnsureVulkanResource(args.TransparencyOverlay, false) : default;
+        NGXResourceVK vkDiffuseAlbedo = GetResourceVulkan(args.DiffuseAlbedo, false);
+        NGXResourceVK vkSpecularAlbedo = GetResourceVulkan(args.SpecularAlbedo, false);
+        NGXResourceVK vkNormals = GetResourceVulkan(args.Normals, false);
+        NGXResourceVK vkRoughness = GetResourceVulkan(args.Roughness, false);
+        NGXResourceVK vkColor = GetResourceVulkan(args.Color, false);
+        NGXResourceVK vkOutput = GetResourceVulkan(output, true);
+        NGXResourceVK vkDepth = GetResourceVulkan(args.Depth, false);
+        NGXResourceVK vkMotionVectors = GetResourceVulkan(args.MotionVectors, false);
+        NGXResourceVK vkExposure = args.Exposure is not null ? GetResourceVulkan(args.Exposure, false) : default;
+        NGXResourceVK vkReactiveMask = args.ReactiveMask is not null ? GetResourceVulkan(args.ReactiveMask, false) : default;
+        NGXResourceVK vkSpecularHitDistance = args.SpecularHitDistance is not null ? GetResourceVulkan(args.SpecularHitDistance, false) : default;
+        NGXResourceVK vkTransparencyOverlay = args.TransparencyOverlay is not null ? GetResourceVulkan(args.TransparencyOverlay, false) : default;
 
         NGXVKDLSSDEvalParams evalParams = new()
         {
@@ -195,7 +200,11 @@ internal unsafe partial class DLSSVendor
             MotionVectors = &vkMotionVectors,
             JitterOffsetX = -args.JitterOffset.X,
             JitterOffsetY = -args.JitterOffset.Y,
-            RenderSubrectDimensions = DLSSHelper.Dimensions(args.Color),
+            RenderSubrectDimensions = new()
+            {
+                Width = args.Color.Desc.Width,
+                Height = args.Color.Desc.Height
+            },
             Reset = args.Reset ? 1 : 0,
             MVScaleX = args.MotionVectors.Desc.Width,
             MVScaleY = args.MotionVectors.Desc.Height,
@@ -213,15 +222,15 @@ internal unsafe partial class DLSSVendor
         Ngx.Vulkan.EvaluateDLSSDExt(commandBuffer, handle, parameters, &evalParams).Success();
     }
 
-    private void EvaluateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousViewProjection, FrameGenerationArgs args, Texture output)
+    private void EvaluateFeatureVulkan(nint commandBuffer, NGXParameter parameters, NGXHandle handle, FrameGenerationArgs args, Texture output, NGXDLSSGOptEvalParams optEvalParams)
     {
-        BindDescriptorSet(commandBuffer);
+        BindDescriptorSetVulkan(commandBuffer);
 
-        NGXResourceVK vkColor = EnsureVulkanResource(args.Color, false);
-        NGXResourceVK vkDepth = EnsureVulkanResource(args.Depth, false);
-        NGXResourceVK vkMotionVectors = EnsureVulkanResource(args.MotionVectors, false);
-        NGXResourceVK vkHudless = args.Hudless is not null ? EnsureVulkanResource(args.Hudless, false) : default;
-        NGXResourceVK vkOutput = EnsureVulkanResource(output, true);
+        NGXResourceVK vkColor = GetResourceVulkan(args.Color, false);
+        NGXResourceVK vkDepth = GetResourceVulkan(args.Depth, false);
+        NGXResourceVK vkMotionVectors = GetResourceVulkan(args.MotionVectors, false);
+        NGXResourceVK vkHudless = args.Hudless is not null ? GetResourceVulkan(args.Hudless, false) : default;
+        NGXResourceVK vkOutput = GetResourceVulkan(output, true);
 
         NGXVKDLSSGEvalParams evalParams = new()
         {
@@ -232,12 +241,10 @@ internal unsafe partial class DLSSVendor
             OutputInterpFrame = &vkOutput
         };
 
-        NGXDLSSGOptEvalParams optEvalParams = DLSSHelper.OptEvalParams(previousViewProjection, args, output);
-
         Ngx.Vulkan.EvaluateDLSSG(commandBuffer, handle, parameters, &evalParams, &optEvalParams).Success();
     }
 
-    private void BindDescriptorSet(nint commandBuffer)
+    private void BindDescriptorSetVulkan(nint commandBuffer)
     {
         const int VkPipelineBindPointCompute = 1;
 
@@ -245,7 +252,7 @@ internal unsafe partial class DLSSVendor
         cmdBindDescriptorSets(commandBuffer, VkPipelineBindPointCompute, pipelineLayout, 0, 1, &set, 0, null);
     }
 
-    private NGXResourceVK EnsureVulkanResource(Texture texture, bool isStorage)
+    private NGXResourceVK GetResourceVulkan(Texture texture, bool isStorage)
     {
         const int VkStructureTypeImageViewCreateInfo = 15;
         const int VkStructureTypeImageViewUsageCreateInfo = 1000117002;

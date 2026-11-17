@@ -5,10 +5,17 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe partial class DLSSVendor : Vendor
 {
-    private nint device;
+    private readonly nint device;
 
     public DLSSVendor(GraphicsContext context) : base(context)
     {
+        device = context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => context.DirectX12(),
+            GraphicsApi.Vulkan => context.Vulkan(),
+            _ => default
+        };
+
         string projectId = typeof(GraphicsContext).GUID.ToString();
         string engineVersion = typeof(GraphicsContext).Assembly.GetName().Version!.ToString();
         string dataPath = Path.Combine(Path.GetTempPath(), "Zenith.NET", "NGX");
@@ -18,7 +25,7 @@ internal unsafe partial class DLSSVendor : Vendor
         using NGXStrings strings = new();
         void* runtimeDirectory = strings.AllocWide(Ngx.RuntimeDirectory);
 
-        NGXFeatureCommonInfo commonInfo = new()
+        NGXFeatureCommonInfo featureInfo = new()
         {
             PathListInfo = new()
             {
@@ -30,11 +37,11 @@ internal unsafe partial class DLSSVendor : Vendor
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                InitializeDirectX12(projectId, engineVersion, dataPath, &commonInfo);
+                InitializeDirectX12(projectId, engineVersion, dataPath, featureInfo);
                 break;
 
             case GraphicsApi.Vulkan:
-                InitializeVulkan(projectId, engineVersion, dataPath, &commonInfo);
+                InitializeVulkan(projectId, engineVersion, dataPath, featureInfo);
                 break;
         }
 
@@ -50,7 +57,7 @@ internal unsafe partial class DLSSVendor : Vendor
                 break;
         }
 
-        Capabilities = new(DLSSHelper.GetBool(parameters, Ngx.ParameterSuperSamplingAvailable), DLSSHelper.GetBool(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable), DLSSHelper.GetBool(parameters, Ngx.ParameterFrameGenerationAvailable));
+        Capabilities = new(NGXHelper.IsSupported(parameters, Ngx.ParameterSuperSamplingAvailable), NGXHelper.IsSupported(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable), NGXHelper.IsSupported(parameters, Ngx.ParameterFrameGenerationAvailable));
 
         DestroyParameters(parameters);
     }
@@ -105,29 +112,23 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public NGXHandle CreateFeature(NGXParameter parameters, SuperResolutionDesc desc, SuperResolutionArgs args)
     {
-        DLSSHelper.ResetParameters(parameters);
+        NGXHelper.ResetParameters(parameters);
 
-        NGXDLSSCreateParams createParams = new()
-        {
-            Feature = new()
-            {
-                Width = desc.RenderWidth,
-                Height = desc.RenderHeight,
-                TargetWidth = desc.OutputWidth,
-                TargetHeight = desc.OutputHeight,
-                PerfQualityValue = DLSSHelper.PerfQuality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight)
-            },
-            FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
-        };
+        NGXDLSSCreateParams createParams = NGXHelper.CreationParams(desc, args);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        NGXHandle handle = Context.GraphicsApi switch
+        NGXHandle handle = default;
+        switch (Context.GraphicsApi)
         {
-            GraphicsApi.DirectX12 => CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, &createParams),
-            GraphicsApi.Vulkan => CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, &createParams),
-            _ => default
-        };
+            case GraphicsApi.DirectX12:
+                handle = CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, createParams);
+                break;
+
+            case GraphicsApi.Vulkan:
+                handle = CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, createParams);
+                break;
+        }
 
         commandBuffer.Submit().Wait();
 
@@ -136,29 +137,23 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public NGXHandle CreateFeature(NGXParameter parameters, RayReconstructionDesc desc, RayReconstructionArgs args)
     {
-        DLSSHelper.ResetParameters(parameters);
+        NGXHelper.ResetParameters(parameters);
 
-        NGXDLSSDCreateParams createParams = new()
-        {
-            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
-            RoughnessMode = NGXDLSSRoughnessMode.Unpacked,
-            UseHWDepth = NGXDLSSDepthType.Hw,
-            Width = desc.RenderWidth,
-            Height = desc.RenderHeight,
-            TargetWidth = desc.OutputWidth,
-            TargetHeight = desc.OutputHeight,
-            PerfQualityValue = DLSSHelper.PerfQuality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight),
-            FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
-        };
+        NGXDLSSDCreateParams createParams = NGXHelper.CreationParams(desc, args);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        NGXHandle handle = Context.GraphicsApi switch
+        NGXHandle handle = default;
+        switch (Context.GraphicsApi)
         {
-            GraphicsApi.DirectX12 => CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, &createParams),
-            GraphicsApi.Vulkan => CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, &createParams),
-            _ => default
-        };
+            case GraphicsApi.DirectX12:
+                handle = CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, createParams);
+                break;
+
+            case GraphicsApi.Vulkan:
+                handle = CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, createParams);
+                break;
+        }
 
         commandBuffer.Submit().Wait();
 
@@ -167,30 +162,23 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public NGXHandle CreateFeature(NGXParameter parameters, FrameGenerationDesc desc)
     {
-        DLSSHelper.ResetParameters(parameters);
+        NGXHelper.ResetParameters(parameters);
 
-        NGXDLSSGCreateParams createParams = new()
-        {
-            Width = desc.OutputWidth,
-            Height = desc.OutputHeight,
-            NativeBackbufferFormat = Context.GraphicsApi switch
-            {
-                GraphicsApi.DirectX12 => DLSSFormats.DirectX12(desc.Format),
-                GraphicsApi.Vulkan => (uint)DLSSFormats.Vulkan(desc.Format),
-                _ => default
-            },
-            RenderWidth = desc.RenderWidth,
-            RenderHeight = desc.RenderHeight
-        };
+        NGXDLSSGCreateParams createParams = NGXHelper.CreationParams(Context.GraphicsApi, desc);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        NGXHandle handle = Context.GraphicsApi switch
+        NGXHandle handle = default;
+        switch (Context.GraphicsApi)
         {
-            GraphicsApi.DirectX12 => CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, &createParams),
-            GraphicsApi.Vulkan => CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, &createParams),
-            _ => default
-        };
+            case GraphicsApi.DirectX12:
+                handle = CreateFeatureDirectX12(commandBuffer.DirectX12(), parameters, createParams);
+                break;
+
+            case GraphicsApi.Vulkan:
+                handle = CreateFeatureVulkan(commandBuffer.Vulkan(), parameters, createParams);
+                break;
+        }
 
         commandBuffer.Submit().Wait();
 
@@ -244,16 +232,18 @@ internal unsafe partial class DLSSVendor : Vendor
         }
     }
 
-    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousViewProjection, FrameGenerationArgs args, Texture output)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
     {
+        NGXDLSSGOptEvalParams optEvalParams = NGXHelper.EvaluationParams(args, output, previousViewProjection);
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, previousViewProjection, args, output);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, args, output, optEvalParams);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, previousViewProjection, args, output);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, args, output, optEvalParams);
                 break;
         }
     }
@@ -263,12 +253,197 @@ internal unsafe partial class DLSSVendor : Vendor
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                ShutdownDirectX12();
+                DestroyDirectX12();
                 break;
 
             case GraphicsApi.Vulkan:
-                ShutdownVulkan();
+                DestroyVulkan();
                 break;
         }
+    }
+}
+
+file static unsafe class NGXHelper
+{
+    public static NGXDLSSCreateParams CreationParams(SuperResolutionDesc desc, SuperResolutionArgs args)
+    {
+        return new()
+        {
+            Feature = new()
+            {
+                Width = desc.RenderWidth,
+                Height = desc.RenderHeight,
+                TargetWidth = desc.OutputWidth,
+                TargetHeight = desc.OutputHeight,
+                PerfQualityValue = Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight)
+            },
+            FeatureCreateFlags = Flags(args.Color, args.Exposure, args.Projection)
+        };
+    }
+
+    public static NGXDLSSDCreateParams CreationParams(RayReconstructionDesc desc, RayReconstructionArgs args)
+    {
+        return new()
+        {
+            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
+            RoughnessMode = NGXDLSSRoughnessMode.Unpacked,
+            UseHWDepth = NGXDLSSDepthType.Hw,
+            Width = desc.RenderWidth,
+            Height = desc.RenderHeight,
+            TargetWidth = desc.OutputWidth,
+            TargetHeight = desc.OutputHeight,
+            PerfQualityValue = Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight),
+            FeatureCreateFlags = Flags(args.Color, args.Exposure, args.Projection)
+        };
+    }
+
+    public static NGXDLSSGCreateParams CreationParams(GraphicsApi graphicsApi, FrameGenerationDesc desc)
+    {
+        return new()
+        {
+            Width = desc.OutputWidth,
+            Height = desc.OutputHeight,
+            NativeBackbufferFormat = graphicsApi switch
+            {
+                GraphicsApi.DirectX12 => DLSSFormats.DirectX12(desc.Format),
+                GraphicsApi.Vulkan => (uint)DLSSFormats.Vulkan(desc.Format),
+                _ => default
+            },
+            RenderWidth = desc.RenderWidth,
+            RenderHeight = desc.RenderHeight
+        };
+    }
+
+    public static NGXDLSSGOptEvalParams EvaluationParams(FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
+    {
+        const float FallbackInfiniteFarScale = 100000.0f;
+
+        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite);
+
+        Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
+        Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToCameraView);
+
+        Matrix4x4 clipToPrevClip = Matrix4x4.Identity;
+        Matrix4x4 prevClipToClip = Matrix4x4.Identity;
+        if (!args.Reset)
+        {
+            Matrix4x4.Invert(args.View * args.Projection, out Matrix4x4 clipToWorld);
+            clipToPrevClip = clipToWorld * previousViewProjection;
+            Matrix4x4.Invert(clipToPrevClip, out prevClipToClip);
+        }
+
+        Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
+
+        return new()
+        {
+            CameraViewToClip = args.Projection,
+            ClipToCameraView = clipToCameraView,
+            ClipToLensClip = Matrix4x4.Identity,
+            ClipToPrevClip = clipToPrevClip,
+            PrevClipToClip = prevClipToClip,
+            JitterOffset = -args.JitterOffset,
+            MvecScale = new(args.MotionVectors.Desc.Width, args.MotionVectors.Desc.Height),
+            CameraPos = viewToWorld.Translation,
+            CameraUp = Vector3.Normalize(new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23)),
+            CameraRight = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13)),
+            CameraFwd = Vector3.Normalize(args.Projection.M34 < 0.0f ? -forward : forward),
+            CameraNear = nearPlane,
+            CameraFar = depthInfinite ? MathF.Max(nearPlane * FallbackInfiniteFarScale, FallbackInfiniteFarScale) : farPlane,
+            CameraFOV = verticalFieldOfViewInRadians,
+            CameraAspectRatio = aspectRatio,
+            ColorBuffersHDR = args.Color.Desc.Format is PixelFormat.R10G10B10A2UNorm || UpscalingHelper.IsFloat(args.Color.Desc.Format),
+            DepthInverted = depthReversed,
+            CameraMotionIncluded = true,
+            Reset = args.Reset,
+            MvecsSubrectSize = Dimensions(args.MotionVectors),
+            DepthSubrectSize = Dimensions(args.Depth),
+            HudLessSubrectSize = args.Hudless is not null ? Dimensions(args.Hudless) : default,
+            BackbufferSubrectSize = Dimensions(args.Color),
+            OutputInterpSubrectSize = Dimensions(output)
+        };
+    }
+
+    public static bool IsSupported(NGXParameter parameters, ReadOnlySpan<byte> name)
+    {
+        if (parameters.IsNull)
+        {
+            return false;
+        }
+
+        fixed (byte* pointer = name)
+        {
+            int value = 0;
+            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
+
+            return value is not 0;
+        }
+    }
+
+    public static void ResetParameters(NGXParameter parameters)
+    {
+        Ngx.Parameter.Reset(parameters);
+
+        fixed (byte* pointer = Ngx.ParameterFreeMemOnReleaseFeature)
+        {
+            Ngx.Parameter.SetUI(parameters, pointer, 1);
+        }
+    }
+
+    private static NGXDimensions Dimensions(Texture texture)
+    {
+        return new()
+        {
+            Width = texture.Desc.Width,
+            Height = texture.Desc.Height
+        };
+    }
+
+    private static int Flags(Texture color, Texture? exposure, Matrix4x4 projection)
+    {
+        NGXDLSSFeatureFlags flags = NGXDLSSFeatureFlags.MvLowRes;
+
+        if (UpscalingHelper.IsFloat(color.Desc.Format))
+        {
+            flags |= NGXDLSSFeatureFlags.IsHdr;
+        }
+
+        if (exposure is null)
+        {
+            flags |= NGXDLSSFeatureFlags.AutoExposure;
+        }
+
+        if (UpscalingHelper.IsDepthReversed(projection))
+        {
+            flags |= NGXDLSSFeatureFlags.DepthInverted;
+        }
+
+        return (int)flags;
+    }
+
+    private static NGXPerfQualityValue Quality(uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)
+    {
+        float scale = MathF.Sqrt((float)outputWidth * outputHeight / Math.Max(renderWidth * renderHeight, 1));
+
+        if (scale <= 1.25f)
+        {
+            return NGXPerfQualityValue.Dlaa;
+        }
+
+        if (scale <= 1.6f)
+        {
+            return NGXPerfQualityValue.MaxQuality;
+        }
+
+        if (scale <= 1.85f)
+        {
+            return NGXPerfQualityValue.Balanced;
+        }
+
+        if (scale <= 2.5f)
+        {
+            return NGXPerfQualityValue.MaxPerf;
+        }
+
+        return NGXPerfQualityValue.UltraPerformance;
     }
 }

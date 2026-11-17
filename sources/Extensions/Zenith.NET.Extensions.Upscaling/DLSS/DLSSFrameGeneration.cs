@@ -22,7 +22,7 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.EvaluateFeature(commandBuffer, parameters, handle, previousViewProjection, args, Output);
+        vendor.EvaluateFeature(commandBuffer, parameters, handle, args, Output, previousViewProjection);
 
         commandBuffer.EndExternalCommands();
 
