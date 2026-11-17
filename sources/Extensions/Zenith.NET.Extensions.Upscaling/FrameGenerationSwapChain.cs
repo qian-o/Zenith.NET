@@ -94,20 +94,24 @@ public class FrameGenerationSwapChain : DisposableObject
 
     public void Resize(uint width, uint height)
     {
+        DestroyResources();
+
         desc.Surface.Width = width;
         desc.Surface.Height = height;
 
-        DestroyResources();
         swapChain.Resize(width, height);
+
         CreateResources();
     }
 
     public void Refresh(Surface surface)
     {
+        DestroyResources();
+
         desc.Surface = surface;
 
-        DestroyResources();
         swapChain.Refresh(surface);
+
         CreateResources();
     }
 

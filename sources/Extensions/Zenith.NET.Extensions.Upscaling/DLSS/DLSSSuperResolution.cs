@@ -20,7 +20,7 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.EvaluateFeature(commandBuffer, parameters, handle, Desc, args, Output);
+        vendor.EvaluateFeature(commandBuffer, parameters, handle, args, Output);
 
         commandBuffer.EndExternalCommands();
 

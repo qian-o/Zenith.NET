@@ -5,7 +5,7 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe partial class DLSSVendor : Vendor
 {
-    public nint Device;
+    private nint device;
 
     public DLSSVendor(GraphicsContext context) : base(context)
     {
@@ -16,7 +16,6 @@ internal unsafe partial class DLSSVendor : Vendor
         Directory.CreateDirectory(dataPath);
 
         using NGXStrings strings = new();
-
         void* runtimeDirectory = strings.AllocWide(Ngx.RuntimeDirectory);
 
         NGXFeatureCommonInfo commonInfo = new()
@@ -43,11 +42,11 @@ internal unsafe partial class DLSSVendor : Vendor
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                Ngx.D3D12.GetCapabilityParameters(out parameters).Success();
+                Ngx.D3D12.GetCapabilityParameters(&parameters).Success();
                 break;
 
             case GraphicsApi.Vulkan:
-                Ngx.Vulkan.GetCapabilityParameters(out parameters).Success();
+                Ngx.Vulkan.GetCapabilityParameters(&parameters).Success();
                 break;
         }
 
@@ -76,19 +75,16 @@ internal unsafe partial class DLSSVendor : Vendor
     public NGXParameter CreateParameters()
     {
         NGXParameter parameters = default;
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                Ngx.D3D12.AllocateParameters(out parameters).Success();
+                Ngx.D3D12.AllocateParameters(&parameters).Success();
                 break;
 
             case GraphicsApi.Vulkan:
-                Ngx.Vulkan.AllocateParameters(out parameters).Success();
+                Ngx.Vulkan.AllocateParameters(&parameters).Success();
                 break;
         }
-
-        DLSSHelper.SetUI(parameters, Ngx.ParameterFreeMemOnReleaseFeature, 1);
 
         return parameters;
     }
@@ -110,15 +106,6 @@ internal unsafe partial class DLSSVendor : Vendor
     public NGXHandle CreateFeature(NGXParameter parameters, SuperResolutionDesc desc, SuperResolutionArgs args)
     {
         DLSSHelper.ResetParameters(parameters);
-
-        if (args.Exposure is not null)
-        {
-            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetDLAA, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetQuality, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetBalanced, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetPerformance, (uint)NGXDLSSHintRenderPreset.K);
-            DLSSHelper.SetUI(parameters, Ngx.ParameterDLSSHintRenderPresetUltraPerformance, (uint)NGXDLSSHintRenderPreset.K);
-        }
 
         NGXDLSSCreateParams createParams = new()
         {
@@ -181,7 +168,6 @@ internal unsafe partial class DLSSVendor : Vendor
     public NGXHandle CreateFeature(NGXParameter parameters, FrameGenerationDesc desc)
     {
         DLSSHelper.ResetParameters(parameters);
-        DLSSHelper.SetUI(parameters, Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
         {
@@ -230,44 +216,44 @@ internal unsafe partial class DLSSVendor : Vendor
         }
     }
 
-    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, SuperResolutionDesc desc, SuperResolutionArgs args, Texture output)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, SuperResolutionArgs args, Texture output)
     {
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, desc, args, output);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, args, output);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, desc, args, output);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, args, output);
                 break;
         }
     }
 
-    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, RayReconstructionDesc desc, RayReconstructionArgs args, Texture output)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, RayReconstructionArgs args, Texture output)
     {
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, desc, args, output);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, args, output);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, desc, args, output);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, args, output);
                 break;
         }
     }
 
-    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousView, Matrix4x4 previousProjection, FrameGenerationArgs args, Texture output)
+    public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousViewProjection, FrameGenerationArgs args, Texture output)
     {
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, previousView, previousProjection, args, output);
+                EvaluateFeatureDirectX12(commandBuffer.DirectX12(), parameters, handle, previousViewProjection, args, output);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, previousView, previousProjection, args, output);
+                EvaluateFeatureVulkan(commandBuffer.Vulkan(), parameters, handle, previousViewProjection, args, output);
                 break;
         }
     }

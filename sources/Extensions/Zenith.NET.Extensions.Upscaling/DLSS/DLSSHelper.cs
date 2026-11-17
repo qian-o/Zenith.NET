@@ -5,6 +5,15 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal static unsafe class DLSSHelper
 {
+    public static NGXDimensions Dimensions(Texture texture)
+    {
+        return new()
+        {
+            Width = texture.Desc.Width,
+            Height = texture.Desc.Height
+        };
+    }
+
     public static int FeatureFlags(PixelFormat colorFormat, Texture? exposure, Matrix4x4 projection)
     {
         NGXDLSSFeatureFlags flags = NGXDLSSFeatureFlags.MvLowRes;
@@ -29,6 +38,11 @@ internal static unsafe class DLSSHelper
 
     public static bool GetBool(NGXParameter parameters, ReadOnlySpan<byte> name)
     {
+        if (parameters.IsNull)
+        {
+            return false;
+        }
+
         fixed (byte* pointer = name)
         {
             int value = 0;
@@ -38,7 +52,7 @@ internal static unsafe class DLSSHelper
         }
     }
 
-    public static NGXDLSSGOptEvalParams OptEvalParams(Matrix4x4 previousView, Matrix4x4 previousProjection, FrameGenerationArgs args, Texture output)
+    public static NGXDLSSGOptEvalParams OptEvalParams(Matrix4x4 previousViewProjection, FrameGenerationArgs args, Texture output)
     {
         const float FallbackInfiniteFarScale = 100000.0f;
 
@@ -51,20 +65,9 @@ internal static unsafe class DLSSHelper
         Matrix4x4 prevClipToClip = Matrix4x4.Identity;
         if (!args.Reset)
         {
-            Matrix4x4.Invert(previousView, out Matrix4x4 previousViewToWorld);
-            Matrix4x4.Invert(previousProjection, out Matrix4x4 previousClipToView);
-
-            Matrix4x4 relativeViewToWorld = viewToWorld;
-            relativeViewToWorld.Translation -= previousViewToWorld.Translation;
-
-            Matrix4x4 relativeWorldToPreviousView = previousView;
-            relativeWorldToPreviousView.Translation = Vector3.Zero;
-
-            Matrix4x4 viewToPreviousView = relativeViewToWorld * relativeWorldToPreviousView;
-            Matrix4x4.Invert(viewToPreviousView, out Matrix4x4 previousViewToView);
-
-            clipToPrevClip = clipToCameraView * viewToPreviousView * previousProjection;
-            prevClipToClip = previousClipToView * previousViewToView * args.Projection;
+            Matrix4x4.Invert(args.View * args.Projection, out Matrix4x4 clipToWorld);
+            clipToPrevClip = clipToWorld * previousViewProjection;
+            Matrix4x4.Invert(clipToPrevClip, out prevClipToClip);
         }
 
         Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
@@ -128,23 +131,10 @@ internal static unsafe class DLSSHelper
     public static void ResetParameters(NGXParameter parameters)
     {
         Ngx.Parameter.Reset(parameters);
-        SetUI(parameters, Ngx.ParameterFreeMemOnReleaseFeature, 1);
-    }
 
-    public static void SetUI(NGXParameter parameters, ReadOnlySpan<byte> name, uint value)
-    {
-        fixed (byte* pointer = name)
+        fixed (byte* pointer = Ngx.ParameterFreeMemOnReleaseFeature)
         {
-            Ngx.Parameter.SetUI(parameters, pointer, value);
+            Ngx.Parameter.SetUI(parameters, pointer, 1);
         }
-    }
-
-    private static NGXDimensions Dimensions(Texture texture)
-    {
-        return new()
-        {
-            Width = texture.Desc.Width,
-            Height = texture.Desc.Height
-        };
     }
 }

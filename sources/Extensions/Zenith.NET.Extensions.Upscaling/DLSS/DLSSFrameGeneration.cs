@@ -9,8 +9,7 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
     private Key key;
     private NGXHandle handle;
-    private Matrix4x4 previousView;
-    private Matrix4x4 previousProjection;
+    private Matrix4x4 previousViewProjection;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
@@ -23,14 +22,13 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.EvaluateFeature(commandBuffer, parameters, handle, previousView, previousProjection, args, Output);
+        vendor.EvaluateFeature(commandBuffer, parameters, handle, previousViewProjection, args, Output);
 
         commandBuffer.EndExternalCommands();
 
         commandBuffer.Transition(Output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        previousView = args.View;
-        previousProjection = args.Projection;
+        previousViewProjection = args.View * args.Projection;
     }
 
     protected override void Destroy()

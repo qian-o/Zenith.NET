@@ -5,17 +5,6 @@ namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal static class Extensions
 {
-    extension(NSError error)
-    {
-        public void Success()
-        {
-            if (!error.IsNull)
-            {
-                Debug.WriteLine($"Metal call failed with error: {error.LocalizedDescription}");
-            }
-        }
-    }
-
     extension(CommandBuffer commandBuffer)
     {
         public MTL4CommandBuffer Metal()
@@ -29,6 +18,17 @@ internal static class Extensions
         public MTLDevice Metal()
         {
             return new(context.GetNativeObject(NativeObjectType.MTLDevice));
+        }
+    }
+
+    extension(NSError error)
+    {
+        public void Success()
+        {
+            if (!error.IsNull)
+            {
+                Debug.WriteLine($"Metal call failed with error: {error.LocalizedDescription}");
+            }
         }
     }
 

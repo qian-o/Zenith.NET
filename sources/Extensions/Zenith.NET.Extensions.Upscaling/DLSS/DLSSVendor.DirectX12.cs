@@ -7,14 +7,14 @@ internal unsafe partial class DLSSVendor
 {
     private void InitializeDirectX12(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo* commonInfo)
     {
-        Device = Context.DirectX12();
+        device = Context.DirectX12();
 
-        Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, Device, commonInfo, NGXVersion.Api).Success();
+        Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, device, commonInfo, NGXVersion.Api).Success();
     }
 
     private void ShutdownDirectX12()
     {
-        Ngx.D3D12.Shutdown1(Device).Success();
+        Ngx.D3D12.Shutdown1(device).Success();
     }
 
     private static NGXHandle CreateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXDLSSCreateParams* createParams)
@@ -41,7 +41,7 @@ internal unsafe partial class DLSSVendor
         return handle;
     }
 
-    private static void EvaluateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXHandle handle, SuperResolutionDesc desc, SuperResolutionArgs args, Texture output)
+    private static void EvaluateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXHandle handle, SuperResolutionArgs args, Texture output)
     {
         NGXD3D12DLSSEvalParams evalParams = new()
         {
@@ -54,14 +54,10 @@ internal unsafe partial class DLSSVendor
             MotionVectors = args.MotionVectors.DirectX12(),
             JitterOffsetX = -args.JitterOffset.X,
             JitterOffsetY = -args.JitterOffset.Y,
-            RenderSubrectDimensions = new()
-            {
-                Width = desc.RenderWidth,
-                Height = desc.RenderHeight
-            },
+            RenderSubrectDimensions = DLSSHelper.Dimensions(args.Color),
             Reset = args.Reset ? 1 : 0,
-            MVScaleX = desc.RenderWidth,
-            MVScaleY = desc.RenderHeight,
+            MVScaleX = args.MotionVectors.Desc.Width,
+            MVScaleY = args.MotionVectors.Desc.Height,
             ExposureTexture = args.Exposure?.DirectX12() ?? 0,
             BiasCurrentColorMask = args.ReactiveMask?.DirectX12() ?? 0,
             PreExposure = args.PreExposure ?? 1.0f,
@@ -72,7 +68,7 @@ internal unsafe partial class DLSSVendor
         Ngx.D3D12.EvaluateDLSSExt(commandList, handle, parameters, &evalParams).Success();
     }
 
-    private static void EvaluateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXHandle handle, RayReconstructionDesc desc, RayReconstructionArgs args, Texture output)
+    private static void EvaluateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXHandle handle, RayReconstructionArgs args, Texture output)
     {
         NGXD3D12DLSSDEvalParams evalParams = new()
         {
@@ -86,14 +82,10 @@ internal unsafe partial class DLSSVendor
             MotionVectors = args.MotionVectors.DirectX12(),
             JitterOffsetX = -args.JitterOffset.X,
             JitterOffsetY = -args.JitterOffset.Y,
-            RenderSubrectDimensions = new()
-            {
-                Width = desc.RenderWidth,
-                Height = desc.RenderHeight
-            },
+            RenderSubrectDimensions = DLSSHelper.Dimensions(args.Color),
             Reset = args.Reset ? 1 : 0,
-            MVScaleX = desc.RenderWidth,
-            MVScaleY = desc.RenderHeight,
+            MVScaleX = args.MotionVectors.Desc.Width,
+            MVScaleY = args.MotionVectors.Desc.Height,
             ExposureTexture = args.Exposure?.DirectX12() ?? 0,
             BiasCurrentColorMask = args.ReactiveMask?.DirectX12() ?? 0,
             SpecularHitDistance = args.SpecularHitDistance?.DirectX12() ?? 0,
@@ -108,7 +100,7 @@ internal unsafe partial class DLSSVendor
         Ngx.D3D12.EvaluateDLSSDExt(commandList, handle, parameters, &evalParams).Success();
     }
 
-    private static void EvaluateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousView, Matrix4x4 previousProjection, FrameGenerationArgs args, Texture output)
+    private static void EvaluateFeatureDirectX12(nint commandList, NGXParameter parameters, NGXHandle handle, Matrix4x4 previousViewProjection, FrameGenerationArgs args, Texture output)
     {
         NGXD3D12DLSSGEvalParams evalParams = new()
         {
@@ -119,7 +111,7 @@ internal unsafe partial class DLSSVendor
             OutputInterpFrame = output.DirectX12()
         };
 
-        NGXDLSSGOptEvalParams optEvalParams = DLSSHelper.OptEvalParams(previousView, previousProjection, args, output);
+        NGXDLSSGOptEvalParams optEvalParams = DLSSHelper.OptEvalParams(previousViewProjection, args, output);
 
         Ngx.D3D12.EvaluateDLSSG(commandList, handle, parameters, &evalParams, &optEvalParams).Success();
     }

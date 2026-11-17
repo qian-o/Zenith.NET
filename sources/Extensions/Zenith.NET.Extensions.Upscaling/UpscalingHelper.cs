@@ -6,7 +6,7 @@ public static class UpscalingHelper
 {
     public static uint JitterPhaseCount(uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)
     {
-        if (renderWidth is 0 || renderHeight is 0 || (outputWidth <= renderWidth && outputHeight <= renderHeight))
+        if (renderWidth is 0 || renderHeight is 0)
         {
             return 8;
         }
@@ -134,12 +134,7 @@ public static class UpscalingHelper
         depthReversed = zeroDepthDistance > unitDepthDistance;
         nearPlane = MathF.Min(zeroDepthDistance, unitDepthDistance);
         farPlane = MathF.Max(zeroDepthDistance, unitDepthDistance);
-        depthInfinite = float.IsInfinity(farPlane) || float.IsNaN(farPlane);
-
-        if (depthInfinite)
-        {
-            farPlane = float.PositiveInfinity;
-        }
+        depthInfinite = float.IsPositiveInfinity(farPlane);
 
         verticalFieldOfViewInRadians = 2.0f * MathF.Atan(1.0f / MathF.Abs(projection.M22));
         aspectRatio = MathF.Abs(projection.M22 / projection.M11);
