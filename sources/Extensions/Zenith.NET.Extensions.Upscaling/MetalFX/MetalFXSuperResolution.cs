@@ -16,7 +16,7 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
             args.Reset = true;
         }
 
-        commandBuffer.Transition(Output, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Output, default, args.Reset ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
 
         commandBuffer.BeginExternalCommands();
 

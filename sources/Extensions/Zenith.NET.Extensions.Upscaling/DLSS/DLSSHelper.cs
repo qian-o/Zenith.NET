@@ -29,11 +29,17 @@ internal static unsafe class DLSSHelper
 
     public static bool GetBool(NGXParameter parameters, ReadOnlySpan<byte> name)
     {
+        if (parameters.IsNull)
+        {
+            return false;
+        }
+
         fixed (byte* pointer = name)
         {
             int value = 0;
+            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
 
-            return Ngx.NVSDK_NGX_SUCCEED(Ngx.Parameter.GetI(parameters, pointer, &value)) && value is not 0;
+            return value is not 0;
         }
     }
 

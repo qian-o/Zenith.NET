@@ -16,7 +16,7 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
             args.Reset = true;
         }
 
-        commandBuffer.Transition(Output, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(Output, default, args.Reset ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.ColorAttachment);
 
         commandBuffer.BeginExternalCommands();
 

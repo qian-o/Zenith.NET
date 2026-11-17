@@ -19,7 +19,7 @@ internal unsafe partial class DLSSVendor
     private delegate* unmanaged<nint, ulong, void*, void> destroyDescriptorPool;
     private delegate* unmanaged<nint, int, ulong, uint, uint, ulong*, uint, uint*, void> cmdBindDescriptorSets;
 
-    private bool InitializeVulkan(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo* commonInfo)
+    private void InitializeVulkan(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo* commonInfo)
     {
         const int VkStructureTypePipelineLayoutCreateInfo = 30;
         const int VkStructureTypeDescriptorSetLayoutCreateInfo = 32;
@@ -28,10 +28,7 @@ internal unsafe partial class DLSSVendor
 
         (nint instance, nint physicalDevice, Device, nint getInstanceProcAddr, nint getDeviceProcAddr) = Context.Vulkan();
 
-        if (Ngx.NVSDK_NGX_FAILED(Ngx.Vulkan.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, instance, physicalDevice, Device, getInstanceProcAddr, getDeviceProcAddr, commonInfo, NGXVersion.Api)))
-        {
-            return false;
-        }
+        Ngx.Vulkan.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, instance, physicalDevice, Device, getInstanceProcAddr, getDeviceProcAddr, commonInfo, NGXVersion.Api).Success();
 
         using ZenithMarshal.Scope scope = new();
 
@@ -96,8 +93,6 @@ internal unsafe partial class DLSSVendor
                 }
             }
         }
-
-        return true;
     }
 
     private void ShutdownVulkan()
@@ -119,20 +114,9 @@ internal unsafe partial class DLSSVendor
             imageViews.Clear();
         }
 
-        if (descriptorPool is not 0)
-        {
-            destroyDescriptorPool(Device, descriptorPool, null);
-        }
-
-        if (pipelineLayout is not 0)
-        {
-            destroyPipelineLayout(Device, pipelineLayout, null);
-        }
-
-        if (descriptorSetLayout is not 0)
-        {
-            destroyDescriptorSetLayout(Device, descriptorSetLayout, null);
-        }
+        destroyDescriptorPool(Device, descriptorPool, null);
+        destroyPipelineLayout(Device, pipelineLayout, null);
+        destroyDescriptorSetLayout(Device, descriptorSetLayout, null);
 
         Ngx.Vulkan.Shutdown1(Device).Success();
     }

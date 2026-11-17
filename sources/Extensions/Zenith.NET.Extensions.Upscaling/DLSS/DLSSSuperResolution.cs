@@ -12,14 +12,14 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
     {
-        commandBuffer.Transition(Output, default, key.Color is PixelFormat.Unknown ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
-
-        commandBuffer.BeginExternalCommands();
-
-        if (Ensure(commandBuffer, args))
+        if (Ensure(args))
         {
             args.Reset = true;
         }
+
+        commandBuffer.Transition(Output, default, args.Reset ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
+
+        commandBuffer.BeginExternalCommands();
 
         vendor.Evaluate(commandBuffer, this, args);
 
@@ -36,7 +36,7 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
         base.Destroy();
     }
 
-    private bool Ensure(CommandBuffer commandBuffer, SuperResolutionArgs args)
+    private bool Ensure(SuperResolutionArgs args)
     {
         Key newKey = new(args);
 
@@ -47,7 +47,7 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
         key = newKey;
 
-        vendor.Create(commandBuffer, this, args);
+        vendor.Create(this, args);
 
         return true;
     }

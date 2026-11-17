@@ -5,10 +5,6 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe partial class DLSSVendor : Vendor
 {
-    private readonly Lock retireLock = new();
-    private readonly List<RetiredFeature> retiredFeatures = [];
-    private readonly bool isInitialized;
-
     public nint Device;
 
     public DLSSVendor(GraphicsContext context) : base(context)
@@ -20,6 +16,7 @@ internal unsafe partial class DLSSVendor : Vendor
         Directory.CreateDirectory(dataPath);
 
         using NGXStrings strings = new();
+
         void* runtimeDirectory = strings.AllocWide(Ngx.RuntimeDirectory);
 
         NGXFeatureCommonInfo commonInfo = new()
@@ -31,24 +28,27 @@ internal unsafe partial class DLSSVendor : Vendor
             }
         };
 
-        isInitialized = context.GraphicsApi switch
+        switch (context.GraphicsApi)
         {
-            GraphicsApi.DirectX12 => InitializeDirectX12(projectId, engineVersion, dataPath, &commonInfo),
-            GraphicsApi.Vulkan => InitializeVulkan(projectId, engineVersion, dataPath, &commonInfo),
-            _ => false
-        };
+            case GraphicsApi.DirectX12:
+                InitializeDirectX12(projectId, engineVersion, dataPath, &commonInfo);
+                break;
+
+            case GraphicsApi.Vulkan:
+                InitializeVulkan(projectId, engineVersion, dataPath, &commonInfo);
+                break;
+        }
 
         NGXParameter parameters = default;
-        if (!isInitialized || Ngx.NVSDK_NGX_FAILED(context.GraphicsApi switch
+        switch (context.GraphicsApi)
         {
-            GraphicsApi.DirectX12 => Ngx.D3D12.GetCapabilityParameters(&parameters),
-            GraphicsApi.Vulkan => Ngx.Vulkan.GetCapabilityParameters(&parameters),
-            _ => NGXResult.Fail
-        }))
-        {
-            Capabilities = new(false, false, false);
+            case GraphicsApi.DirectX12:
+                Ngx.D3D12.GetCapabilityParameters(out parameters).Success();
+                break;
 
-            return;
+            case GraphicsApi.Vulkan:
+                Ngx.Vulkan.GetCapabilityParameters(out parameters).Success();
+                break;
         }
 
         Capabilities = new(DLSSHelper.GetBool(parameters, Ngx.ParameterSuperSamplingAvailable), DLSSHelper.GetBool(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable), DLSSHelper.GetBool(parameters, Ngx.ParameterFrameGenerationAvailable));
@@ -88,21 +88,13 @@ internal unsafe partial class DLSSVendor : Vendor
                 break;
         }
 
-        if (!parameters.IsNull)
-        {
-            DLSSHelper.SetUI(parameters, Ngx.ParameterFreeMemOnReleaseFeature, 1);
-        }
+        DLSSHelper.SetUI(parameters, Ngx.ParameterFreeMemOnReleaseFeature, 1);
 
         return parameters;
     }
 
     public void DestroyParameters(NGXParameter parameters)
     {
-        if (parameters.IsNull)
-        {
-            return;
-        }
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -117,11 +109,6 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public void ReleaseFeature(NGXHandle handle)
     {
-        if (handle.IsNull)
-        {
-            return;
-        }
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -134,11 +121,9 @@ internal unsafe partial class DLSSVendor : Vendor
         }
     }
 
-    public void Create(CommandBuffer commandBuffer, DLSSSuperResolution feature, SuperResolutionArgs args)
+    public void Create(DLSSSuperResolution feature, SuperResolutionArgs args)
     {
-        RetireFeature(commandBuffer, ref feature.Handle);
-
-        DLSSHelper.ResetParameters(feature.Parameters);
+        PrepareFeature(feature.Handle, feature.Parameters);
 
         if (args.Exposure is not null)
         {
@@ -162,6 +147,8 @@ internal unsafe partial class DLSSVendor : Vendor
             FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
         };
 
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -172,13 +159,13 @@ internal unsafe partial class DLSSVendor : Vendor
                 CreateVulkan(commandBuffer.Vulkan(), feature, &createParams);
                 break;
         }
+
+        commandBuffer.Submit().Wait();
     }
 
-    public void Create(CommandBuffer commandBuffer, DLSSRayReconstruction feature, RayReconstructionArgs args)
+    public void Create(DLSSRayReconstruction feature, RayReconstructionArgs args)
     {
-        RetireFeature(commandBuffer, ref feature.Handle);
-
-        DLSSHelper.ResetParameters(feature.Parameters);
+        PrepareFeature(feature.Handle, feature.Parameters);
 
         NGXDLSSDCreateParams createParams = new()
         {
@@ -193,6 +180,8 @@ internal unsafe partial class DLSSVendor : Vendor
             FeatureCreateFlags = DLSSHelper.FeatureFlags(args.Color.Desc.Format, args.Exposure, args.Projection)
         };
 
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -203,13 +192,13 @@ internal unsafe partial class DLSSVendor : Vendor
                 CreateVulkan(commandBuffer.Vulkan(), feature, &createParams);
                 break;
         }
+
+        commandBuffer.Submit().Wait();
     }
 
-    public void Create(CommandBuffer commandBuffer, DLSSFrameGeneration feature)
+    public void Create(DLSSFrameGeneration feature)
     {
-        RetireFeature(commandBuffer, ref feature.Handle);
-
-        DLSSHelper.ResetParameters(feature.Parameters);
+        PrepareFeature(feature.Handle, feature.Parameters);
         DLSSHelper.SetUI(feature.Parameters, Ngx.DLSSGParameterMvecJittered, 0);
 
         NGXDLSSGCreateParams createParams = new()
@@ -226,6 +215,8 @@ internal unsafe partial class DLSSVendor : Vendor
             RenderHeight = feature.Desc.RenderHeight
         };
 
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -236,12 +227,12 @@ internal unsafe partial class DLSSVendor : Vendor
                 CreateVulkan(commandBuffer.Vulkan(), feature, &createParams);
                 break;
         }
+
+        commandBuffer.Submit().Wait();
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSSuperResolution feature, SuperResolutionArgs args)
     {
-        PollRetiredFeatures(commandBuffer);
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -256,8 +247,6 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSRayReconstruction feature, RayReconstructionArgs args)
     {
-        PollRetiredFeatures(commandBuffer);
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -274,8 +263,6 @@ internal unsafe partial class DLSSVendor : Vendor
     {
         const float FallbackInfiniteFarScale = 100000.0f;
 
-        PollRetiredFeatures(commandBuffer);
-
         UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite);
 
         Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
@@ -283,8 +270,11 @@ internal unsafe partial class DLSSVendor : Vendor
 
         Matrix4x4 clipToPrevClip = Matrix4x4.Identity;
         Matrix4x4 prevClipToClip = Matrix4x4.Identity;
-        if (!args.Reset && Matrix4x4.Invert(feature.PreviousView, out Matrix4x4 previousViewToWorld) && Matrix4x4.Invert(feature.PreviousProjection, out Matrix4x4 previousClipToView))
+        if (!args.Reset)
         {
+            Matrix4x4.Invert(feature.PreviousView, out Matrix4x4 previousViewToWorld);
+            Matrix4x4.Invert(feature.PreviousProjection, out Matrix4x4 previousClipToView);
+
             Matrix4x4 relativeViewToWorld = viewToWorld;
             relativeViewToWorld.Translation -= previousViewToWorld.Translation;
 
@@ -357,20 +347,6 @@ internal unsafe partial class DLSSVendor : Vendor
 
     protected override void Destroy()
     {
-        if (!isInitialized)
-        {
-            return;
-        }
-
-        using (Lock.Scope _ = retireLock.EnterScope())
-        {
-            for (int i = retiredFeatures.Count - 1; i >= 0; i--)
-            {
-                ReleaseFeature(retiredFeatures[i].Handle);
-            }
-            retiredFeatures.Clear();
-        }
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -383,62 +359,14 @@ internal unsafe partial class DLSSVendor : Vendor
         }
     }
 
-    private void RetireFeature(CommandBuffer commandBuffer, ref NGXHandle handle)
+    private void PrepareFeature(NGXHandle handle, NGXParameter parameters)
     {
-        if (handle.IsNull)
+        if (!handle.IsNull)
         {
-            return;
+            Context.GraphicsQueue.Timeline.Signal().Wait();
+            ReleaseFeature(handle);
         }
 
-        Timeline timeline = commandBuffer.Queue.Timeline;
-
-        using Lock.Scope _ = retireLock.EnterScope();
-
-        retiredFeatures.Add(new(commandBuffer, new(timeline, timeline.Signal().Value + 1), handle));
-        handle = default;
-    }
-
-    private void PollRetiredFeatures(CommandBuffer currentCommandBuffer)
-    {
-        using Lock.Scope _ = retireLock.EnterScope();
-
-        for (int i = retiredFeatures.Count - 1; i >= 0; i--)
-        {
-            RetiredFeature retired = retiredFeatures[i];
-
-            if (retired.CommandBuffer is not null)
-            {
-                if (retired.TimelineValue.IsCompleted)
-                {
-                    ReleaseFeature(retired.Handle);
-                    retiredFeatures.RemoveAt(i);
-
-                    continue;
-                }
-
-                if (retired.CommandBuffer == currentCommandBuffer)
-                {
-                    continue;
-                }
-
-                retired = new(null, retired.CommandBuffer.Queue.Timeline.Signal(), retired.Handle);
-                retiredFeatures[i] = retired;
-            }
-
-            if (retired.TimelineValue.IsCompleted)
-            {
-                ReleaseFeature(retired.Handle);
-                retiredFeatures.RemoveAt(i);
-            }
-        }
-    }
-
-    private readonly struct RetiredFeature(CommandBuffer? commandBuffer, TimelineValue timelineValue, NGXHandle handle)
-    {
-        public readonly CommandBuffer? CommandBuffer = commandBuffer;
-
-        public readonly TimelineValue TimelineValue = timelineValue;
-
-        public readonly NGXHandle Handle = handle;
+        DLSSHelper.ResetParameters(parameters);
     }
 }

@@ -17,14 +17,14 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
-        commandBuffer.Transition(Output, default, key.Color is PixelFormat.Unknown ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
-
-        commandBuffer.BeginExternalCommands();
-
-        if (Ensure(commandBuffer, args))
+        if (Ensure(args))
         {
             args.Reset = true;
         }
+
+        commandBuffer.Transition(Output, default, args.Reset ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
+
+        commandBuffer.BeginExternalCommands();
 
         vendor.Evaluate(commandBuffer, this, args);
 
@@ -41,7 +41,7 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
         base.Destroy();
     }
 
-    private bool Ensure(CommandBuffer commandBuffer, FrameGenerationArgs args)
+    private bool Ensure(FrameGenerationArgs args)
     {
         Key newKey = new(args);
 
@@ -52,7 +52,7 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
 
         key = newKey;
 
-        vendor.Create(commandBuffer, this);
+        vendor.Create(this);
 
         return true;
     }

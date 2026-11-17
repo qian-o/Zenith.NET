@@ -12,14 +12,14 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {
-        commandBuffer.Transition(Output, default, key.Color is PixelFormat.Unknown ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
-
-        commandBuffer.BeginExternalCommands();
-
-        if (Ensure(commandBuffer, args))
+        if (Ensure(args))
         {
             args.Reset = true;
         }
+
+        commandBuffer.Transition(Output, default, args.Reset ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.Storage);
+
+        commandBuffer.BeginExternalCommands();
 
         vendor.Evaluate(commandBuffer, this, args);
 
@@ -36,7 +36,7 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
         base.Destroy();
     }
 
-    private bool Ensure(CommandBuffer commandBuffer, RayReconstructionArgs args)
+    private bool Ensure(RayReconstructionArgs args)
     {
         Key newKey = new(args);
 
@@ -47,7 +47,7 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
 
         key = newKey;
 
-        vendor.Create(commandBuffer, this, args);
+        vendor.Create(this, args);
 
         return true;
     }

@@ -4,11 +4,11 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal unsafe partial class DLSSVendor
 {
-    private bool InitializeDirectX12(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo* commonInfo)
+    private void InitializeDirectX12(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo* commonInfo)
     {
         Device = Context.DirectX12();
 
-        return Ngx.NVSDK_NGX_SUCCEED(Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, Device, commonInfo, NGXVersion.Api));
+        Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, Device, commonInfo, NGXVersion.Api).Success();
     }
 
     private void ShutdownDirectX12()
