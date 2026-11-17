@@ -21,10 +21,7 @@ internal unsafe partial class DLSSVendor
 
     private void InitializeVulkan(string projectId, string engineVersion, string dataPath, NGXFeatureCommonInfo featureInfo)
     {
-        const int VkStructureTypePipelineLayoutCreateInfo = 30;
-        const int VkStructureTypeDescriptorSetLayoutCreateInfo = 32;
-        const int VkStructureTypeDescriptorPoolCreateInfo = 33;
-        const int VkStructureTypeDescriptorSetAllocateInfo = 34;
+        using ZenithMarshal.Scope scope = new();
 
         nint instance = Context.GetNativeObject(NativeObjectType.VulkanInstance);
         nint physicalDevice = Context.GetNativeObject(NativeObjectType.VulkanPhysicalDevice);
@@ -33,12 +30,6 @@ internal unsafe partial class DLSSVendor
 
         Ngx.Vulkan.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, instance, physicalDevice, device, getInstanceProcAddr, getDeviceProcAddr, &featureInfo, NGXVersion.Api).Success();
 
-        nint GetProcAddr(string name)
-        {
-            using ZenithMarshal.Scope scope = new();
-            return ((delegate* unmanaged<nint, byte*, nint>)getDeviceProcAddr)(device, (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8));
-        }
-
         createImageView = (delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreateImageView");
         destroyImageView = (delegate* unmanaged<nint, ulong, void*, void>)GetProcAddr("vkDestroyImageView");
         destroyDescriptorSetLayout = (delegate* unmanaged<nint, ulong, void*, void>)GetProcAddr("vkDestroyDescriptorSetLayout");
@@ -46,44 +37,47 @@ internal unsafe partial class DLSSVendor
         destroyDescriptorPool = (delegate* unmanaged<nint, ulong, void*, void>)GetProcAddr("vkDestroyDescriptorPool");
         cmdBindDescriptorSets = (delegate* unmanaged<nint, int, ulong, uint, uint, ulong*, uint, uint*, void>)GetProcAddr("vkCmdBindDescriptorSets");
 
-        VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = new() { SType = VkStructureTypeDescriptorSetLayoutCreateInfo };
-        ((delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreateDescriptorSetLayout"))(device, &setLayoutCreateInfo, null, out ulong setLayout).Success();
-        descriptorSetLayout = setLayout;
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = 32 };
+        ((delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreateDescriptorSetLayout"))(device, &descriptorSetLayoutCreateInfo, null, out descriptorSetLayout).Success();
 
-        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+        fixed (ulong* descriptorSetLayouts = &descriptorSetLayout)
         {
-            SType = VkStructureTypePipelineLayoutCreateInfo,
-            SetLayoutCount = 1,
-            PSetLayouts = &setLayout
-        };
+            VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+            {
+                SType = 30,
+                SetLayoutCount = 1,
+                PSetLayouts = descriptorSetLayouts
+            };
 
-        ((delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreatePipelineLayout"))(device, &pipelineLayoutCreateInfo, null, out pipelineLayout).Success();
+            ((delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreatePipelineLayout"))(device, &pipelineLayoutCreateInfo, null, out pipelineLayout).Success();
 
-        VkDescriptorPoolSize poolSize = new()
+            VkDescriptorPoolSize descriptorPoolSize = new() { DescriptorCount = 1 };
+
+            VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
+            {
+                SType = 33,
+                MaxSets = 1,
+                PoolSizeCount = 1,
+                PPoolSizes = &descriptorPoolSize
+            };
+
+            ((delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreateDescriptorPool"))(device, &descriptorPoolCreateInfo, null, out descriptorPool).Success();
+
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
+            {
+                SType = 34,
+                DescriptorPool = descriptorPool,
+                DescriptorSetCount = 1,
+                PSetLayouts = descriptorSetLayouts
+            };
+
+            ((delegate* unmanaged<nint, void*, out ulong, int>)GetProcAddr("vkAllocateDescriptorSets"))(device, &descriptorSetAllocateInfo, out descriptorSet).Success();
+        }
+
+        nint GetProcAddr(string name)
         {
-            Type = 0,
-            DescriptorCount = 1
-        };
-
-        VkDescriptorPoolCreateInfo poolCreateInfo = new()
-        {
-            SType = VkStructureTypeDescriptorPoolCreateInfo,
-            MaxSets = 1,
-            PoolSizeCount = 1,
-            PPoolSizes = &poolSize
-        };
-
-        ((delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreateDescriptorPool"))(device, &poolCreateInfo, null, out descriptorPool).Success();
-
-        VkDescriptorSetAllocateInfo setAllocateInfo = new()
-        {
-            SType = VkStructureTypeDescriptorSetAllocateInfo,
-            DescriptorPool = descriptorPool,
-            DescriptorSetCount = 1,
-            PSetLayouts = &setLayout
-        };
-
-        ((delegate* unmanaged<nint, void*, out ulong, int>)GetProcAddr("vkAllocateDescriptorSets"))(device, &setAllocateInfo, out descriptorSet).Success();
+            return ((delegate* unmanaged<nint, byte*, nint>)getDeviceProcAddr)(device, (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8));
+        }
     }
 
     private void DestroyVulkan()
@@ -246,21 +240,14 @@ internal unsafe partial class DLSSVendor
 
     private void BindDescriptorSetVulkan(nint commandBuffer)
     {
-        const int VkPipelineBindPointCompute = 1;
-
-        ulong set = descriptorSet;
-        cmdBindDescriptorSets(commandBuffer, VkPipelineBindPointCompute, pipelineLayout, 0, 1, &set, 0, null);
+        fixed (ulong* descriptorSets = &descriptorSet)
+        {
+            cmdBindDescriptorSets(commandBuffer, 1, pipelineLayout, 0, 1, descriptorSets, 0, null);
+        }
     }
 
     private NGXResourceVK GetResourceVulkan(Texture texture, bool isStorage)
     {
-        const int VkStructureTypeImageViewCreateInfo = 15;
-        const int VkStructureTypeImageViewUsageCreateInfo = 1000117002;
-        const int VkImageViewType2D = 1;
-        const uint VkImageUsageSampledBit = 4;
-        const uint VkImageAspectColorBit = 1;
-        const uint VkImageAspectDepthBit = 2;
-
         using Lock.Scope _ = @lock.EnterScope();
 
         if (!resources.TryGetValue((texture, isStorage), out NGXResourceVK resource))
@@ -278,30 +265,28 @@ internal unsafe partial class DLSSVendor
 
             NGXVkImageSubresourceRange subresourceRange = new()
             {
-                AspectMask = ZenithHelper.HasDepth(texture.Desc.Format) ? VkImageAspectDepthBit : VkImageAspectColorBit,
-                BaseMipLevel = 0,
+                AspectMask = ZenithHelper.HasDepth(texture.Desc.Format) ? 2u : 1u,
                 LevelCount = 1,
-                BaseArrayLayer = 0,
                 LayerCount = 1
             };
 
-            VkImageViewUsageCreateInfo usageCreateInfo = new()
+            VkImageViewUsageCreateInfo imageViewUsageCreateInfo = new()
             {
-                SType = VkStructureTypeImageViewUsageCreateInfo,
-                Usage = VkImageUsageSampledBit
+                SType = 1000117002,
+                Usage = 4
             };
 
-            VkImageViewCreateInfo createInfo = new()
+            VkImageViewCreateInfo imageViewCreateInfo = new()
             {
-                SType = VkStructureTypeImageViewCreateInfo,
-                PNext = !isStorage && texture.Desc.Format is PixelFormat.R8G8B8A8SRgb or PixelFormat.B8G8R8A8SRgb ? &usageCreateInfo : null,
+                SType = 15,
+                PNext = !isStorage && texture.Desc.Format is PixelFormat.R8G8B8A8SRgb or PixelFormat.B8G8R8A8SRgb ? &imageViewUsageCreateInfo : null,
                 Image = (ulong)texture.Vulkan(),
-                ViewType = VkImageViewType2D,
+                ViewType = 1,
                 Format = format,
                 SubresourceRange = subresourceRange
             };
 
-            createImageView(device, &createInfo, null, out ulong imageView).Success();
+            createImageView(device, &imageViewCreateInfo, null, out ulong imageView).Success();
 
             resources[(texture, isStorage)] = resource = Ngx.CreateImageViewResourceVK((nint)imageView, texture.Vulkan(), subresourceRange, format, texture.Desc.Width, texture.Desc.Height, isStorage);
 
@@ -391,18 +376,6 @@ file unsafe struct VkDescriptorSetAllocateInfo
 }
 
 [StructLayout(LayoutKind.Sequential)]
-file struct VkComponentMapping
-{
-    public int R;
-
-    public int G;
-
-    public int B;
-
-    public int A;
-}
-
-[StructLayout(LayoutKind.Sequential)]
 file unsafe struct VkImageViewUsageCreateInfo
 {
     public int SType;
@@ -427,7 +400,7 @@ file unsafe struct VkImageViewCreateInfo
 
     public NGXVkFormat Format;
 
-    public VkComponentMapping Components;
+    public fixed int Components[4];
 
     public NGXVkImageSubresourceRange SubresourceRange;
 }

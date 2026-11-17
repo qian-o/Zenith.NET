@@ -316,9 +316,7 @@ file static unsafe class NGXHelper
 
     public static NGXDLSSGOptEvalParams EvaluationParams(FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
     {
-        const float FallbackInfiniteFarScale = 100000.0f;
-
-        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite);
+        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool _);
 
         Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
         Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToCameraView);
@@ -348,7 +346,7 @@ file static unsafe class NGXHelper
             CameraRight = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13)),
             CameraFwd = Vector3.Normalize(args.Projection.M34 < 0.0f ? -forward : forward),
             CameraNear = nearPlane,
-            CameraFar = depthInfinite ? MathF.Max(nearPlane * FallbackInfiniteFarScale, FallbackInfiniteFarScale) : farPlane,
+            CameraFar = farPlane,
             CameraFOV = verticalFieldOfViewInRadians,
             CameraAspectRatio = aspectRatio,
             ColorBuffersHDR = args.Color.Desc.Format is PixelFormat.R10G10B10A2UNorm || UpscalingHelper.IsFloat(args.Color.Desc.Format),
