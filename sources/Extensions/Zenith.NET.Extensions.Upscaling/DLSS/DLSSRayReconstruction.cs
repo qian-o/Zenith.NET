@@ -4,11 +4,11 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc desc) : RayReconstruction(vendor.Context, desc)
 {
-    private Key key;
-
     public readonly NGXParameter Parameters = vendor.AllocateParameters();
 
     public NGXHandle Handle;
+
+    private Key key;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args)
     {

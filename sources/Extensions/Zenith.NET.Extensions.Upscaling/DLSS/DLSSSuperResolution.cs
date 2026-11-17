@@ -4,11 +4,11 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) : SuperResolution(vendor.Context, desc)
 {
-    private Key key;
-
     public readonly NGXParameter Parameters = vendor.AllocateParameters();
 
     public NGXHandle Handle;
+
+    private Key key;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args)
     {

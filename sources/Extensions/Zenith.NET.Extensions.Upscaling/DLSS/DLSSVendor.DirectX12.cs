@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using NGX.NET;
+﻿using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
@@ -74,9 +73,6 @@ internal unsafe partial class DLSSVendor
 
     private static void EvaluateDirectX12(nint commandList, DLSSRayReconstruction feature, RayReconstructionArgs args)
     {
-        Matrix4x4 view = args.View;
-        Matrix4x4 projection = args.Projection;
-
         NGXD3D12DLSSDEvalParams evalParams = new()
         {
             DiffuseAlbedo = args.DiffuseAlbedo.DirectX12(),
@@ -100,8 +96,8 @@ internal unsafe partial class DLSSVendor
             ExposureTexture = args.Exposure?.DirectX12() ?? 0,
             BiasCurrentColorMask = args.ReactiveMask?.DirectX12() ?? 0,
             SpecularHitDistance = args.SpecularHitDistance?.DirectX12() ?? 0,
-            WorldToViewMatrix = &view,
-            ViewToClipMatrix = &projection,
+            WorldToViewMatrix = &args.View,
+            ViewToClipMatrix = &args.Projection,
             PreExposure = args.PreExposure ?? 1.0f,
             ExposureScale = 1.0f,
             FrameTimeDeltaInMsec = args.DeltaTimeInSeconds * 1000.0f,

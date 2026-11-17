@@ -29,14 +29,12 @@ internal static unsafe class DLSSHelper
 
     public static bool GetBool(NGXParameter parameters, ReadOnlySpan<byte> name)
     {
-        int value = 0;
-        NGXResult result;
         fixed (byte* pointer = name)
         {
-            result = Ngx.Parameter.GetI(parameters, pointer, &value);
-        }
+            int value = 0;
 
-        return Ngx.NVSDK_NGX_SUCCEED(result) && value is not 0;
+            return Ngx.NVSDK_NGX_SUCCEED(Ngx.Parameter.GetI(parameters, pointer, &value)) && value is not 0;
+        }
     }
 
     public static NGXPerfQualityValue PerfQuality(uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)

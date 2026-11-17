@@ -5,8 +5,6 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) : FrameGeneration(vendor.Context, desc)
 {
-    private Key key;
-
     public readonly NGXParameter Parameters = vendor.AllocateParameters();
 
     public NGXHandle Handle;
@@ -14,6 +12,8 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
     public Matrix4x4 PreviousView;
 
     public Matrix4x4 PreviousProjection;
+
+    private Key key;
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {

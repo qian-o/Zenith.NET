@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using NGX.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.DLSS;
@@ -35,11 +34,10 @@ internal unsafe partial class DLSSVendor
         }
 
         using ZenithMarshal.Scope scope = new();
-        delegate* unmanaged<nint, byte*, nint> vkGetDeviceProcAddr = (delegate* unmanaged<nint, byte*, nint>)getDeviceProcAddr;
 
         nint GetProcAddr(string name)
         {
-            return vkGetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8));
+            return ((delegate* unmanaged<nint, byte*, nint>)getDeviceProcAddr)(Device, (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8));
         }
 
         createImageView = (delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreateImageView");
@@ -48,11 +46,6 @@ internal unsafe partial class DLSSVendor
         destroyPipelineLayout = (delegate* unmanaged<nint, ulong, void*, void>)GetProcAddr("vkDestroyPipelineLayout");
         destroyDescriptorPool = (delegate* unmanaged<nint, ulong, void*, void>)GetProcAddr("vkDestroyDescriptorPool");
         cmdBindDescriptorSets = (delegate* unmanaged<nint, int, ulong, uint, uint, ulong*, uint, uint*, void>)GetProcAddr("vkCmdBindDescriptorSets");
-
-        delegate* unmanaged<nint, void*, void*, ulong*, int> createDescriptorSetLayout = (delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreateDescriptorSetLayout");
-        delegate* unmanaged<nint, void*, void*, ulong*, int> createPipelineLayout = (delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreatePipelineLayout");
-        delegate* unmanaged<nint, void*, void*, ulong*, int> createDescriptorPool = (delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreateDescriptorPool");
-        delegate* unmanaged<nint, void*, ulong*, int> allocateDescriptorSets = (delegate* unmanaged<nint, void*, ulong*, int>)GetProcAddr("vkAllocateDescriptorSets");
 
         fixed (ulong* pDescriptorSetLayout = &descriptorSetLayout)
         {
@@ -63,7 +56,7 @@ internal unsafe partial class DLSSVendor
                     fixed (ulong* pDescriptorSet = &descriptorSet)
                     {
                         VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = new() { SType = VkStructureTypeDescriptorSetLayoutCreateInfo };
-                        createDescriptorSetLayout(Device, &setLayoutCreateInfo, null, pDescriptorSetLayout).Success();
+                        ((delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreateDescriptorSetLayout"))(Device, &setLayoutCreateInfo, null, pDescriptorSetLayout).Success();
 
                         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
                         {
@@ -72,7 +65,7 @@ internal unsafe partial class DLSSVendor
                             PSetLayouts = pDescriptorSetLayout
                         };
 
-                        createPipelineLayout(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout).Success();
+                        ((delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreatePipelineLayout"))(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout).Success();
 
                         VkDescriptorPoolSize poolSize = new()
                         {
@@ -88,7 +81,7 @@ internal unsafe partial class DLSSVendor
                             PPoolSizes = &poolSize
                         };
 
-                        createDescriptorPool(Device, &poolCreateInfo, null, pDescriptorPool).Success();
+                        ((delegate* unmanaged<nint, void*, void*, ulong*, int>)GetProcAddr("vkCreateDescriptorPool"))(Device, &poolCreateInfo, null, pDescriptorPool).Success();
 
                         VkDescriptorSetAllocateInfo setAllocateInfo = new()
                         {
@@ -98,7 +91,7 @@ internal unsafe partial class DLSSVendor
                             PSetLayouts = pDescriptorSetLayout
                         };
 
-                        allocateDescriptorSets(Device, &setAllocateInfo, pDescriptorSet).Success();
+                        ((delegate* unmanaged<nint, void*, ulong*, int>)GetProcAddr("vkAllocateDescriptorSets"))(Device, &setAllocateInfo, pDescriptorSet).Success();
                     }
                 }
             }
@@ -222,9 +215,6 @@ internal unsafe partial class DLSSVendor
     {
         BindDescriptorSet(commandBuffer);
 
-        Matrix4x4 view = args.View;
-        Matrix4x4 projection = args.Projection;
-
         NGXResourceVK diffuseAlbedo = EnsureVulkanResource(args.DiffuseAlbedo, false);
         NGXResourceVK specularAlbedo = EnsureVulkanResource(args.SpecularAlbedo, false);
         NGXResourceVK normals = EnsureVulkanResource(args.Normals, false);
@@ -263,8 +253,8 @@ internal unsafe partial class DLSSVendor
             PreExposure = args.PreExposure ?? 1.0f,
             ExposureScale = 1.0f,
             SpecularHitDistance = args.SpecularHitDistance is not null ? &specularHitDistance : null,
-            WorldToViewMatrix = &view,
-            ViewToClipMatrix = &projection,
+            WorldToViewMatrix = &args.View,
+            ViewToClipMatrix = &args.Projection,
             FrameTimeDeltaInMsec = args.DeltaTimeInSeconds * 1000.0f,
             TransparencyLayer = args.TransparencyOverlay is not null ? &transparencyOverlay : null
         };
@@ -346,12 +336,10 @@ internal unsafe partial class DLSSVendor
                     Usage = VkImageUsageSampledBit
                 };
 
-                bool restrictSampledUsage = !isStorage && texture.Desc.Format is PixelFormat.R8G8B8A8SRgb or PixelFormat.B8G8R8A8SRgb;
-
                 VkImageViewCreateInfo createInfo = new()
                 {
                     SType = VkStructureTypeImageViewCreateInfo,
-                    PNext = restrictSampledUsage ? &usageCreateInfo : null,
+                    PNext = !isStorage && texture.Desc.Format is PixelFormat.R8G8B8A8SRgb or PixelFormat.B8G8R8A8SRgb ? &usageCreateInfo : null,
                     Image = (ulong)texture.Vulkan(),
                     ViewType = VkImageViewType2D,
                     Format = format,
