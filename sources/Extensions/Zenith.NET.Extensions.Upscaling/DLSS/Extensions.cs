@@ -37,7 +37,7 @@ internal static class Extensions
         {
             if (result is not 0)
             {
-                Debug.WriteLine($"Vulkan call failed with error code: {result}");
+                Debug.WriteLine($"Vulkan call failed with error: {result}");
             }
         }
     }

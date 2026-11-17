@@ -98,6 +98,11 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public void DestroyParameters(NGXParameter parameters)
     {
+        if (parameters.IsNull)
+        {
+            return;
+        }
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
