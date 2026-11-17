@@ -98,27 +98,27 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
 
     private readonly struct Key(RayReconstructionArgs args)
     {
-        public readonly MTLPixelFormat Color = MetalFXFormats.Metal(args.Color.Desc.Format);
+        public readonly PixelFormat Color = args.Color.Desc.Format;
 
-        public readonly MTLPixelFormat Depth = MetalFXFormats.Metal(args.Depth.Desc.Format);
+        public readonly PixelFormat Depth = args.Depth.Desc.Format;
 
-        public readonly MTLPixelFormat MotionVectors = MetalFXFormats.Metal(args.MotionVectors.Desc.Format);
+        public readonly PixelFormat MotionVectors = args.MotionVectors.Desc.Format;
 
-        public readonly MTLPixelFormat DiffuseAlbedo = MetalFXFormats.Metal(args.DiffuseAlbedo.Desc.Format);
+        public readonly PixelFormat DiffuseAlbedo = args.DiffuseAlbedo.Desc.Format;
 
-        public readonly MTLPixelFormat SpecularAlbedo = MetalFXFormats.Metal(args.SpecularAlbedo.Desc.Format);
+        public readonly PixelFormat SpecularAlbedo = args.SpecularAlbedo.Desc.Format;
 
-        public readonly MTLPixelFormat Normals = MetalFXFormats.Metal(args.Normals.Desc.Format);
+        public readonly PixelFormat Normals = args.Normals.Desc.Format;
 
-        public readonly MTLPixelFormat Roughness = MetalFXFormats.Metal(args.Roughness.Desc.Format);
+        public readonly PixelFormat Roughness = args.Roughness.Desc.Format;
 
-        public readonly MTLPixelFormat SpecularHitDistance = MetalFXFormats.Metal(args.SpecularHitDistance?.Desc.Format);
+        public readonly PixelFormat SpecularHitDistance = args.SpecularHitDistance?.Desc.Format ?? default;
 
-        public readonly MTLPixelFormat ReactiveMask = MetalFXFormats.Metal(args.ReactiveMask?.Desc.Format);
+        public readonly PixelFormat ReactiveMask = args.ReactiveMask?.Desc.Format ?? default;
 
-        public readonly MTLPixelFormat TransparencyOverlay = MetalFXFormats.Metal(args.TransparencyOverlay?.Desc.Format);
+        public readonly PixelFormat TransparencyOverlay = args.TransparencyOverlay?.Desc.Format ?? default;
 
-        public readonly MTLPixelFormat Exposure = MetalFXFormats.Metal(args.Exposure?.Desc.Format);
+        public readonly PixelFormat Exposure = args.Exposure?.Desc.Format ?? default;
 
         public bool Equals(Key other)
         {

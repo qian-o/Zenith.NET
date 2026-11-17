@@ -134,8 +134,8 @@ public class FrameGenerationSwapChain : DisposableObject
         submissions = [with(FrameCount)];
         presenterThread = new(PresentLoop)
         {
-            Name = nameof(FrameGenerationSwapChain),
-            IsBackground = true
+            IsBackground = true,
+            Name = nameof(FrameGenerationSwapChain)
         };
         presenterThread.Start();
     }

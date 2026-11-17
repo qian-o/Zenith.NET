@@ -89,6 +89,31 @@ public static class UpscalingHelper
         return (ScaleDimension(outputWidth, scale), ScaleDimension(outputHeight, scale));
     }
 
+    internal static bool IsFloat(PixelFormat pixelFormat)
+    {
+        return pixelFormat switch
+        {
+            PixelFormat.R16Float or
+            PixelFormat.R32Float or
+            PixelFormat.R16G16Float or
+            PixelFormat.R32G32Float or
+            PixelFormat.R9G9B9E5Float or
+            PixelFormat.R11G11B10Float or
+            PixelFormat.R16G16B16A16Float or
+            PixelFormat.R32G32B32A32Float or
+            PixelFormat.BC6HUFloat or
+            PixelFormat.BC6HSFloat or
+            PixelFormat.ASTC4x4Float or
+            PixelFormat.ASTC5x5Float or
+            PixelFormat.ASTC6x6Float or
+            PixelFormat.ASTC8x8Float or
+            PixelFormat.ASTC10x10Float or
+            PixelFormat.ASTC12x12Float => true,
+
+            _ => false
+        };
+    }
+
     internal static bool IsDepthReversed(Matrix4x4 projection)
     {
         DecomposePerspective(projection, out _, out _, out _, out _, out bool depthReversed, out _);

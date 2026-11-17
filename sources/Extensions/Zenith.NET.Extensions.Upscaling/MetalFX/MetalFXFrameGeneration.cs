@@ -88,13 +88,13 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
 
     private readonly struct Key(FrameGenerationArgs args)
     {
-        public readonly MTLPixelFormat Color = MetalFXFormats.Metal(args.Color.Desc.Format);
+        public readonly PixelFormat Color = args.Color.Desc.Format;
 
-        public readonly MTLPixelFormat Depth = MetalFXFormats.Metal(args.Depth.Desc.Format);
+        public readonly PixelFormat Depth = args.Depth.Desc.Format;
 
-        public readonly MTLPixelFormat MotionVectors = MetalFXFormats.Metal(args.MotionVectors.Desc.Format);
+        public readonly PixelFormat MotionVectors = args.MotionVectors.Desc.Format;
 
-        public readonly MTLPixelFormat Hudless = MetalFXFormats.Metal(args.Hudless?.Desc.Format);
+        public readonly PixelFormat Hudless = args.Hudless?.Desc.Format ?? default;
 
         public bool Equals(Key other)
         {

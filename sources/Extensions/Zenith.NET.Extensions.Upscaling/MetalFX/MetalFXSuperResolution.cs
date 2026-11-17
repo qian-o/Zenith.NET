@@ -82,15 +82,15 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
 
     private readonly struct Key(SuperResolutionArgs args)
     {
-        public readonly MTLPixelFormat Color = MetalFXFormats.Metal(args.Color.Desc.Format);
+        public readonly PixelFormat Color = args.Color.Desc.Format;
 
-        public readonly MTLPixelFormat Depth = MetalFXFormats.Metal(args.Depth.Desc.Format);
+        public readonly PixelFormat Depth = args.Depth.Desc.Format;
 
-        public readonly MTLPixelFormat MotionVectors = MetalFXFormats.Metal(args.MotionVectors.Desc.Format);
+        public readonly PixelFormat MotionVectors = args.MotionVectors.Desc.Format;
 
-        public readonly MTLPixelFormat ReactiveMask = MetalFXFormats.Metal(args.ReactiveMask?.Desc.Format);
+        public readonly PixelFormat ReactiveMask = args.ReactiveMask?.Desc.Format ?? default;
 
-        public readonly MTLPixelFormat Exposure = MetalFXFormats.Metal(args.Exposure?.Desc.Format);
+        public readonly PixelFormat Exposure = args.Exposure?.Desc.Format ?? default;
 
         public bool Equals(Key other)
         {
