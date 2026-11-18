@@ -13,6 +13,7 @@ public class FrameGenerationSwapChain : GraphicsResource
     internal FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSwapChainDesc desc) : base(context)
     {
         Desc = desc;
+
         presenter = new(context, desc);
     }
 
@@ -90,6 +91,7 @@ public class FrameGenerationSwapChain : GraphicsResource
 
         frameGeneration?.Dispose();
         frameGeneration = null;
+
         cooldown.Restart();
     }
 
@@ -101,6 +103,7 @@ public class FrameGenerationSwapChain : GraphicsResource
 
         frameGeneration?.Dispose();
         frameGeneration = null;
+
         cooldown.Reset();
     }
 
@@ -115,8 +118,10 @@ public class FrameGenerationSwapChain : GraphicsResource
 
     protected override void Destroy()
     {
-        presenter.Dispose();
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+
         frameGeneration?.Dispose();
+        presenter.Dispose();
     }
 
     private bool Ensure(uint renderWidth, uint renderHeight)
@@ -245,6 +250,7 @@ public class FrameGenerationSwapChain : GraphicsResource
             foreach (Submission submission in submissions.GetConsumingEnumerable())
             {
                 PresentFrame(submission);
+
                 submission.Frame.Ready.Set();
             }
         }
@@ -265,6 +271,7 @@ public class FrameGenerationSwapChain : GraphicsResource
                 Copy(frame.Interpolated!, TextureLayout.CopyDst, [submission.Wait]);
 
                 double delay = pacer.Next(true);
+
                 if (aborting.IsSet)
                 {
                     return;
@@ -287,6 +294,7 @@ public class FrameGenerationSwapChain : GraphicsResource
             else
             {
                 Copy(frame.Color!, submission.Layout, [submission.Wait]);
+
                 pacer.Next(false);
 
                 if (!aborting.IsSet)
@@ -336,8 +344,8 @@ public class FrameGenerationSwapChain : GraphicsResource
             }
 
             double elapsed = Math.Clamp(stopwatch.Elapsed.TotalSeconds, MinInterval, MaxInterval);
-            stopwatch.Restart();
 
+            stopwatch.Restart();
             interval = interval is 0.0 ? elapsed : double.Lerp(interval, elapsed, 0.25);
 
             return Math.Max((interval * 0.5) - (isVerticalSyncEnabled ? VSyncMargin : 0.0), 0.0);
