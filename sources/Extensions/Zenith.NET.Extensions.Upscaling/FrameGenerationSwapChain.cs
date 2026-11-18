@@ -5,27 +5,14 @@ namespace Zenith.NET.Extensions.Upscaling;
 
 public class FrameGenerationSwapChain : DisposableObject
 {
-    private const int FrameCount = 3;
-
-    private readonly GraphicsContext context;
     private readonly SwapChain swapChain;
-    private readonly Frame[] frames = new Frame[FrameCount];
-    private readonly Stopwatch submitStopwatch = new();
-    private readonly Stopwatch presentStopwatch = new();
+    private readonly FramePresenter presenter;
+    private readonly Stopwatch resizeStopwatch = new();
 
-    private FrameGenerationSwapChainDesc desc;
     private FrameGeneration? frameGeneration;
-    private CancellationTokenSource tokenSource = null!;
-    private BlockingCollection<Submission> submissions = null!;
-    private Thread presenterThread = null!;
-    private int frameIndex;
-    private double frameInterval;
 
     internal FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSwapChainDesc desc)
     {
-        this.context = context;
-        this.desc = desc;
-
         swapChain = context.CreateSwapChain(new()
         {
             Surface = desc.Surface,
@@ -34,29 +21,42 @@ public class FrameGenerationSwapChain : DisposableObject
             IsPresentQueueEnabled = true
         });
 
-        CreateResources();
+        presenter = new(swapChain);
+
+        Desc = desc;
     }
 
-    public FrameGenerationSwapChainDesc Desc => desc;
+    public FrameGenerationSwapChainDesc Desc { get; private set; }
 
-    public Texture Drawable => frames[frameIndex].Color;
+    public Texture Drawable => presenter.Color;
 
     public void Present(FrameGenerationSwapChainArgs args)
     {
-        Frame frame = frames[frameIndex];
+        const double ResizeCooldown = 0.1;
+
+        Texture color = Drawable;
+
+        if (resizeStopwatch.IsRunning && resizeStopwatch.Elapsed.TotalSeconds < ResizeCooldown)
+        {
+            presenter.Submit(swapChain.Context.GraphicsQueue.Timeline.Signal(), TextureLayout.Present, false);
+
+            return;
+        }
+
+        resizeStopwatch.Reset();
 
         if (Ensure(args.Depth.Desc.Width, args.Depth.Desc.Height))
         {
             args.Reset = true;
         }
 
-        CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+        CommandBuffer commandBuffer = swapChain.Context.GraphicsQueue.CommandBuffer();
 
-        commandBuffer.Transition(frame.Color, default, TextureLayout.Present, TextureLayout.Sampled);
+        commandBuffer.Transition(color, default, TextureLayout.Present, TextureLayout.Sampled);
 
         frameGeneration!.Dispatch(commandBuffer, new()
         {
-            Color = frame.Color,
+            Color = color,
             Depth = args.Depth,
             MotionVectors = args.MotionVectors,
             Hudless = args.Hudless,
@@ -69,100 +69,54 @@ public class FrameGenerationSwapChain : DisposableObject
 
         if (!args.Reset)
         {
+            Texture output = presenter.Interpolated;
+
             commandBuffer.Transition(frameGeneration.Output, default, TextureLayout.Sampled, TextureLayout.CopySrc);
-            commandBuffer.Transition(frame.Interpolated, default, TextureLayout.Undefined, TextureLayout.CopyDst);
-            commandBuffer.CopyTexture(frameGeneration.Output, default, default, frame.Interpolated, default, default, new()
+            commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+            commandBuffer.CopyTexture(frameGeneration.Output, default, default, output, default, default, new()
             {
-                Width = desc.Surface.Width,
-                Height = desc.Surface.Height,
+                Width = Desc.Surface.Width,
+                Height = Desc.Surface.Height,
                 Depth = 1
             });
-            commandBuffer.Transition(frame.Interpolated, default, TextureLayout.CopyDst, TextureLayout.CopySrc);
             commandBuffer.Transition(frameGeneration.Output, default, TextureLayout.CopySrc, TextureLayout.Sampled);
         }
 
-        commandBuffer.Transition(frame.Color, default, TextureLayout.Sampled, TextureLayout.CopySrc);
-
-        TimelineValue rendered = commandBuffer.Submit();
-
-        frame.Ready.Reset();
-        submissions.Add(new(frame, rendered, NextStep(args.Reset), !args.Reset));
-
-        frameIndex = (frameIndex + 1) % frames.Length;
-        frames[frameIndex].Ready.Wait();
+        presenter.Submit(commandBuffer.Submit(), TextureLayout.Sampled, !args.Reset);
     }
 
     public void Resize(uint width, uint height)
     {
-        DestroyResources();
+        Reset();
 
-        desc.Surface.Width = width;
-        desc.Surface.Height = height;
+        Desc = Desc with
+        {
+            Surface = Desc.Surface with
+            {
+                Width = width,
+                Height = height
+            }
+        };
 
         swapChain.Resize(width, height);
-
-        CreateResources();
+        resizeStopwatch.Restart();
     }
 
     public void Refresh(Surface surface)
     {
-        DestroyResources();
+        Reset();
 
-        desc.Surface = surface;
+        Desc = Desc with { Surface = surface };
 
         swapChain.Refresh(surface);
-
-        CreateResources();
     }
 
     protected override void Destroy()
     {
-        DestroyResources();
+        Reset();
 
+        presenter.Dispose();
         swapChain.Dispose();
-    }
-
-    private void CreateResources()
-    {
-        for (int i = 0; i < frames.Length; i++)
-        {
-            frames[i] = new(context, desc);
-        }
-
-        frameIndex = 0;
-        frameInterval = 0.0;
-        submitStopwatch.Reset();
-        presentStopwatch.Reset();
-
-        tokenSource = new();
-        submissions = [with(FrameCount)];
-        presenterThread = new(PresentLoop)
-        {
-            IsBackground = true,
-            Name = nameof(FrameGenerationSwapChain)
-        };
-        presenterThread.Start();
-    }
-
-    private void DestroyResources()
-    {
-        tokenSource.Cancel();
-        submissions.CompleteAdding();
-        presenterThread.Join();
-
-        submissions.Dispose();
-        tokenSource.Dispose();
-
-        context.GraphicsQueue.Timeline.Signal().Wait();
-        swapChain.Queue.Timeline.Signal().Wait();
-
-        frameGeneration?.Dispose();
-        frameGeneration = null;
-
-        for (int i = 0; i < frames.Length; i++)
-        {
-            frames[i].Dispose();
-        }
     }
 
     private bool Ensure(uint renderWidth, uint renderHeight)
@@ -173,179 +127,293 @@ public class FrameGenerationSwapChain : DisposableObject
         }
 
         frameGeneration?.Dispose();
-        frameGeneration = context.CreateFrameGeneration(new()
+        frameGeneration = swapChain.Context.CreateFrameGeneration(new()
         {
-            Format = desc.Format,
+            Format = Desc.Format,
             RenderWidth = renderWidth,
             RenderHeight = renderHeight,
-            OutputWidth = desc.Surface.Width,
-            OutputHeight = desc.Surface.Height
+            OutputWidth = Desc.Surface.Width,
+            OutputHeight = Desc.Surface.Height
         });
 
         return true;
     }
 
-    private double NextStep(bool reset)
+    private void Reset()
     {
-        const double MinInterval = 0.001;
-        const double MaxInterval = 0.1;
-        const double VSyncMargin = 0.003;
+        presenter.Reset();
 
-        if (reset)
+        frameGeneration?.Dispose();
+        frameGeneration = null;
+        resizeStopwatch.Reset();
+    }
+}
+
+internal class FramePresenter : DisposableObject
+{
+    private readonly FramePacer pacer;
+    private readonly Frame[] frames = [new(), new()];
+    private readonly BlockingCollection<Submission> submissions = [];
+    private readonly ManualResetEventSlim aborting = new(false);
+    private readonly Thread thread;
+
+    private int frameIndex;
+
+    public FramePresenter(SwapChain swapChain)
+    {
+        SwapChain = swapChain;
+        pacer = new(swapChain.Desc.IsVerticalSyncEnabled);
+
+        thread = new(PresentLoop)
         {
-            submitStopwatch.Reset();
-            frameInterval = 0.0;
+            IsBackground = true,
+            Name = nameof(FramePresenter)
+        };
+        thread.Start();
+    }
 
-            return 0.0;
+    public SwapChain SwapChain { get; }
+
+    public Texture Color => CurrentFrame().Color ??= CreateOutput();
+
+    public Texture Interpolated => CurrentFrame().Interpolated ??= CreateOutput();
+
+    public void Submit(TimelineValue rendered, TextureLayout colorLayout, bool interpolated)
+    {
+        Frame frame = CurrentFrame();
+        frame.Ready.Reset();
+
+        submissions.Add(new(frame, rendered, colorLayout, interpolated));
+
+        frameIndex = (frameIndex + 1) % frames.Length;
+    }
+
+    public void Reset()
+    {
+        aborting.Set();
+
+        foreach (Frame frame in frames)
+        {
+            frame.Ready.Wait();
         }
 
-        if (!submitStopwatch.IsRunning)
+        foreach (Frame frame in frames)
         {
-            submitStopwatch.Restart();
-
-            return 0.0;
+            frame.Reset();
         }
 
-        double interval = Math.Clamp(submitStopwatch.Elapsed.TotalSeconds, MinInterval, MaxInterval);
-        submitStopwatch.Restart();
+        frameIndex = 0;
+        pacer.Reset();
+        aborting.Reset();
+    }
 
-        frameInterval = frameInterval is 0.0 ? interval : double.Lerp(frameInterval, interval, 0.2);
+    protected override void Destroy()
+    {
+        submissions.CompleteAdding();
+        thread.Join();
 
-        return Math.Max((frameInterval * 0.5) - (desc.IsVerticalSyncEnabled ? VSyncMargin : 0.0), 0.0);
+        aborting.Dispose();
+        submissions.Dispose();
+
+        foreach (Frame frame in frames)
+        {
+            frame.Dispose();
+        }
+    }
+
+    private Frame CurrentFrame()
+    {
+        Frame frame = frames[frameIndex];
+        frame.Ready.Wait();
+
+        return frame;
+    }
+
+    private Texture CreateOutput()
+    {
+        return UpscalingBridge.CreateOutput(SwapChain.Context, SwapChain.Desc.Format, SwapChain.Desc.Surface.Width, SwapChain.Desc.Surface.Height);
     }
 
     private void PresentLoop()
     {
-        CancellationToken cancellationToken = tokenSource.Token;
-
-        try
+        foreach (Submission submission in submissions.GetConsumingEnumerable())
         {
-            foreach (Submission submission in submissions.GetConsumingEnumerable(cancellationToken))
-            {
-                PresentFrame(submission, cancellationToken);
-            }
-        }
-        catch (OperationCanceledException)
-        {
+            PresentFrame(submission);
         }
     }
 
-    private void PresentFrame(Submission submission, CancellationToken cancellationToken)
+    private void PresentFrame(Submission submission)
     {
         Frame frame = submission.Frame;
 
-        if (submission.Interpolated)
+        try
         {
-            CopyToDrawable(frame.Interpolated, [submission.Rendered]);
-
-            if (presentStopwatch.IsRunning && submissions.Count <= 1)
+            if (aborting.IsSet)
             {
-                WaitUntil(presentStopwatch, submission.StepSeconds, cancellationToken);
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                frame.Ready.Set();
+                submission.Rendered.Wait();
 
                 return;
             }
 
-            swapChain.Present();
-            presentStopwatch.Restart();
-        }
+            if (submission.Interpolated)
+            {
+                CopyToDrawable(frame.Interpolated!, TextureLayout.CopyDst, [submission.Rendered]);
 
-        if (cancellationToken.IsCancellationRequested)
+                double stepSeconds = pacer.NextStep(true);
+                if (!PresentDrawable(0.0) || aborting.IsSet)
+                {
+                    return;
+                }
+
+                CopyToDrawable(frame.Color!, submission.ColorLayout, []);
+                PresentDrawable(stepSeconds);
+            }
+            else
+            {
+                CopyToDrawable(frame.Color!, submission.ColorLayout, [submission.Rendered]);
+                pacer.NextStep(false);
+                PresentDrawable(0.0);
+            }
+        }
+        finally
         {
             frame.Ready.Set();
-
-            return;
         }
-
-        CopyToDrawable(frame.Color, submission.Interpolated ? [] : [submission.Rendered]);
-        frame.Ready.Set();
-
-        if (submission.Interpolated && submissions.Count <= 1)
-        {
-            WaitUntil(presentStopwatch, submission.StepSeconds, cancellationToken);
-        }
-
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        swapChain.Present();
-        presentStopwatch.Restart();
     }
 
-    private void CopyToDrawable(Texture source, ReadOnlySpan<TimelineValue> waits)
+    private void CopyToDrawable(Texture source, TextureLayout sourceLayout, ReadOnlySpan<TimelineValue> waits)
     {
-        CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
-        Texture drawable = swapChain.Drawable;
+        Texture drawable = SwapChain.Drawable;
+        CommandBuffer commandBuffer = SwapChain.Queue.CommandBuffer();
 
+        commandBuffer.Transition(source, default, sourceLayout, TextureLayout.CopySrc);
         commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
         commandBuffer.CopyTexture(source, default, default, drawable, default, default, new()
         {
-            Width = desc.Surface.Width,
-            Height = desc.Surface.Height,
+            Width = drawable.Desc.Width,
+            Height = drawable.Desc.Height,
             Depth = 1
         });
         commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
+
         commandBuffer.Submit(waits).Wait();
     }
 
-    private static void WaitUntil(Stopwatch stopwatch, double targetSeconds, CancellationToken cancellationToken)
+    private bool PresentDrawable(double stepSeconds)
     {
-        const double SpinMargin = 0.002;
-
-        double remainingSeconds = targetSeconds - stopwatch.Elapsed.TotalSeconds;
-        if (remainingSeconds <= 0.0)
+        if (!pacer.Wait(stepSeconds, aborting))
         {
-            return;
+            return false;
         }
 
-        int sleepMilliseconds = (int)((remainingSeconds - SpinMargin) * 1000.0);
-        if (sleepMilliseconds > 0 && cancellationToken.WaitHandle.WaitOne(sleepMilliseconds))
-        {
-            return;
-        }
+        SwapChain.Present();
 
-        while (!cancellationToken.IsCancellationRequested && stopwatch.Elapsed.TotalSeconds < targetSeconds)
-        {
-            Thread.SpinWait(64);
-        }
+        return true;
     }
 
-    private class Frame(GraphicsContext context, FrameGenerationSwapChainDesc desc) : DisposableObject
+    private class Frame : DisposableObject
     {
         public readonly ManualResetEventSlim Ready = new(true);
 
-        public readonly Texture Color = context.CreateTexture(TextureDesc.Texture2D(desc.Format, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
-        {
-            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
-        });
+        public Texture? Color;
 
-        public readonly Texture Interpolated = context.CreateTexture(TextureDesc.Texture2D(desc.Format, desc.Surface.Width, desc.Surface.Height, 1, SampleCount.Count1) with
+        public Texture? Interpolated;
+
+        public void Reset()
         {
-            Usages = TextureUsages.TransferSrc | TextureUsages.TransferDst
-        });
+            Interpolated?.Dispose();
+            Interpolated = null;
+
+            Color?.Dispose();
+            Color = null;
+        }
 
         protected override void Destroy()
         {
-            Interpolated.Dispose();
-            Color.Dispose();
+            Reset();
+
             Ready.Dispose();
         }
     }
 
-    private readonly struct Submission(Frame frame, TimelineValue rendered, double stepSeconds, bool interpolated)
+    private readonly struct Submission(Frame frame, TimelineValue rendered, TextureLayout colorLayout, bool interpolated)
     {
         public readonly Frame Frame = frame;
 
         public readonly TimelineValue Rendered = rendered;
 
-        public readonly double StepSeconds = stepSeconds;
+        public readonly TextureLayout ColorLayout = colorLayout;
 
         public readonly bool Interpolated = interpolated;
+    }
+}
+
+internal class FramePacer(bool isVerticalSyncEnabled)
+{
+    private readonly Stopwatch frameStopwatch = new();
+    private readonly Stopwatch presentStopwatch = new();
+
+    private double frameInterval;
+
+    public double NextStep(bool interpolated)
+    {
+        const double MinInterval = 0.001;
+        const double MaxInterval = 0.1;
+        const double VSyncMargin = 0.0005;
+
+        if (!interpolated || !frameStopwatch.IsRunning)
+        {
+            frameStopwatch.Restart();
+            frameInterval = 0.0;
+
+            return 0.0;
+        }
+
+        double interval = Math.Clamp(frameStopwatch.Elapsed.TotalSeconds, MinInterval, MaxInterval);
+        frameStopwatch.Restart();
+
+        frameInterval = frameInterval is 0.0 ? interval : double.Lerp(frameInterval, interval, 0.25);
+
+        return Math.Max((frameInterval * 0.5) - (isVerticalSyncEnabled ? VSyncMargin : 0.0), 0.0);
+    }
+
+    public bool Wait(double stepSeconds, ManualResetEventSlim aborting)
+    {
+        const int SleepMarginInMilliseconds = 16;
+
+        if (stepSeconds > 0.0 && presentStopwatch.IsRunning)
+        {
+            double remainingSeconds = stepSeconds - presentStopwatch.Elapsed.TotalSeconds;
+            if (remainingSeconds > 0.0)
+            {
+                int milliseconds = (int)(remainingSeconds * 1000.0) - SleepMarginInMilliseconds;
+                if (milliseconds > 0 && aborting.Wait(milliseconds))
+                {
+                    return false;
+                }
+
+                SpinWait spinWait = new();
+                while (!aborting.IsSet && presentStopwatch.Elapsed.TotalSeconds < stepSeconds)
+                {
+                    spinWait.SpinOnce(-1);
+                }
+            }
+        }
+
+        if (aborting.IsSet)
+        {
+            return false;
+        }
+
+        presentStopwatch.Restart();
+
+        return true;
+    }
+
+    public void Reset()
+    {
+        frameStopwatch.Reset();
+        presentStopwatch.Reset();
+        frameInterval = 0.0;
     }
 }
