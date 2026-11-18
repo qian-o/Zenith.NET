@@ -51,7 +51,7 @@
 2. **字段与成员排布**：
    - 字段顺序严格对齐 `VKSwapChain`：`readonly` 字段置顶紧凑排列 → 空行 → `public` 可变字段（空行分隔）→ 空行 → `private` 可变字段置底紧凑排列。
    - 仅在单个方法内使用的 `const` 声明在该方法内部顶部，不放到类顶层；仅用一两次的底层常量数值可直接写字面量。
-   - 避免 `this.x = x`（优先主构造函数或只读属性）；公开可变描述使用 `{ get; private set; }`。
+   - 单一类专用的辅助类型声明为类底部的嵌套 `private` 类型（不暴露到命名空间 `internal` 层级）；直接持有需要的 `private readonly` 依赖字段，严禁为了回避字段而暴露外部不访问的属性或通过子对象绕弯取值（如 `swapChain.Context`）；公开可变描述使用 `{ get; private set; }`。
 3. **初始化顺序与语法细节**：
    - **硬性规则**：所有 `new() { ... }` 对象初始化器与 `with { ... }` 表达式的成员赋值顺序，**必须严格等于目标类型成员的声明顺序（`MetadataToken` 顺序）**，主构造函数参数顺序严格等于字段声明顺序，完成后用反射脚本逐项核验。
    - 资源释放遵循严格后进先出（LIFO）逆序；资源 `Disposing` 订阅统一采用 `+= (sender, _) =>` 配合字典 `Remove(...)` 守卫（参考 [DLSSVendor.Vulkan.cs](../DLSS/DLSSVendor.Vulkan.cs)），不声明临时 `EventHandler` 变量或额外列表。

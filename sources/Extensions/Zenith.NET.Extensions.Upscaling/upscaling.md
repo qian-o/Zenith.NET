@@ -154,7 +154,7 @@ public struct SuperResolutionArgs
     public bool Reset;
 }
 
-public abstract class SuperResolution : DisposableObject
+public abstract class SuperResolution : GraphicsResource
 {
     public SuperResolutionDesc Desc { get; }
 
@@ -223,7 +223,7 @@ public struct RayReconstructionArgs
     public bool Reset;
 }
 
-public abstract class RayReconstruction : DisposableObject
+public abstract class RayReconstruction : GraphicsResource
 {
     public RayReconstructionDesc Desc { get; }
 
@@ -274,7 +274,7 @@ public struct FrameGenerationArgs
     public bool Reset;
 }
 
-public abstract class FrameGeneration : DisposableObject
+public abstract class FrameGeneration : GraphicsResource
 {
     public FrameGenerationDesc Desc { get; }
 
@@ -323,7 +323,7 @@ public struct FrameGenerationSwapChainArgs
     public bool Reset;
 }
 
-public class FrameGenerationSwapChain : DisposableObject
+public class FrameGenerationSwapChain : GraphicsResource
 {
     public FrameGenerationSwapChainDesc Desc { get; }
 

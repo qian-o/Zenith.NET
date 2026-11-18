@@ -3,13 +3,13 @@ using SkiaSharp;
 
 namespace Zenith.NET.Extensions.Skia;
 
-public class SkiaTexture : DisposableObject
+public class SkiaTexture : GraphicsResource
 {
     private readonly SkiaBridge bridge;
     private readonly Texture texture;
     private readonly SKSurface surface;
 
-    internal SkiaTexture(SkiaBridge bridge, SkiaTextureDesc desc)
+    internal SkiaTexture(SkiaBridge bridge, SkiaTextureDesc desc) : base(bridge.Context)
     {
         this.bridge = bridge;
 
@@ -54,6 +54,16 @@ public class SkiaTexture : DisposableObject
     public void Render(Action<SKCanvas> render)
     {
         bridge.Render(surface, render);
+    }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    protected override void SetResourceName(string name)
+    {
+        texture.Name = name;
     }
 
     protected override void Destroy()
