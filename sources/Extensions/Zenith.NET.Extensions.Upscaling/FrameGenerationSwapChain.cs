@@ -12,9 +12,8 @@ public class FrameGenerationSwapChain : GraphicsResource
 
     internal FrameGenerationSwapChain(GraphicsContext context, FrameGenerationSwapChainDesc desc) : base(context)
     {
-        presenter = new(context, desc);
-
         Desc = desc;
+        presenter = new(context, desc);
     }
 
     public FrameGenerationSwapChainDesc Desc { get; private set; }
@@ -208,6 +207,7 @@ public class FrameGenerationSwapChain : GraphicsResource
             submissions.CompleteAdding();
             thread.Join();
 
+            swapChain.Dispose();
             aborting.Dispose();
             submissions.Dispose();
 
@@ -215,8 +215,6 @@ public class FrameGenerationSwapChain : GraphicsResource
             {
                 frame.Dispose();
             }
-
-            swapChain.Dispose();
         }
 
         private void Reset()
@@ -246,12 +244,12 @@ public class FrameGenerationSwapChain : GraphicsResource
         {
             foreach (Submission submission in submissions.GetConsumingEnumerable())
             {
-                Present(submission);
+                PresentFrame(submission);
                 submission.Frame.Ready.Set();
             }
         }
 
-        private void Present(Submission submission)
+        private void PresentFrame(Submission submission)
         {
             if (aborting.IsSet)
             {
@@ -267,19 +265,34 @@ public class FrameGenerationSwapChain : GraphicsResource
                 Copy(frame.Interpolated!, TextureLayout.CopyDst, [submission.Wait]);
 
                 double delay = pacer.Next(true);
-                if (!Present(0.0))
+                if (aborting.IsSet)
+                {
+                    return;
+                }
+
+                swapChain.Present();
+
+                if (aborting.IsSet)
                 {
                     return;
                 }
 
                 Copy(frame.Color!, submission.Layout, []);
-                Present(delay);
+
+                if (pacer.Wait(delay, aborting))
+                {
+                    swapChain.Present();
+                }
             }
             else
             {
                 Copy(frame.Color!, submission.Layout, [submission.Wait]);
                 pacer.Next(false);
-                Present(0.0);
+
+                if (!aborting.IsSet)
+                {
+                    swapChain.Present();
+                }
             }
         }
 
@@ -299,18 +312,6 @@ public class FrameGenerationSwapChain : GraphicsResource
             commandBuffer.Transition(drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
 
             commandBuffer.Submit(waits).Wait();
-        }
-
-        private bool Present(double delay)
-        {
-            if (!pacer.Wait(delay, aborting))
-            {
-                return false;
-            }
-
-            swapChain.Present();
-
-            return !aborting.IsSet;
         }
     }
 
@@ -346,19 +347,16 @@ public class FrameGenerationSwapChain : GraphicsResource
         {
             const int SleepMargin = 16;
 
-            if (delay > 0.0)
+            int milliseconds = (int)((delay - stopwatch.Elapsed.TotalSeconds) * 1000.0) - SleepMargin;
+            if (milliseconds > 0 && aborting.Wait(milliseconds))
             {
-                int milliseconds = (int)((delay - stopwatch.Elapsed.TotalSeconds) * 1000.0) - SleepMargin;
-                if (milliseconds > 0 && aborting.Wait(milliseconds))
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                SpinWait spinWait = new();
-                while (!aborting.IsSet && stopwatch.Elapsed.TotalSeconds < delay)
-                {
-                    spinWait.SpinOnce(-1);
-                }
+            SpinWait spinWait = new();
+            while (!aborting.IsSet && stopwatch.Elapsed.TotalSeconds < delay)
+            {
+                spinWait.SpinOnce(-1);
             }
 
             return !aborting.IsSet;
