@@ -118,10 +118,8 @@ public class FrameGenerationSwapChain : GraphicsResource
 
     protected override void Destroy()
     {
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-
-        frameGeneration?.Dispose();
         presenter.Dispose();
+        frameGeneration?.Dispose();
     }
 
     private bool Ensure(uint renderWidth, uint renderHeight)
