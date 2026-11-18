@@ -5,8 +5,8 @@ namespace Zenith.NET.Extensions.Upscaling;
 
 public class FrameGenerationSwapChain : GraphicsResource
 {
-    private readonly Stopwatch resizeStopwatch = new();
-    private readonly FramePresenter presenter;
+    private readonly Stopwatch cooldown = new();
+    private readonly Presenter presenter;
 
     private FrameGeneration? frameGeneration;
 
@@ -27,14 +27,14 @@ public class FrameGenerationSwapChain : GraphicsResource
 
         Texture color = Drawable;
 
-        if (resizeStopwatch.IsRunning && resizeStopwatch.Elapsed.TotalSeconds < ResizeCooldown)
+        if (cooldown.IsRunning && cooldown.Elapsed.TotalSeconds < ResizeCooldown)
         {
             presenter.Submit(Context.GraphicsQueue.Timeline.Signal(), TextureLayout.Present, false);
 
             return;
         }
 
-        resizeStopwatch.Reset();
+        cooldown.Reset();
 
         if (Ensure(args.Depth.Desc.Width, args.Depth.Desc.Height))
         {
@@ -91,7 +91,7 @@ public class FrameGenerationSwapChain : GraphicsResource
 
         frameGeneration?.Dispose();
         frameGeneration = null;
-        resizeStopwatch.Restart();
+        cooldown.Restart();
     }
 
     public void Refresh(Surface surface)
@@ -102,7 +102,7 @@ public class FrameGenerationSwapChain : GraphicsResource
 
         frameGeneration?.Dispose();
         frameGeneration = null;
-        resizeStopwatch.Reset();
+        cooldown.Reset();
     }
 
     public override nint GetNativeObject(NativeObjectType type)
@@ -141,19 +141,19 @@ public class FrameGenerationSwapChain : GraphicsResource
         return true;
     }
 
-    private class FramePresenter : DisposableObject
+    private class Presenter : DisposableObject
     {
-        private readonly GraphicsContext context;
-        private readonly SwapChain swapChain;
-        private readonly FramePacer pacer;
         private readonly Frame[] frames = [new(), new()];
         private readonly BlockingCollection<Submission> submissions = [];
         private readonly ManualResetEventSlim aborting = new(false);
+        private readonly GraphicsContext context;
+        private readonly SwapChain swapChain;
+        private readonly Pacer pacer;
         private readonly Thread thread;
 
-        private int frameIndex;
+        private int index;
 
-        public FramePresenter(GraphicsContext context, FrameGenerationSwapChainDesc desc)
+        public Presenter(GraphicsContext context, FrameGenerationSwapChainDesc desc)
         {
             this.context = context;
 
@@ -170,7 +170,7 @@ public class FrameGenerationSwapChain : GraphicsResource
             thread = new(PresentLoop)
             {
                 IsBackground = true,
-                Name = nameof(FramePresenter)
+                Name = nameof(FrameGenerationSwapChain)
             };
             thread.Start();
         }
@@ -179,14 +179,14 @@ public class FrameGenerationSwapChain : GraphicsResource
 
         public Texture Interpolated => CurrentFrame().Interpolated ??= CreateOutput();
 
-        public void Submit(TimelineValue rendered, TextureLayout colorLayout, bool interpolated)
+        public void Submit(TimelineValue wait, TextureLayout layout, bool interpolated)
         {
             Frame frame = CurrentFrame();
             frame.Ready.Reset();
 
-            submissions.Add(new(frame, rendered, colorLayout, interpolated));
+            submissions.Add(new(frame, wait, layout, interpolated));
 
-            frameIndex = (frameIndex + 1) % frames.Length;
+            index = (index + 1) % frames.Length;
         }
 
         public void Resize(uint width, uint height)
@@ -235,14 +235,14 @@ public class FrameGenerationSwapChain : GraphicsResource
                 frame.Reset();
             }
 
-            frameIndex = 0;
+            index = 0;
             pacer.Reset();
             aborting.Reset();
         }
 
         private Frame CurrentFrame()
         {
-            Frame frame = frames[frameIndex];
+            Frame frame = frames[index];
             frame.Ready.Wait();
 
             return frame;
@@ -257,55 +257,49 @@ public class FrameGenerationSwapChain : GraphicsResource
         {
             foreach (Submission submission in submissions.GetConsumingEnumerable())
             {
-                PresentFrame(submission);
+                Present(submission);
+                submission.Frame.Ready.Set();
             }
         }
 
-        private void PresentFrame(Submission submission)
+        private void Present(Submission submission)
         {
+            if (aborting.IsSet)
+            {
+                submission.Wait.Wait();
+
+                return;
+            }
+
             Frame frame = submission.Frame;
 
-            try
+            if (submission.Interpolated)
             {
-                if (aborting.IsSet)
-                {
-                    submission.Rendered.Wait();
+                Copy(frame.Interpolated!, TextureLayout.CopyDst, [submission.Wait]);
 
+                double delay = pacer.Next(true);
+                if (!Present())
+                {
                     return;
                 }
 
-                if (submission.Interpolated)
-                {
-                    CopyToDrawable(frame.Interpolated!, TextureLayout.CopyDst, [submission.Rendered]);
-
-                    double stepSeconds = pacer.NextStep(true);
-                    if (!PresentDrawable(0.0))
-                    {
-                        return;
-                    }
-
-                    CopyToDrawable(frame.Color!, submission.ColorLayout, []);
-                    PresentDrawable(stepSeconds);
-                }
-                else
-                {
-                    CopyToDrawable(frame.Color!, submission.ColorLayout, [submission.Rendered]);
-                    pacer.NextStep(false);
-                    PresentDrawable(0.0);
-                }
+                Copy(frame.Color!, submission.Layout, []);
+                Present(delay);
             }
-            finally
+            else
             {
-                frame.Ready.Set();
+                Copy(frame.Color!, submission.Layout, [submission.Wait]);
+                pacer.Next(false);
+                Present();
             }
         }
 
-        private void CopyToDrawable(Texture source, TextureLayout sourceLayout, ReadOnlySpan<TimelineValue> waits)
+        private void Copy(Texture source, TextureLayout layout, ReadOnlySpan<TimelineValue> waits)
         {
             Texture drawable = swapChain.Drawable;
             CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
 
-            commandBuffer.Transition(source, default, sourceLayout, TextureLayout.CopySrc);
+            commandBuffer.Transition(source, default, layout, TextureLayout.CopySrc);
             commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
             commandBuffer.CopyTexture(source, default, default, drawable, default, default, new()
             {
@@ -318,9 +312,9 @@ public class FrameGenerationSwapChain : GraphicsResource
             commandBuffer.Submit(waits).Wait();
         }
 
-        private bool PresentDrawable(double stepSeconds)
+        private bool Present(double delay = 0.0)
         {
-            if (!pacer.Wait(stepSeconds, aborting))
+            if (!pacer.Wait(delay, aborting))
             {
                 return false;
             }
@@ -331,69 +325,60 @@ public class FrameGenerationSwapChain : GraphicsResource
         }
     }
 
-    private class FramePacer(bool isVerticalSyncEnabled)
+    private class Pacer(bool isVerticalSyncEnabled)
     {
-        private readonly Stopwatch frameStopwatch = new();
-        private readonly Stopwatch presentStopwatch = new();
+        private readonly Stopwatch stopwatch = new();
 
-        private double frameInterval;
+        private double interval;
 
-        public double NextStep(bool interpolated)
+        public double Next(bool interpolated)
         {
             const double MinInterval = 0.001;
             const double MaxInterval = 0.1;
             const double VSyncMargin = 0.0005;
 
-            if (!interpolated || !frameStopwatch.IsRunning)
+            if (!interpolated || !stopwatch.IsRunning)
             {
-                frameStopwatch.Restart();
-                frameInterval = 0.0;
+                stopwatch.Restart();
+                interval = 0.0;
 
                 return 0.0;
             }
 
-            double interval = Math.Clamp(frameStopwatch.Elapsed.TotalSeconds, MinInterval, MaxInterval);
-            frameStopwatch.Restart();
+            double elapsed = Math.Clamp(stopwatch.Elapsed.TotalSeconds, MinInterval, MaxInterval);
+            stopwatch.Restart();
 
-            frameInterval = frameInterval is 0.0 ? interval : double.Lerp(frameInterval, interval, 0.25);
+            interval = interval is 0.0 ? elapsed : double.Lerp(interval, elapsed, 0.25);
 
-            return Math.Max((frameInterval * 0.5) - (isVerticalSyncEnabled ? VSyncMargin : 0.0), 0.0);
+            return Math.Max((interval * 0.5) - (isVerticalSyncEnabled ? VSyncMargin : 0.0), 0.0);
         }
 
-        public bool Wait(double stepSeconds, ManualResetEventSlim aborting)
+        public bool Wait(double delay, ManualResetEventSlim aborting)
         {
-            const int SleepMarginInMilliseconds = 16;
+            const int SleepMargin = 16;
 
-            if (stepSeconds > 0.0)
+            if (delay > 0.0)
             {
-                int milliseconds = (int)((stepSeconds - presentStopwatch.Elapsed.TotalSeconds) * 1000.0) - SleepMarginInMilliseconds;
+                int milliseconds = (int)((delay - stopwatch.Elapsed.TotalSeconds) * 1000.0) - SleepMargin;
                 if (milliseconds > 0 && aborting.Wait(milliseconds))
                 {
                     return false;
                 }
 
                 SpinWait spinWait = new();
-                while (!aborting.IsSet && presentStopwatch.Elapsed.TotalSeconds < stepSeconds)
+                while (!aborting.IsSet && stopwatch.Elapsed.TotalSeconds < delay)
                 {
                     spinWait.SpinOnce(-1);
                 }
             }
 
-            if (aborting.IsSet)
-            {
-                return false;
-            }
-
-            presentStopwatch.Restart();
-
-            return true;
+            return !aborting.IsSet;
         }
 
         public void Reset()
         {
-            frameStopwatch.Reset();
-            presentStopwatch.Reset();
-            frameInterval = 0.0;
+            stopwatch.Reset();
+            interval = 0.0;
         }
     }
 
@@ -422,13 +407,13 @@ public class FrameGenerationSwapChain : GraphicsResource
         }
     }
 
-    private readonly struct Submission(Frame frame, TimelineValue rendered, TextureLayout colorLayout, bool interpolated)
+    private readonly struct Submission(Frame frame, TimelineValue wait, TextureLayout layout, bool interpolated)
     {
         public readonly Frame Frame = frame;
 
-        public readonly TimelineValue Rendered = rendered;
+        public readonly TimelineValue Wait = wait;
 
-        public readonly TextureLayout ColorLayout = colorLayout;
+        public readonly TextureLayout Layout = layout;
 
         public readonly bool Interpolated = interpolated;
     }
