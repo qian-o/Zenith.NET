@@ -112,7 +112,6 @@ public class FrameGenerationSwapChain : GraphicsResource
 
     protected override void SetResourceName(string name)
     {
-        presenter.SetResourceName(name);
     }
 
     protected override void Destroy()
@@ -175,9 +174,9 @@ public class FrameGenerationSwapChain : GraphicsResource
             thread.Start();
         }
 
-        public Texture Drawable => CurrentFrame().Color ??= CreateOutput();
+        public Texture Drawable => CurrentFrame().Color ??= UpscalingBridge.CreateOutput(context, swapChain.Desc.Format, swapChain.Desc.Surface.Width, swapChain.Desc.Surface.Height);
 
-        public Texture Interpolated => CurrentFrame().Interpolated ??= CreateOutput();
+        public Texture Interpolated => CurrentFrame().Interpolated ??= UpscalingBridge.CreateOutput(context, swapChain.Desc.Format, swapChain.Desc.Surface.Width, swapChain.Desc.Surface.Height);
 
         public void Submit(TimelineValue wait, TextureLayout layout, bool interpolated)
         {
@@ -201,11 +200,6 @@ public class FrameGenerationSwapChain : GraphicsResource
             Reset();
 
             swapChain.Refresh(surface);
-        }
-
-        public void SetResourceName(string name)
-        {
-            swapChain.Name = name;
         }
 
         protected override void Destroy()
@@ -248,11 +242,6 @@ public class FrameGenerationSwapChain : GraphicsResource
             return frame;
         }
 
-        private Texture CreateOutput()
-        {
-            return UpscalingBridge.CreateOutput(context, swapChain.Desc.Format, swapChain.Desc.Surface.Width, swapChain.Desc.Surface.Height);
-        }
-
         private void PresentLoop()
         {
             foreach (Submission submission in submissions.GetConsumingEnumerable())
@@ -278,7 +267,7 @@ public class FrameGenerationSwapChain : GraphicsResource
                 Copy(frame.Interpolated!, TextureLayout.CopyDst, [submission.Wait]);
 
                 double delay = pacer.Next(true);
-                if (!Present())
+                if (!Present(0.0))
                 {
                     return;
                 }
@@ -290,7 +279,7 @@ public class FrameGenerationSwapChain : GraphicsResource
             {
                 Copy(frame.Color!, submission.Layout, [submission.Wait]);
                 pacer.Next(false);
-                Present();
+                Present(0.0);
             }
         }
 
@@ -312,7 +301,7 @@ public class FrameGenerationSwapChain : GraphicsResource
             commandBuffer.Submit(waits).Wait();
         }
 
-        private bool Present(double delay = 0.0)
+        private bool Present(double delay)
         {
             if (!pacer.Wait(delay, aborting))
             {
@@ -384,11 +373,11 @@ public class FrameGenerationSwapChain : GraphicsResource
 
     private class Frame : DisposableObject
     {
-        public readonly ManualResetEventSlim Ready = new(true);
+        public ManualResetEventSlim Ready { get; } = new(true);
 
-        public Texture? Color;
+        public Texture? Color { get; set; }
 
-        public Texture? Interpolated;
+        public Texture? Interpolated { get; set; }
 
         public void Reset()
         {
