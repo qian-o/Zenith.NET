@@ -122,13 +122,15 @@
 2. **显示同步与帧率观测不完善**
    - `Presentation` 创建核心 `SwapChain` 与 `FrameGenerationSwapChain` 时硬编码了默认 `IsVerticalSyncEnabled = false`，未在 UI 中暴露垂直同步开关；60 FPS 原生降噪下快速横移镜头容易因非整数倍刷新率拍频产生视觉抖动（Judder）与画面撕裂。
    - 当前 `UserInterface` 仅简单将 `ImGui.GetIO().Framerate` 乘以 `2.0f` 估算帧率，缺乏清晰的真实渲染帧时间与呈现帧率展示。
-3. **工程结构与交互细节待打磨**
-   - `App.cs` 在 `OnUpdate`、`OnRender`、`OnFramebufferResize` 多处重复串行调用 `WaitForPendingWork()`，帧生命周期与设置变更（超分算法/质量档/光线重建/帧生成/垂直同步/全屏切换）的状态流转不够内聚。
+3. **窗口尺寸变更时序反置与状态流转待收敛**
+   - 当前 `App.OnFramebufferResize` 先执行耗时的 `WaitForPendingWork()` 与 `renderer.Resize()`，最后才调用 `presentation.Configure()` 触发交换链 `Resize`；在 Vulkan 开启帧生成切窗口时，这几十毫秒的空窗期会让后台呈现线程继续访问已过期的 `VkSwapchainKHR` 从而产生验证层错误。
+   - `App.cs` 在 `OnUpdate`、`OnRender`、`OnFramebufferResize` 多处重复串行调用 `WaitForPendingWork()`，帧生命周期与设置变更的状态流转不够内聚。
 
 ### 4.2 `CornellBox` 重构目标与设计方向
 
-1. **重构帧同步与低延迟输入管线**
+1. **重构帧同步与尺寸变更时序**
    - 重新编排主循环同步点（确保 GPU 帧等待发生在上一帧提交末尾或输入轮询之前，使每次录制命令缓冲区前拿到的都是最新一拍的鼠标与键盘状态），将开启帧生成时的操作跟手度逼近硬件插帧的理论物理下限。
+   - 尺寸变更统一由 `FramebufferResize` 事件驱动（不在切换窗口状态处手动主动调用 `Resize`）；回调内**必须最先执行交换链 `Resize`**（第一时间中断并排空后台呈现线程、重建交换链），随后再重建各渲染 Pass 资源。
 2. **完善渲染与呈现设置面板**
    - 支持实时切换垂直同步（`IsVerticalSyncEnabled`）、窗口/全屏模式、超分质量档位、光线重建开关与帧生成开关，切换过程平滑无闪烁、无验证层告警。
    - 提供准确的帧时间（`ms`）与 FPS 统计展示。
