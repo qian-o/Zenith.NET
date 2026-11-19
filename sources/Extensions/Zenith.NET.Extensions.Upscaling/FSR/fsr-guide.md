@@ -17,7 +17,7 @@
 
 ### 1.2 分阶段推进原则
 
-1. **阶段一（当前首要任务）**：仅在 `sources/Extensions/Zenith.NET.Extensions.Upscaling/FSR/` 目录下，基于 NuGet 包 `FSR.NET`（`2.4.0`，对应 AMD FidelityFX SDK 2.4.0）完整实现支持 **DirectX 12** 与 **Vulkan** 的 FSR 后端（自动覆盖 FSR 3 与 FSR 4），替换 [FSRVendor.cs](./FSRVendor.cs) 的占位实现。
+1. **阶段一（当前首要任务）**：仅在 `sources/Extensions/Zenith.NET.Extensions.Upscaling/FSR/` 目录下，基于 NuGet 包 `FSR.NET`（`2.4.0`，对应 AMD FidelityFX SDK 2.4.0）完整实现支持 **DirectX 12** 与 **Vulkan** 的 FSR 后端（自动覆盖 FSR 3 与 FSR 4），替换 [FSRVendor.cs](./FSRVendor.cs) 的占位实现。三项能力均按双 API 对等设计，是否支持一律由接口查询决定，严禁按图形 API 写死。
 2. **阶段二（后续独立会话任务）**：待 `FSR/` 封板后，单独对 [CornellBox](../../../Experiments/CornellBox/) 进行系统级重构（阶段一开发期间**严禁混入对 `CornellBox` 的重构改动**）。
 3. **全局执行禁令**：
    - **严禁启动任何 Sub-Agent（禁止调用 `task` 工具）**：所有阅读、设计、编码与真机调试必须由主模型在同一上下文内独立完成，确保设计思路绝对统一。
@@ -38,7 +38,7 @@
   - 映射方法一律为 `public static`，按 RHI 参数类型字母序排列；`switch` 分支严格按 RHI 枚举（如 `PixelFormat`）声明顺序排列，以 `_ => default` 结尾。
 - `FSR/FSRVendor.cs`、`FSR/FSRVendor.DirectX12.cs`、`FSR/FSRVendor.Vulkan.cs`
   - `internal unsafe partial class FSRVendor : Vendor`
-  - `FSRVendor.cs` 聚合构造初始化、能力探测与 `switch (Context.GraphicsApi)` 路由（不支持的图形 API 分支安全落空，不抛异常）；DirectX 12 与 Vulkan 原生细节拆分至对应 `partial` 文件；纯静态参数构造辅助置于 `FSRVendor.cs` 底部的 `file static unsafe class FSRHelper`。
+  - `FSRVendor.cs` 聚合构造初始化、能力探测与 `switch (Context.GraphicsApi)` 路由（不支持的图形 API 分支安全落空，不抛异常）；`switch` 只负责原生细节路由，不参与决定能力布尔值；DirectX 12 与 Vulkan 原生细节拆分至对应 `partial` 文件；纯静态参数构造辅助置于 `FSRVendor.cs` 底部的 `file static unsafe class FSRHelper`。
   - 生命周期辅助方法采用对称带名词命名（如 `CreateFeature` / `DestroyFeature` / `EvaluateFeature`），不使用裸 `Create` 或混用 SDK 原始动词。
 - `FSR/FSRSuperResolution.cs`、`FSR/FSRRayReconstruction.cs`、`FSR/FSRFrameGeneration.cs`
   - 统一使用主构造函数（如 `internal class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc desc) : SuperResolution(vendor.Context, desc)`）。
@@ -75,7 +75,7 @@
 1. **五大入口与默认 Provider**：
    - 使用 `Fsr.D3D12` 与 `Fsr.Vulkan` 下的 `CreateContext`、`DestroyContext`、`Configure`、`Query`、`Dispatch`，返回码统一检查 `FSRApiReturnCodes.Ok`。
    - **自动支持 FSR 3 与 FSR 4**：创建上下文时**不设置 `FSROverrideVersion`**，由 FidelityFX SDK 2.4.0 默认 Provider 自动选型——在支持的硬件与驱动（如 AMD RDNA 4）上自动启用 **FSR 4（ML Provider）**，其余 DirectX 12 / Vulkan 设备自动运行 **FSR 3**。
-   - **能力探测**：构造 `FSRVendor` 时使用 `FSRQueryDescGetVersions`（`CreateDescType` 分别填入 `new FSRCreateContextDescUpscale()`、`new FSRCreateContextDescDenoiser()`、`new FSRCreateContextDescFrameGeneration()` 的 `Header.Type`；DirectX 12 传入 `Device`，Vulkan 还需在 `Header.Next` 串联 `FSRCreateBackendVKDesc`）查询可用版本数 `OutputCount > 0`。设备不支持某项能力（或全部不支持）时将对应布尔值设为 `false` 并正常完成构造，严禁抛异常。
+   - **能力探测（唯一判定来源）**：构造 `FSRVendor` 时对 **DirectX 12 与 Vulkan 一视同仁**，三项能力（超分 / 光线重建 / 帧生成）均使用 `FSRQueryDescGetVersions`（`CreateDescType` 分别填入 `new FSRCreateContextDescUpscale()`、`new FSRCreateContextDescDenoiser()`、`new FSRCreateContextDescFrameGeneration()` 的 `Header.Type`；DirectX 12 传入 `Device`，Vulkan 还需在 `Header.Next` 串联 `FSRCreateBackendVKDesc`）查询可用版本数 `OutputCount > 0`，用三项查询结果直接构造 `UpscalingCapabilities`。**严禁按 `GraphicsApi` 硬编码任何能力布尔值**（例如不得因当前 SDK 仅在 DX12 提供原生降噪器就把 Vulkan 的光线重建写死为 `false`）；设备不支持某项能力（或全部不支持）时由查询结果自然得出 `false` 并正常完成构造，严禁抛异常。这样未来 SDK / 驱动在任一 API 下补齐能力时无需改动代码即可自动启用。
 2. **结构体初始化与指针链**：
    - 所有 `FSR*Desc` 结构体**必须使用 `new()` 初始化**（构造函数负责填充 `Header.Type`，切勿使用 `default`）。
    - 后端创建描述（`FSRCreateBackendDX12Desc` / `FSRCreateBackendVKDesc`）与扩展描述通过 `Header.Next` 串联；若 SDK 跨调用持有托管数据地址，生命周期内必须保持固定有效。
@@ -90,8 +90,8 @@
    - 使用 `FSRCreateContextDescUpscale`（`MaxRenderSize`、`MaxUpscaleSize`、按 `UpscalingHelper.IsFloat(args.Color.Desc.Format)` / `args.Exposure is null` / `UpscalingHelper.IsDepthReversed(args.Projection)` / 无限远平面组合 `FSRApiCreateContextUpscaleFlags`）与 `FSRDispatchDescUpscale`。
    - 评估时传入 `Color`、`Depth`、`MotionVectors`、可选 `Exposure` 与 `Reactive`、输出 `Output`、`JitterOffset`（真机斜线超分 MSE 核验正负号）、`MotionVectorScale`（渲染宽高）、`FrameTimeDelta`（`args.DeltaTimeInSeconds * 1000.0f`）、`PreExposure`（`args.PreExposure ?? 1.0f`）及由 `UpscalingHelper.DecomposePerspective` 分解的 `CameraNear`、`CameraFar`、`CameraFovAngleVertical`、`ViewSpaceToMetersFactor = 1.0f`。
 
-2. **光线重建（`FSRRayReconstruction`，仅 DirectX 12）**
-   - `FSR.NET` 仅提供 DirectX 12 原生降噪器（`amd_fidelityfx_denoiser_dx12.dll`），Vulkan 下 `Capabilities.RayReconstructionSupported` 固定为 `false`。
+2. **光线重建（`FSRRayReconstruction`，DirectX 12 + Vulkan）**
+   - 按双 API 对等设计：Prepare / Compose 为跨 API 的预编译 Slang Compute 阶段，Denoise 与 Upscale 阶段按 `Context.GraphicsApi` 路由到对应原生入口；`Capabilities.RayReconstructionSupported` 一律由 4.1 的 `FSRQueryDescGetVersions` 查询结果决定，**严禁按图形 API 写死**。当前 `FSR.NET 2.4.0` 仅在 DirectX 12 提供原生降噪器（`amd_fidelityfx_denoiser_dx12.dll`），因此 Vulkan 下查询结果自然为 `false`；未来 SDK / 驱动补齐 Vulkan 降噪器时无需改动代码即可自动启用。
    - 按 [upscaling.md](../upscaling.md) 4.4 在同一 `CommandBuffer` 中串联四阶段，内部消化分路信号差异：
      1. **Prepare（预编译 Slang Compute）**：由硬件 `Depth` 与 `Projection` 还原线性深度，结合内部缓存的上一帧线性深度与 `MotionVectors` 计算帧间线性深度差打包至 3D 运动向量 Z 分量（`Reset` 帧置零）；将世界空间 `Normals` 编码为八面体法线并与 `Roughness` 打包；按 `DiffuseAlbedo` 与 `SpecularAlbedo` 权重将单路 `Color` 解调为漫反射与镜面两路辐射度（打包命中距离）并保留残差项。
      2. **Denoise（原生 `FSRDenoiser`）**：使用 `FSRCreateContextDescDenoiser` 与 `FSRDispatchDescDenoiser`（通过 `Header.Next` 串联 `FSRDispatchDescDenoiserIndirectDiffuse` 与 `FSRDispatchDescDenoiserDirectSpecular` 信号描述，传入 `LinearDepth`、3D `MotionVectors`、打包法线、`SpecularAlbedo`、`DiffuseAlbedo`、`CameraPositionDelta`、`View`、`Projection` 等）。
@@ -116,7 +116,7 @@
 
 1. **算法精度验证**：
    - 超分：高频斜线图案 2x 超分对比正反 `JitterOffset` 符号的 MSE，确认抖动方向与历史收敛正确。
-   - 光线重建（DX12）：输入带噪光线追踪颜色与 G-Buffer 引导图，验证时域方差显著下降且镜头旋转无重投影撕裂或能量丢失。
+   - 光线重建（在查询结果报告支持该能力的 API 上验证，当前为 DX12）：输入带噪光线追踪颜色与 G-Buffer 引导图，验证时域方差显著下降且镜头旋转无重投影撕裂或能量丢失；Vulkan 下若查询结果为不支持，则核验 `Capabilities.RayReconstructionSupported` 为 `false` 且构造正常完成、不抛异常。
    - 帧生成：运动物体在插值帧 `Output` 中的质心精确落在相邻两真实帧中点，含 UI 的 `Color` 与不含 UI 的 `Hudless` 分离正确、静态 UI 无伪影。
 2. **交换链联调与生命周期验证**：
    - 对接 `FrameGenerationSwapChain` 测试 VSync 开/关、动态切换超分分辨率、连续窗口 `Resize` 冷却恢复以及 `Dispose` 退出，确认 **0 验证层错误/警告、0 资源泄漏、翻转间隔均匀**。
