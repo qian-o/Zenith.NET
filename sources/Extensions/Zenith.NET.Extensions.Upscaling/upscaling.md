@@ -59,10 +59,15 @@ public static class Extensions
 
         public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc);
     }
+
+    extension(TextureUsages)
+    {
+        public static TextureUsages UpscalingInput { get; }
+    }
 }
 ```
 
-`context.InitializeUpscaling()` 根据当前 `GraphicsContext` 自动为超分、光线重建、帧生成三种能力分别挑选最佳可用硬件后端，对调用方完全透明。`UpscalingCapabilities` 反映当前 `GraphicsContext` 下三种能力的实际支持情况。
+`context.InitializeUpscaling()` 根据当前 `GraphicsContext` 自动为超分、光线重建、帧生成三种能力分别挑选最佳可用硬件后端，对调用方完全透明。`UpscalingCapabilities` 反映当前 `GraphicsContext` 下三种能力的实际支持情况。`TextureUsages.UpscalingInput`（`TextureUsages.Sampled | TextureUsages.TransferSrc`）汇总了所有后端读取输入纹理所需的用途标志，调用方创建传给超分、光线重建或帧生成的输入纹理时直接按位或该组合即可（其中 `FrameGeneration` 的 `Color` 与 `Hudless` 必须包含 `TransferSrc`）。
 
 ### 2.3 采样抖动工具（`UpscalingHelper`）
 

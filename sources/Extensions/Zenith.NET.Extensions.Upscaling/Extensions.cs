@@ -50,6 +50,11 @@ public static class Extensions
         }
     }
 
+    extension(TextureUsages)
+    {
+        public static TextureUsages UpscalingInput => TextureUsages.Sampled | TextureUsages.TransferSrc;
+    }
+
     private static UpscalingBridge GetBridge(GraphicsContext context)
     {
         using Lock.Scope _ = @lock.EnterScope();

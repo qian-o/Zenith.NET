@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Zenith.NET;
+using Zenith.NET.Extensions.Upscaling;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
@@ -79,7 +80,10 @@ internal unsafe class OutputPass : DisposableObject
 
     private void CreateOutput()
     {
-        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1));
+        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.ColorAttachment | TextureUsages.UpscalingInput
+        });
     }
 
     private void DestroyOutput()

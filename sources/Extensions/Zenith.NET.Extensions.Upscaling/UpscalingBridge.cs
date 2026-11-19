@@ -4,7 +4,7 @@ using Zenith.NET.Extensions.Upscaling.MetalFX;
 
 namespace Zenith.NET.Extensions.Upscaling;
 
-internal class UpscalingBridge : DisposableObject
+internal partial class UpscalingBridge : DisposableObject
 {
     private readonly List<Vendor> vendors = [];
 
