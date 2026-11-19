@@ -282,7 +282,7 @@ file static unsafe class NGXHelper
                 TargetHeight = desc.OutputHeight,
                 PerfQualityValue = Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight)
             },
-            FeatureCreateFlags = Flags(args.Color, args.Exposure, args.Projection)
+            FeatureCreateFlags = (int)Flags(args.Color, args.Exposure, args.Projection)
         };
     }
 
@@ -298,7 +298,7 @@ file static unsafe class NGXHelper
             TargetWidth = desc.OutputWidth,
             TargetHeight = desc.OutputHeight,
             PerfQualityValue = Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight),
-            FeatureCreateFlags = Flags(args.Color, args.Exposure, args.Projection)
+            FeatureCreateFlags = (int)Flags(args.Color, args.Exposure, args.Projection)
         };
     }
 
@@ -399,7 +399,7 @@ file static unsafe class NGXHelper
         };
     }
 
-    private static int Flags(Texture color, Texture? exposure, Matrix4x4 projection)
+    private static NGXDLSSFeatureFlags Flags(Texture color, Texture? exposure, Matrix4x4 projection)
     {
         NGXDLSSFeatureFlags flags = NGXDLSSFeatureFlags.MvLowRes;
 
@@ -418,7 +418,7 @@ file static unsafe class NGXHelper
             flags |= NGXDLSSFeatureFlags.DepthInverted;
         }
 
-        return (int)flags;
+        return flags;
     }
 
     private static NGXPerfQualityValue Quality(uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)
