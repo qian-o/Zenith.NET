@@ -321,7 +321,7 @@ file static unsafe class NGXHelper
 
     public static NGXDLSSGOptEvalParams EvaluationParams(FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
     {
-        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool _);
+        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out _);
         UpscalingHelper.DecomposeCamera(args.View, args.Projection, out Vector3 position, out Vector3 up, out Vector3 right, out Vector3 forward);
 
         Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
