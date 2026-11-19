@@ -2,6 +2,8 @@
 
 public abstract class FrameGeneration : GraphicsResource
 {
+    private Key key;
+
     internal FrameGeneration(GraphicsContext context, FrameGenerationDesc desc) : base(context)
     {
         Desc = desc;
@@ -15,6 +17,16 @@ public abstract class FrameGeneration : GraphicsResource
     public void Dispatch(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
         commandBuffer.BeginDebugEvent("Frame Generation");
+
+        Key newKey = new(args);
+
+        if (!key.Equals(newKey))
+        {
+            key = newKey;
+            args.Reset = true;
+
+            RebuildImpl(args);
+        }
 
         DispatchImpl(commandBuffer, args);
 
@@ -31,10 +43,32 @@ public abstract class FrameGeneration : GraphicsResource
         Output.Name = name;
     }
 
+    protected abstract void RebuildImpl(FrameGenerationArgs args);
+
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args);
 
     protected override void Destroy()
     {
         Output.Dispose();
+    }
+
+    private readonly struct Key(FrameGenerationArgs args)
+    {
+        public readonly PixelFormat Color = args.Color.Desc.Format;
+
+        public readonly PixelFormat Depth = args.Depth.Desc.Format;
+
+        public readonly PixelFormat MotionVectors = args.MotionVectors.Desc.Format;
+
+        public readonly PixelFormat Hudless = args.Hudless?.Desc.Format ?? default;
+
+        public readonly bool DepthReversed = UpscalingHelper.IsDepthReversed(args.Projection);
+
+        public readonly bool DepthInfinite = UpscalingHelper.IsDepthInfinite(args.Projection);
+
+        public bool Equals(Key other)
+        {
+            return Color == other.Color && Depth == other.Depth && MotionVectors == other.MotionVectors && Hudless == other.Hudless && DepthReversed == other.DepthReversed && DepthInfinite == other.DepthInfinite;
+        }
     }
 }

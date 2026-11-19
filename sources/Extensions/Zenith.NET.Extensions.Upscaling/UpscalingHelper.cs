@@ -114,11 +114,34 @@ public static class UpscalingHelper
         };
     }
 
+    internal static bool IsHdr(PixelFormat pixelFormat)
+    {
+        return pixelFormat is PixelFormat.R10G10B10A2UNorm || IsFloat(pixelFormat);
+    }
+
     internal static bool IsDepthReversed(Matrix4x4 projection)
     {
         DecomposePerspective(projection, out _, out _, out _, out _, out bool depthReversed, out _);
 
         return depthReversed;
+    }
+
+    internal static bool IsDepthInfinite(Matrix4x4 projection)
+    {
+        DecomposePerspective(projection, out _, out _, out _, out _, out _, out bool depthInfinite);
+
+        return depthInfinite;
+    }
+
+    internal static void DecomposeCamera(Matrix4x4 view, Matrix4x4 projection, out Vector3 position, out Vector3 up, out Vector3 right, out Vector3 forward)
+    {
+        Matrix4x4.Invert(view, out Matrix4x4 viewToWorld);
+
+        position = viewToWorld.Translation;
+        up = Vector3.Normalize(new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23));
+        right = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13));
+        forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
+        forward = Vector3.Normalize(projection.M34 < 0.0f ? -forward : forward);
     }
 
     internal static void DecomposePerspective(Matrix4x4 projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite)

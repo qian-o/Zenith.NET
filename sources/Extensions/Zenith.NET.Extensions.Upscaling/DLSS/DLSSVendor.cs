@@ -322,6 +322,7 @@ file static unsafe class NGXHelper
     public static NGXDLSSGOptEvalParams EvaluationParams(FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
     {
         UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool _);
+        UpscalingHelper.DecomposeCamera(args.View, args.Projection, out Vector3 position, out Vector3 up, out Vector3 right, out Vector3 forward);
 
         Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
         Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToCameraView);
@@ -334,8 +335,6 @@ file static unsafe class NGXHelper
             Matrix4x4.Invert(clipToPrevClip, out prevClipToClip);
         }
 
-        Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
-
         return new()
         {
             CameraViewToClip = args.Projection,
@@ -345,15 +344,15 @@ file static unsafe class NGXHelper
             PrevClipToClip = prevClipToClip,
             JitterOffset = -args.JitterOffset,
             MvecScale = new(args.MotionVectors.Desc.Width, args.MotionVectors.Desc.Height),
-            CameraPos = viewToWorld.Translation,
-            CameraUp = Vector3.Normalize(new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23)),
-            CameraRight = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13)),
-            CameraFwd = Vector3.Normalize(args.Projection.M34 < 0.0f ? -forward : forward),
+            CameraPos = position,
+            CameraUp = up,
+            CameraRight = right,
+            CameraFwd = forward,
             CameraNear = nearPlane,
             CameraFar = farPlane,
             CameraFOV = verticalFieldOfViewInRadians,
             CameraAspectRatio = aspectRatio,
-            ColorBuffersHDR = args.Color.Desc.Format is PixelFormat.R10G10B10A2UNorm || UpscalingHelper.IsFloat(args.Color.Desc.Format),
+            ColorBuffersHDR = UpscalingHelper.IsHdr(args.Color.Desc.Format),
             DepthInverted = depthReversed,
             CameraMotionIncluded = true,
             Reset = args.Reset,

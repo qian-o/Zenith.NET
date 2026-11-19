@@ -4,17 +4,33 @@ namespace Zenith.NET.Extensions.Upscaling.MetalFX;
 
 internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc desc) : FrameGeneration(vendor.Context, desc)
 {
-    private Key key;
     private MTL4FXFrameInterpolator interpolator;
+
+    protected override void RebuildImpl(FrameGenerationArgs args)
+    {
+        using NSAutoreleasePool _ = new();
+
+        using MTLFXFrameInterpolatorDescriptor descriptor = new()
+        {
+            ColorTextureFormat = MetalFXFormats.Metal((args.Hudless ?? args.Color).Desc.Format),
+            OutputTextureFormat = MetalFXFormats.Metal(Desc.Format),
+            DepthTextureFormat = MetalFXFormats.Metal(args.Depth.Desc.Format),
+            MotionTextureFormat = MetalFXFormats.Metal(args.MotionVectors.Desc.Format),
+            UiTextureFormat = MetalFXFormats.Metal(args.Hudless is not null ? args.Color.Desc.Format : null),
+            InputWidth = Desc.RenderWidth,
+            InputHeight = Desc.RenderHeight,
+            OutputWidth = Desc.OutputWidth,
+            OutputHeight = Desc.OutputHeight,
+            RequiresPrevColorTexture = false
+        };
+
+        interpolator.Dispose();
+        interpolator = descriptor.MakeFrameInterpolator(vendor.Device, vendor.Compiler);
+    }
 
     protected override void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args)
     {
         using NSAutoreleasePool _ = new();
-
-        if (Ensure(args))
-        {
-            args.Reset = true;
-        }
 
         commandBuffer.Transition(Output, default, args.Reset ? TextureLayout.Undefined : TextureLayout.Sampled, TextureLayout.ColorAttachment);
 
@@ -53,52 +69,5 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
         interpolator.Dispose();
 
         base.Destroy();
-    }
-
-    private bool Ensure(FrameGenerationArgs args)
-    {
-        Key newKey = new(args);
-
-        if (key.Equals(newKey))
-        {
-            return false;
-        }
-
-        key = newKey;
-
-        using MTLFXFrameInterpolatorDescriptor descriptor = new()
-        {
-            ColorTextureFormat = MetalFXFormats.Metal((args.Hudless ?? args.Color).Desc.Format),
-            OutputTextureFormat = MetalFXFormats.Metal(Desc.Format),
-            DepthTextureFormat = MetalFXFormats.Metal(args.Depth.Desc.Format),
-            MotionTextureFormat = MetalFXFormats.Metal(args.MotionVectors.Desc.Format),
-            UiTextureFormat = MetalFXFormats.Metal(args.Hudless is not null ? args.Color.Desc.Format : null),
-            InputWidth = Desc.RenderWidth,
-            InputHeight = Desc.RenderHeight,
-            OutputWidth = Desc.OutputWidth,
-            OutputHeight = Desc.OutputHeight,
-            RequiresPrevColorTexture = false
-        };
-
-        interpolator.Dispose();
-        interpolator = descriptor.MakeFrameInterpolator(vendor.Device, vendor.Compiler);
-
-        return true;
-    }
-
-    private readonly struct Key(FrameGenerationArgs args)
-    {
-        public readonly PixelFormat Color = args.Color.Desc.Format;
-
-        public readonly PixelFormat Depth = args.Depth.Desc.Format;
-
-        public readonly PixelFormat MotionVectors = args.MotionVectors.Desc.Format;
-
-        public readonly PixelFormat Hudless = args.Hudless?.Desc.Format ?? default;
-
-        public bool Equals(Key other)
-        {
-            return Color == other.Color && Depth == other.Depth && MotionVectors == other.MotionVectors && Hudless == other.Hudless;
-        }
     }
 }
