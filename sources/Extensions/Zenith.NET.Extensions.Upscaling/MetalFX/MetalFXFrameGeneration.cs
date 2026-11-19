@@ -6,7 +6,7 @@ internal class MetalFXFrameGeneration(MetalFXVendor vendor, FrameGenerationDesc 
 {
     private MTL4FXFrameInterpolator interpolator;
 
-    protected override void RebuildImpl(FrameGenerationArgs args)
+    protected override void Build(FrameGenerationArgs args)
     {
         using NSAutoreleasePool _ = new();
 

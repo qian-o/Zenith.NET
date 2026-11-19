@@ -10,7 +10,7 @@ internal class DLSSFrameGeneration(DLSSVendor vendor, FrameGenerationDesc desc) 
     private NGXHandle handle;
     private Matrix4x4 previousViewProjection;
 
-    protected override void RebuildImpl(FrameGenerationArgs args)
+    protected override void Build(FrameGenerationArgs args)
     {
         vendor.DestroyFeature(handle);
         handle = vendor.CreateFeature(parameters, Desc);

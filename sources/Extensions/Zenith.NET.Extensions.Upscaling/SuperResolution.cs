@@ -25,7 +25,7 @@ public abstract class SuperResolution : GraphicsResource
             key = newKey;
             args.Reset = true;
 
-            RebuildImpl(args);
+            Build(args);
         }
 
         DispatchImpl(commandBuffer, args);
@@ -43,7 +43,7 @@ public abstract class SuperResolution : GraphicsResource
         Output.Name = name;
     }
 
-    protected abstract void RebuildImpl(SuperResolutionArgs args);
+    protected abstract void Build(SuperResolutionArgs args);
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, SuperResolutionArgs args);
 

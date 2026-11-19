@@ -25,7 +25,7 @@ public abstract class FrameGeneration : GraphicsResource
             key = newKey;
             args.Reset = true;
 
-            RebuildImpl(args);
+            Build(args);
         }
 
         DispatchImpl(commandBuffer, args);
@@ -43,7 +43,7 @@ public abstract class FrameGeneration : GraphicsResource
         Output.Name = name;
     }
 
-    protected abstract void RebuildImpl(FrameGenerationArgs args);
+    protected abstract void Build(FrameGenerationArgs args);
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, FrameGenerationArgs args);
 

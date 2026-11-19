@@ -6,7 +6,7 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
 {
     private MTL4FXTemporalDenoisedScaler scaler;
 
-    protected override void RebuildImpl(RayReconstructionArgs args)
+    protected override void Build(RayReconstructionArgs args)
     {
         using NSAutoreleasePool _ = new();
 

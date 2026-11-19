@@ -8,7 +8,7 @@ internal class DLSSRayReconstruction(DLSSVendor vendor, RayReconstructionDesc de
 
     private NGXHandle handle;
 
-    protected override void RebuildImpl(RayReconstructionArgs args)
+    protected override void Build(RayReconstructionArgs args)
     {
         vendor.DestroyFeature(handle);
         handle = vendor.CreateFeature(parameters, Desc, args);

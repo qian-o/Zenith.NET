@@ -25,7 +25,7 @@ public abstract class RayReconstruction : GraphicsResource
             key = newKey;
             args.Reset = true;
 
-            RebuildImpl(args);
+            Build(args);
         }
 
         DispatchImpl(commandBuffer, args);
@@ -43,7 +43,7 @@ public abstract class RayReconstruction : GraphicsResource
         Output.Name = name;
     }
 
-    protected abstract void RebuildImpl(RayReconstructionArgs args);
+    protected abstract void Build(RayReconstructionArgs args);
 
     protected abstract void DispatchImpl(CommandBuffer commandBuffer, RayReconstructionArgs args);
 

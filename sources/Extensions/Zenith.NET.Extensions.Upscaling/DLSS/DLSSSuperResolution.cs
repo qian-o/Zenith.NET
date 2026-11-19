@@ -8,7 +8,7 @@ internal class DLSSSuperResolution(DLSSVendor vendor, SuperResolutionDesc desc) 
 
     private NGXHandle handle;
 
-    protected override void RebuildImpl(SuperResolutionArgs args)
+    protected override void Build(SuperResolutionArgs args)
     {
         vendor.DestroyFeature(handle);
         handle = vendor.CreateFeature(parameters, Desc, args);

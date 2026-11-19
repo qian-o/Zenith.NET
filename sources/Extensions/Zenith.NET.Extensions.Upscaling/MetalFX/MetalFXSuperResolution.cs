@@ -6,7 +6,7 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
 {
     private MTL4FXTemporalScaler scaler;
 
-    protected override void RebuildImpl(SuperResolutionArgs args)
+    protected override void Build(SuperResolutionArgs args)
     {
         using NSAutoreleasePool _ = new();
 
