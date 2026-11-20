@@ -1,4 +1,4 @@
-# 超分扩展设计（DLSS / FSR / MetalFX）
+﻿# 超分扩展设计（DLSS / FSR / MetalFX）
 
 `Zenith.NET.Extensions.Upscaling` 提供超分、光线重建（降噪 + 超分）、帧生成与帧生成交换链，采用与后端无关、按图形学语义定义且与核心 RHI 风格一致的公共 API。
 
@@ -116,7 +116,7 @@ public static class UpscalingHelper
 | 粗糙度 | R 通道保存 `[0, 1]` 线性粗糙度 |
 | 镜面命中距离 | 可选；提供时 R 通道保存镜面反射射线命中距离，为 `null` 时由后端无命中距离引导运行或按深度与粗糙度估算 |
 | 曝光 | `Exposure` 为 `null` 时由后端自动计算曝光；提供时为 1×1 `R16Float` 曝光倍率纹理。`PreExposure` 为已乘入线性颜色的预曝光倍率，为 `null` 时按 `1.0f` 处理 |
-| 资源布局与用途 | 所有输入纹理只需具备 `TextureUsages.Sampled`，并在 `Dispatch` / `Present` 调用前后保持 `TextureLayout.Sampled`（无需任何额外的传输或存储用途标志）；实例自管的 `Output` 纹理在 `Dispatch` 结束后自动处于 `TextureLayout.Sampled`；内部原生状态切换由后端自动完成并恢复 |
+| 资源布局与用途 | 所有输入纹理在 `Dispatch` / `Present` 调用前后保持 `TextureLayout.Sampled`，创建时建议按位或 `TextureUsages.UpscalingInput`（`TextureUsages.Sampled | TextureUsages.TransferSrc`，其中 `FrameGeneration` 的 `Color` 与 `Hudless` 必须包含 `TransferSrc`，其余输入纹理仅需 `Sampled`）；实例自管的 `Output` 纹理在 `Dispatch` 结束后自动处于 `TextureLayout.Sampled`；内部原生状态切换由后端自动完成并恢复 |
 
 ### 2.5 超分（`SuperResolution`）
 
@@ -346,7 +346,7 @@ public class FrameGenerationSwapChain : GraphicsResource
 
 1. **创建与提交边界一致。** `FrameGenerationSwapChainDesc` 只声明 `Surface`、`Format` 与 `IsVerticalSyncEnabled`（字段顺序对齐核心 `SwapChainDesc`），不耦合渲染分辨率与辅助纹理格式；调用方与使用核心 `SwapChain` 一样自主调用 `commandBuffer.Submit(...)` 提交渲染工作（完整保留 `TimelineValue` 跨队列等待与多命令缓冲区组织能力），随后调用 `swapChain.Present(args)`。切换超分档位导致 `Depth` / `MotionVectors` 尺寸变化时，交换链内部自动重建 `FrameGeneration` 实例，无需销毁重建窗口交换链。创建前要求设备支持帧生成（`UpscalingCapabilities.FrameGenerationSupported` 为 `true`），不启用帧生成时使用核心 `SwapChain`。
 2. **统一 `Drawable` 画布。** 调用方每帧将最终呈现画面（含 UI）渲染到 `swapChain.Drawable`（用法与 `SwapChain.Drawable` 一致，绘制完成后转换到 `TextureLayout.Present`）。
-3. **直接传入已有辅助纹理，零隐式用途约束。** 调用方提交本帧命令缓冲区后，直接把本帧产出的 `Depth`、`MotionVectors` 及可选 `Hudless`（均只需 `TextureUsages.Sampled` 并保持 `TextureLayout.Sampled`）传给 `Present(args)`。交换链内部在 `GraphicsQueue` 上直接原位只读采样这些纹理生成插值帧，随后将插值帧与当前真实帧交由后台呈现线程按平滑节奏调度上屏。
+3. **直接传入已有辅助纹理。** 调用方提交本帧命令缓冲区后，直接把本帧产出的 `Depth`、`MotionVectors`（需具备 `TextureUsages.Sampled`）及可选 `Hudless`（需具备 `TextureUsages.UpscalingInput`，均保持 `TextureLayout.Sampled`）传给 `Present(args)`。交换链内部在 `GraphicsQueue` 上直接原位读取这些纹理生成插值帧，随后将插值帧与当前真实帧交由后台呈现线程按平滑节奏调度上屏。
 
 ### 3.2 后台呈现节奏与生命周期
 

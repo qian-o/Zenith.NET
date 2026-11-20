@@ -47,8 +47,6 @@
     DescriptorHandle<RWTexture2D<float4>> DiffuseRadiance;
 
     DescriptorHandle<RWTexture2D<float4>> SpecularRadiance;
-
-    DescriptorHandle<RWTexture2D<float4>> Residual;
 };
 
 struct ComposeConstants
@@ -61,6 +59,8 @@ struct ComposeConstants
 
     uint Padding;
 
+    DescriptorHandle<Texture2D<float4>> Color;
+
     DescriptorHandle<Texture2D<float4>> DiffuseDenoised;
 
     DescriptorHandle<Texture2D<float4>> SpecularDenoised;
@@ -68,8 +68,6 @@ struct ComposeConstants
     DescriptorHandle<Texture2D<float4>> DiffuseAlbedo;
 
     DescriptorHandle<Texture2D<float4>> SpecularAlbedo;
-
-    DescriptorHandle<Texture2D<float4>> Residual;
 
     DescriptorHandle<Texture2D<float4>> TransparencyOverlay;
 
@@ -88,6 +86,19 @@ float3 Sanitize(float3 value)
 {
     return float3(isfinite(value.x) ? max(value.x, 0.0) : 0.0, isfinite(value.y) ? max(value.y, 0.0) : 0.0,
                   isfinite(value.z) ? max(value.z, 0.0) : 0.0);
+}
+
+float3 Demodulate(float3 color, float3 diffuseAlbedo, float3 specularAlbedo, out float3 diffuseRadiance, out float3 specularRadiance)
+{
+    float3 totalAlbedo = diffuseAlbedo + specularAlbedo;
+    float3 modulatedMask = saturate((totalAlbedo - 0.005) / 0.015);
+    float3 safeTotal = max(totalAlbedo, 1e-4);
+    float3 demodulated = min(color * modulatedMask / safeTotal, float3(64.0, 64.0, 64.0));
+
+    diffuseRadiance = diffuseAlbedo > 1e-4 ? demodulated : 0.0;
+    specularRadiance = specularAlbedo > 1e-4 ? demodulated : 0.0;
+
+    return max(color - (diffuseRadiance * diffuseAlbedo + specularRadiance * specularAlbedo), 0.0);
 }
 
 float2 OctahedralEncode(float3 normal)
@@ -200,16 +211,9 @@ void PrepareCS(uint3 dispatchThreadId : SV_DispatchThreadID)
         }
     }
 
-    float3 totalAlbedo = diffuseAlbedo + specularAlbedo;
-    float3 modulatedMask = saturate((totalAlbedo - 0.005) / 0.015);
-    float3 modulatedColor = color * modulatedMask;
-    float3 safeTotal = max(totalAlbedo, 1e-4);
-    float3 demodulated = min(modulatedColor / safeTotal, float3(64.0, 64.0, 64.0));
-
-    float3 diffuseRadiance = diffuseAlbedo > 1e-4 ? demodulated : 0.0;
-    float3 specularRadiance = specularAlbedo > 1e-4 ? demodulated : 0.0;
-    float3 reconstructed = diffuseRadiance * diffuseAlbedo + specularRadiance * specularAlbedo;
-    float3 residualColor = max(color - reconstructed, 0.0);
+    float3 diffuseRadiance;
+    float3 specularRadiance;
+    Demodulate(color, diffuseAlbedo, specularAlbedo, diffuseRadiance, specularRadiance);
 
     float diffuseHitDistance = max(linearDepth * 0.5, 0.1);
     float specularHitDistance = prepare.HasSpecularHitDistance != 0
@@ -226,12 +230,11 @@ void PrepareCS(uint3 dispatchThreadId : SV_DispatchThreadID)
     prepare.PackedNormals[pixel] = float4(OctahedralEncode(normal), roughness, 0.0);
     prepare.DiffuseRadiance[pixel] = float4(diffuseRadiance, diffuseHitDistance);
     prepare.SpecularRadiance[pixel] = float4(specularRadiance, specularHitDistance);
-    prepare.Residual[pixel] = float4(residualColor, 0.0);
 }
 #else
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComposeCS(uint3 dispatchThreadId: SV_DispatchThreadID)
+void ComposeCS(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadId.xy;
 
@@ -240,11 +243,15 @@ void ComposeCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         return;
     }
 
+    float3 sourceColor = Sanitize(compose.Color.Load(int3(pixel, 0)).rgb);
     float3 diffuse = Sanitize(compose.DiffuseDenoised.Load(int3(pixel, 0)).rgb);
     float3 specular = Sanitize(compose.SpecularDenoised.Load(int3(pixel, 0)).rgb);
     float3 diffuseAlbedo = Sanitize(compose.DiffuseAlbedo.Load(int3(pixel, 0)).rgb);
     float3 specularAlbedo = Sanitize(compose.SpecularAlbedo.Load(int3(pixel, 0)).rgb);
-    float3 residual = Sanitize(compose.Residual.Load(int3(pixel, 0)).rgb);
+
+    float3 diffuseRadiance;
+    float3 specularRadiance;
+    float3 residual = Demodulate(sourceColor, diffuseAlbedo, specularAlbedo, diffuseRadiance, specularRadiance);
 
     float3 color = diffuse * diffuseAlbedo + specular * specularAlbedo + residual;
 

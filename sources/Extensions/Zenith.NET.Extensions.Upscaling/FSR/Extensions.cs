@@ -6,22 +6,6 @@ namespace Zenith.NET.Extensions.Upscaling.FSR;
 
 internal static unsafe class Extensions
 {
-    extension<TChain>(ref TChain chain) where TChain : unmanaged
-    {
-        public void AddNext<TNext>(out TNext next) where TNext : new()
-        {
-            next = new();
-
-            FSRApiHeader* current = (FSRApiHeader*)Unsafe.AsPointer(ref chain);
-            while (current->Next is not null)
-            {
-                current = current->Next;
-            }
-
-            current->Next = (FSRApiHeader*)Unsafe.AsPointer(ref next);
-        }
-    }
-
     extension(CommandBuffer commandBuffer)
     {
         public void* FSR()
@@ -46,20 +30,52 @@ internal static unsafe class Extensions
         }
     }
 
+    extension(GraphicsContext context)
+    {
+        public nint DirectX12()
+        {
+            return context.GetNativeObject(NativeObjectType.D3D12Device);
+        }
+
+        public FSRVkDeviceContext Vulkan()
+        {
+            return new()
+            {
+                VkDevice = context.GetNativeObject(NativeObjectType.VulkanDevice),
+                VkPhysicalDevice = context.GetNativeObject(NativeObjectType.VulkanPhysicalDevice),
+                VkDeviceProcAddr = (delegate* unmanaged[Stdcall]<nint, byte*, delegate* unmanaged[Stdcall]<void>>)context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr)
+            };
+        }
+    }
+
+    extension<TChain>(ref TChain chain) where TChain : unmanaged
+    {
+        public void AddNext<TNext>(out TNext next) where TNext : new()
+        {
+            next = new();
+
+            FSRApiHeader* current = (FSRApiHeader*)Unsafe.AsPointer(ref chain);
+            while (current->Next is not null)
+            {
+                current = current->Next;
+            }
+
+            current->Next = (FSRApiHeader*)Unsafe.AsPointer(ref next);
+        }
+    }
+
     extension(Texture texture)
     {
         public FSRApiResource FSR()
         {
-            TextureDesc desc = texture.Desc;
+            FSRApiResourceUsage usage = FSRFormats.FSR(texture.Desc.Usages);
 
-            FSRApiResourceUsage usage = FSRFormats.FSR(desc.Usages);
-
-            if (ZenithHelper.HasDepth(desc.Format))
+            if (ZenithHelper.HasDepth(texture.Desc.Format))
             {
                 usage |= FSRApiResourceUsage.DepthTarget;
             }
 
-            if (ZenithHelper.HasStencil(desc.Format))
+            if (ZenithHelper.HasStencil(texture.Desc.Format))
             {
                 usage |= FSRApiResourceUsage.StencilTarget;
             }
@@ -74,12 +90,12 @@ internal static unsafe class Extensions
                 }),
                 Description = new()
                 {
-                    Type = (uint)FSRFormats.FSR(desc.Type),
-                    Format = (uint)FSRFormats.FSR(desc.Format),
-                    Width = desc.Width,
-                    Height = desc.Height,
-                    Depth = desc.Type is TextureType.Texture3D ? desc.Depth : desc.ArrayLayers,
-                    MipCount = desc.MipLevels,
+                    Type = (uint)FSRFormats.FSR(texture.Desc.Type),
+                    Format = (uint)FSRFormats.FSR(texture.Desc.Format).Format,
+                    Width = texture.Desc.Width,
+                    Height = texture.Desc.Height,
+                    Depth = texture.Desc.Type is TextureType.Texture3D ? texture.Desc.Depth : texture.Desc.ArrayLayers,
+                    MipCount = texture.Desc.MipLevels,
                     Usage = (uint)usage
                 },
                 State = (uint)FSRApiResourceState.Common

@@ -8,9 +8,9 @@ internal partial class UpscalingBridge : DisposableObject
 {
     private readonly List<Vendor> vendors = [];
 
-    private Vendor? superResolutionVendor;
-    private Vendor? rayReconstructionVendor;
-    private Vendor? frameGenerationVendor;
+    private Vendor? superResolution;
+    private Vendor? rayReconstruction;
+    private Vendor? frameGeneration;
 
     public UpscalingBridge(GraphicsContext context)
     {
@@ -22,7 +22,7 @@ internal partial class UpscalingBridge : DisposableObject
             case GraphicsApi.Vulkan:
                 Register(new DLSSVendor(context));
 
-                if (superResolutionVendor is null || rayReconstructionVendor is null || frameGenerationVendor is null)
+                if (superResolution is null || rayReconstruction is null || frameGeneration is null)
                 {
                     Register(new FSRVendor(context));
                 }
@@ -33,7 +33,7 @@ internal partial class UpscalingBridge : DisposableObject
                 break;
         }
 
-        Capabilities = new(superResolutionVendor is not null, rayReconstructionVendor is not null, frameGenerationVendor is not null);
+        Capabilities = new(superResolution is not null, rayReconstruction is not null, frameGeneration is not null);
     }
 
     public GraphicsContext Context { get; }
@@ -42,17 +42,17 @@ internal partial class UpscalingBridge : DisposableObject
 
     public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
-        return superResolutionVendor!.CreateSuperResolution(desc);
+        return superResolution!.CreateSuperResolution(desc);
     }
 
     public RayReconstruction CreateRayReconstruction(RayReconstructionDesc desc)
     {
-        return rayReconstructionVendor!.CreateRayReconstruction(desc);
+        return rayReconstruction!.CreateRayReconstruction(desc);
     }
 
     public FrameGeneration CreateFrameGeneration(FrameGenerationDesc desc)
     {
-        return frameGenerationVendor!.CreateFrameGeneration(desc);
+        return frameGeneration!.CreateFrameGeneration(desc);
     }
 
     public FrameGenerationSwapChain CreateFrameGenerationSwapChain(FrameGenerationSwapChainDesc desc)
@@ -71,11 +71,11 @@ internal partial class UpscalingBridge : DisposableObject
 
     private void Register(Vendor vendor)
     {
-        superResolutionVendor ??= vendor.Capabilities.SuperResolutionSupported ? vendor : null;
-        rayReconstructionVendor ??= vendor.Capabilities.RayReconstructionSupported ? vendor : null;
-        frameGenerationVendor ??= vendor.Capabilities.FrameGenerationSupported ? vendor : null;
+        superResolution ??= vendor.Capabilities.SuperResolutionSupported ? vendor : null;
+        rayReconstruction ??= vendor.Capabilities.RayReconstructionSupported ? vendor : null;
+        frameGeneration ??= vendor.Capabilities.FrameGenerationSupported ? vendor : null;
 
-        if (vendor == superResolutionVendor || vendor == rayReconstructionVendor || vendor == frameGenerationVendor)
+        if (vendor == superResolution || vendor == rayReconstruction || vendor == frameGeneration)
         {
             vendors.Add(vendor);
         }
@@ -91,6 +91,13 @@ internal partial class UpscalingBridge : DisposableObject
         {
             Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
         });
+    }
+
+    public static ComputePipeline CreatePipeline(GraphicsContext context, ShaderDesc desc)
+    {
+        using Shader shader = context.CreateShader(desc);
+
+        return context.CreateComputePipeline(new() { ComputeShader = shader });
     }
 }
 

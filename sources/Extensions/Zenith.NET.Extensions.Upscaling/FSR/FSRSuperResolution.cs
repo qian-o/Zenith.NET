@@ -19,7 +19,7 @@ internal class FSRSuperResolution(FSRVendor vendor, SuperResolutionDesc desc) : 
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.EvaluateFeature(commandBuffer, context, args, null, Output);
+        vendor.EvaluateFeature(commandBuffer, context, args, Output);
 
         commandBuffer.EndExternalCommands();
 

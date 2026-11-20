@@ -57,7 +57,7 @@ internal unsafe partial class DLSSVendor : Vendor
                 break;
         }
 
-        Capabilities = new(NGXHelper.IsSupported(parameters, Ngx.ParameterSuperSamplingAvailable), NGXHelper.IsSupported(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable), NGXHelper.IsSupported(parameters, Ngx.ParameterFrameGenerationAvailable));
+        Capabilities = new(IsSupported(parameters, Ngx.ParameterSuperSamplingAvailable), IsSupported(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable), IsSupported(parameters, Ngx.ParameterFrameGenerationAvailable));
 
         DestroyParameters(parameters);
     }
@@ -117,9 +117,9 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public NGXHandle CreateFeature(NGXParameter parameters, SuperResolutionDesc desc, SuperResolutionArgs args)
     {
-        NGXHelper.ResetParameters(parameters);
+        ResetParameters(parameters);
 
-        NGXDLSSCreateParams createParams = NGXHelper.CreationParams(desc, args);
+        NGXDLSSCreateParams createParams = ParameterBuilder.CreationParams(desc, args);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -142,9 +142,9 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public NGXHandle CreateFeature(NGXParameter parameters, RayReconstructionDesc desc, RayReconstructionArgs args)
     {
-        NGXHelper.ResetParameters(parameters);
+        ResetParameters(parameters);
 
-        NGXDLSSDCreateParams createParams = NGXHelper.CreationParams(desc, args);
+        NGXDLSSDCreateParams createParams = ParameterBuilder.CreationParams(desc, args);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -167,9 +167,9 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public NGXHandle CreateFeature(NGXParameter parameters, FrameGenerationDesc desc)
     {
-        NGXHelper.ResetParameters(parameters);
+        ResetParameters(parameters);
 
-        NGXDLSSGCreateParams createParams = NGXHelper.CreationParams(desc, Context.GraphicsApi);
+        NGXDLSSGCreateParams createParams = ParameterBuilder.CreationParams(desc, Context.GraphicsApi);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -239,7 +239,7 @@ internal unsafe partial class DLSSVendor : Vendor
 
     public void EvaluateFeature(CommandBuffer commandBuffer, NGXParameter parameters, NGXHandle handle, FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
     {
-        NGXDLSSGOptEvalParams optEvalParams = NGXHelper.EvaluationParams(args, output, previousViewProjection);
+        NGXDLSSGOptEvalParams optEvalParams = ParameterBuilder.EvaluationParams(args, output, previousViewProjection);
 
         switch (Context.GraphicsApi)
         {
@@ -266,9 +266,35 @@ internal unsafe partial class DLSSVendor : Vendor
                 break;
         }
     }
+
+    private static bool IsSupported(NGXParameter parameters, ReadOnlySpan<byte> name)
+    {
+        if (parameters.IsNull)
+        {
+            return false;
+        }
+
+        fixed (byte* pointer = name)
+        {
+            int value = 0;
+            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
+
+            return value is not 0;
+        }
+    }
+
+    private static void ResetParameters(NGXParameter parameters)
+    {
+        Ngx.Parameter.Reset(parameters);
+
+        fixed (byte* pointer = Ngx.ParameterFreeMemOnReleaseFeature)
+        {
+            Ngx.Parameter.SetUI(parameters, pointer, 1);
+        }
+    }
 }
 
-file static unsafe class NGXHelper
+file static class ParameterBuilder
 {
     public static NGXDLSSCreateParams CreationParams(SuperResolutionDesc desc, SuperResolutionArgs args)
     {
@@ -280,9 +306,9 @@ file static unsafe class NGXHelper
                 Height = desc.RenderHeight,
                 TargetWidth = desc.OutputWidth,
                 TargetHeight = desc.OutputHeight,
-                PerfQualityValue = Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight)
+                PerfQualityValue = DLSSFormats.DLSS(UpscalingHelper.Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight))
             },
-            FeatureCreateFlags = (int)Flags(args.Color, args.Exposure, args.Projection)
+            FeatureCreateFlags = (int)Flags(args.Color.Desc.Format, args.Exposure, args.Projection)
         };
     }
 
@@ -297,8 +323,8 @@ file static unsafe class NGXHelper
             Height = desc.RenderHeight,
             TargetWidth = desc.OutputWidth,
             TargetHeight = desc.OutputHeight,
-            PerfQualityValue = Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight),
-            FeatureCreateFlags = (int)Flags(args.Color, args.Exposure, args.Projection)
+            PerfQualityValue = DLSSFormats.DLSS(UpscalingHelper.Quality(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight)),
+            FeatureCreateFlags = (int)Flags(args.Color.Desc.Format, args.Exposure, args.Projection)
         };
     }
 
@@ -321,8 +347,8 @@ file static unsafe class NGXHelper
 
     public static NGXDLSSGOptEvalParams EvaluationParams(FrameGenerationArgs args, Texture output, Matrix4x4 previousViewProjection)
     {
-        UpscalingHelper.DecomposePerspective(args.Projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out _);
-        UpscalingHelper.DecomposeCamera(args.View, args.Projection, out Vector3 position, out Vector3 up, out Vector3 right, out Vector3 forward);
+        (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, float aspectRatio, bool depthReversed, _) = UpscalingHelper.DecomposePerspective(args.Projection);
+        (Vector3 position, Vector3 up, Vector3 right, Vector3 forward) = UpscalingHelper.DecomposeCamera(args.View, args.Projection);
 
         Matrix4x4.Invert(args.View, out Matrix4x4 viewToWorld);
         Matrix4x4.Invert(args.Projection, out Matrix4x4 clipToCameraView);
@@ -364,32 +390,6 @@ file static unsafe class NGXHelper
         };
     }
 
-    public static bool IsSupported(NGXParameter parameters, ReadOnlySpan<byte> name)
-    {
-        if (parameters.IsNull)
-        {
-            return false;
-        }
-
-        fixed (byte* pointer = name)
-        {
-            int value = 0;
-            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
-
-            return value is not 0;
-        }
-    }
-
-    public static void ResetParameters(NGXParameter parameters)
-    {
-        Ngx.Parameter.Reset(parameters);
-
-        fixed (byte* pointer = Ngx.ParameterFreeMemOnReleaseFeature)
-        {
-            Ngx.Parameter.SetUI(parameters, pointer, 1);
-        }
-    }
-
     private static NGXDimensions Dimensions(Texture texture)
     {
         return new()
@@ -399,11 +399,11 @@ file static unsafe class NGXHelper
         };
     }
 
-    private static NGXDLSSFeatureFlags Flags(Texture color, Texture? exposure, Matrix4x4 projection)
+    private static NGXDLSSFeatureFlags Flags(PixelFormat format, Texture? exposure, Matrix4x4 projection)
     {
         NGXDLSSFeatureFlags flags = NGXDLSSFeatureFlags.MvLowRes;
 
-        if (UpscalingHelper.IsFloat(color.Desc.Format))
+        if (UpscalingHelper.IsFloat(format))
         {
             flags |= NGXDLSSFeatureFlags.IsHdr;
         }
@@ -419,32 +419,5 @@ file static unsafe class NGXHelper
         }
 
         return flags;
-    }
-
-    private static NGXPerfQualityValue Quality(uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)
-    {
-        float scale = MathF.Sqrt((float)outputWidth * outputHeight / Math.Max(renderWidth * renderHeight, 1));
-
-        if (scale <= 1.25f)
-        {
-            return NGXPerfQualityValue.Dlaa;
-        }
-
-        if (scale <= 1.6f)
-        {
-            return NGXPerfQualityValue.MaxQuality;
-        }
-
-        if (scale <= 1.85f)
-        {
-            return NGXPerfQualityValue.Balanced;
-        }
-
-        if (scale <= 2.5f)
-        {
-            return NGXPerfQualityValue.MaxPerf;
-        }
-
-        return NGXPerfQualityValue.UltraPerformance;
     }
 }

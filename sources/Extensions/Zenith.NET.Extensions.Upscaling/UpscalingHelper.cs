@@ -89,6 +89,33 @@ public static class UpscalingHelper
         return (ScaleDimension(outputWidth, scale), ScaleDimension(outputHeight, scale));
     }
 
+    internal static UpscalingQuality Quality(uint renderWidth, uint renderHeight, uint outputWidth, uint outputHeight)
+    {
+        float scale = MathF.Sqrt((float)outputWidth * outputHeight / Math.Max(renderWidth * renderHeight, 1));
+
+        if (scale <= 1.25f)
+        {
+            return UpscalingQuality.Native;
+        }
+
+        if (scale <= 1.6f)
+        {
+            return UpscalingQuality.Quality;
+        }
+
+        if (scale <= 1.85f)
+        {
+            return UpscalingQuality.Balanced;
+        }
+
+        if (scale <= 2.5f)
+        {
+            return UpscalingQuality.Performance;
+        }
+
+        return UpscalingQuality.UltraPerformance;
+    }
+
     internal static bool IsFloat(PixelFormat pixelFormat)
     {
         return pixelFormat switch
@@ -121,30 +148,28 @@ public static class UpscalingHelper
 
     internal static bool IsDepthReversed(Matrix4x4 projection)
     {
-        DecomposePerspective(projection, out _, out _, out _, out _, out bool depthReversed, out _);
-
-        return depthReversed;
+        return DecomposePerspective(projection).DepthReversed;
     }
 
     internal static bool IsDepthInfinite(Matrix4x4 projection)
     {
-        DecomposePerspective(projection, out _, out _, out _, out _, out _, out bool depthInfinite);
-
-        return depthInfinite;
+        return DecomposePerspective(projection).DepthInfinite;
     }
 
-    internal static void DecomposeCamera(Matrix4x4 view, Matrix4x4 projection, out Vector3 position, out Vector3 up, out Vector3 right, out Vector3 forward)
+    internal static (Vector3 Position, Vector3 Up, Vector3 Right, Vector3 Forward) DecomposeCamera(Matrix4x4 view, Matrix4x4 projection)
     {
         Matrix4x4.Invert(view, out Matrix4x4 viewToWorld);
 
-        position = viewToWorld.Translation;
-        up = Vector3.Normalize(new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23));
-        right = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13));
-        forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
+        Vector3 position = viewToWorld.Translation;
+        Vector3 up = Vector3.Normalize(new(viewToWorld.M21, viewToWorld.M22, viewToWorld.M23));
+        Vector3 right = Vector3.Normalize(new(viewToWorld.M11, viewToWorld.M12, viewToWorld.M13));
+        Vector3 forward = new(viewToWorld.M31, viewToWorld.M32, viewToWorld.M33);
         forward = Vector3.Normalize(projection.M34 < 0.0f ? -forward : forward);
+
+        return (position, up, right, forward);
     }
 
-    internal static void DecomposePerspective(Matrix4x4 projection, out float nearPlane, out float farPlane, out float verticalFieldOfViewInRadians, out float aspectRatio, out bool depthReversed, out bool depthInfinite)
+    internal static (float NearPlane, float FarPlane, float VerticalFieldOfViewInRadians, float AspectRatio, bool DepthReversed, bool DepthInfinite) DecomposePerspective(Matrix4x4 projection)
     {
         const float Epsilon = 1e-6f;
 
@@ -154,13 +179,20 @@ public static class UpscalingHelper
         float zeroDepthDistance = MathF.Abs(zeroDenominator) <= Epsilon ? float.PositiveInfinity : MathF.Abs(projection.M43 / zeroDenominator);
         float unitDepthDistance = MathF.Abs(unitDenominator) <= Epsilon ? float.PositiveInfinity : MathF.Abs(projection.M43 / unitDenominator);
 
-        depthReversed = zeroDepthDistance > unitDepthDistance;
-        nearPlane = MathF.Min(zeroDepthDistance, unitDepthDistance);
-        farPlane = MathF.Max(zeroDepthDistance, unitDepthDistance);
-        depthInfinite = float.IsPositiveInfinity(farPlane);
+        bool depthReversed = zeroDepthDistance > unitDepthDistance;
+        float nearPlane = MathF.Min(zeroDepthDistance, unitDepthDistance);
+        float farPlane = MathF.Max(zeroDepthDistance, unitDepthDistance);
+        bool depthInfinite = float.IsPositiveInfinity(farPlane);
 
-        verticalFieldOfViewInRadians = 2.0f * MathF.Atan(1.0f / MathF.Abs(projection.M22));
-        aspectRatio = MathF.Abs(projection.M22 / projection.M11);
+        if (depthInfinite)
+        {
+            farPlane = float.MaxValue;
+        }
+
+        float verticalFieldOfViewInRadians = 2.0f * MathF.Atan(1.0f / MathF.Abs(projection.M22));
+        float aspectRatio = MathF.Abs(projection.M22 / projection.M11);
+
+        return (nearPlane, farPlane, verticalFieldOfViewInRadians, aspectRatio, depthReversed, depthInfinite);
     }
 
     private static uint ScaleDimension(uint size, float scale)

@@ -1,12 +1,18 @@
-﻿using FSR.NET;
+﻿using System.Numerics;
+using FSR.NET;
 
 namespace Zenith.NET.Extensions.Upscaling.FSR;
 
-internal static class FSRFormats
+internal static unsafe class FSRFormats
 {
-    public static FSRApiSurfaceFormat FSR(PixelFormat pixelFormat)
+    public static FSRApiMatrix4x4 FSR(Matrix4x4 matrix4x4)
     {
-        return pixelFormat switch
+        return Fsr.ConvertToMatrix4x4((float*)&matrix4x4, FSRApiMatrixLayout.RowMajor, FSRApiMatrixVectorConvention.RowVectors);
+    }
+
+    public static (FSRApiSurfaceFormat Format, FSRApiBackBufferTransferFunction TransferFunction) FSR(PixelFormat pixelFormat)
+    {
+        FSRApiSurfaceFormat format = pixelFormat switch
         {
             PixelFormat.R8UNorm => FSRApiSurfaceFormat.R8Unorm,
             PixelFormat.R8SNorm => FSRApiSurfaceFormat.R8Snorm,
@@ -54,6 +60,15 @@ internal static class FSRFormats
 
             _ => default
         };
+
+        FSRApiBackBufferTransferFunction transferFunction = pixelFormat switch
+        {
+            PixelFormat.R10G10B10A2UNorm => FSRApiBackBufferTransferFunction.Pq,
+            PixelFormat.R16G16B16A16Float => FSRApiBackBufferTransferFunction.Scrgb,
+            _ => FSRApiBackBufferTransferFunction.Srgb
+        };
+
+        return (format, transferFunction);
     }
 
     public static FSRApiResourceType FSR(TextureType textureType)

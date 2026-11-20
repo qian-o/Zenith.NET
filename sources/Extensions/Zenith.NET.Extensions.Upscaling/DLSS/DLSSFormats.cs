@@ -4,6 +4,19 @@ namespace Zenith.NET.Extensions.Upscaling.DLSS;
 
 internal static class DLSSFormats
 {
+    public static NGXPerfQualityValue DLSS(UpscalingQuality upscalingQuality)
+    {
+        return upscalingQuality switch
+        {
+            UpscalingQuality.Native => NGXPerfQualityValue.Dlaa,
+            UpscalingQuality.Quality => NGXPerfQualityValue.MaxQuality,
+            UpscalingQuality.Balanced => NGXPerfQualityValue.Balanced,
+            UpscalingQuality.Performance => NGXPerfQualityValue.MaxPerf,
+            UpscalingQuality.UltraPerformance => NGXPerfQualityValue.UltraPerformance,
+            _ => default
+        };
+    }
+
     public static uint DirectX12(PixelFormat pixelFormat)
     {
         return pixelFormat switch

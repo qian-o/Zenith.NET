@@ -47,8 +47,8 @@ internal class MetalFXSuperResolution(MetalFXVendor vendor, SuperResolutionDesc 
         scaler.PreExposure = args.PreExposure ?? 1.0f;
         scaler.JitterOffsetX = -args.JitterOffset.X;
         scaler.JitterOffsetY = -args.JitterOffset.Y;
-        scaler.MotionVectorScaleX = Desc.RenderWidth;
-        scaler.MotionVectorScaleY = Desc.RenderHeight;
+        scaler.MotionVectorScaleX = args.MotionVectors.Desc.Width;
+        scaler.MotionVectorScaleY = args.MotionVectors.Desc.Height;
         scaler.Reset = args.Reset;
         scaler.IsDepthReversed = UpscalingHelper.IsDepthReversed(args.Projection);
         scaler.Encode(commandBuffer.Metal());

@@ -71,14 +71,14 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
     builder.AppendLine($"internal partial class {ClassName}");
     builder.AppendLine("{");
 
-    for (int shaderIndex = 0; shaderIndex < shaders.Length; shaderIndex++)
+    for (int i = 0; i < shaders.Length; i++)
     {
-        if (shaderIndex > 0)
+        if (i > 0)
         {
             builder.AppendLine();
         }
 
-        ShaderDefinition shader = shaders[shaderIndex];
+        ShaderDefinition shader = shaders[i];
 
         builder.AppendLine($"    public static ShaderDesc {shader.NamePrefix}{shader.EntryPoint}(GraphicsApi graphicsApi)");
         builder.AppendLine("    {");
@@ -95,23 +95,23 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
         builder.AppendLine("    }");
     }
 
-    for (int graphicsApiIndex = 0; graphicsApiIndex < graphicsApis.Length; graphicsApiIndex++)
+    for (int i = 0; i < graphicsApis.Length; i++)
     {
         builder.AppendLine();
 
-        GraphicsApi graphicsApi = graphicsApis[graphicsApiIndex];
+        GraphicsApi graphicsApi = graphicsApis[i];
 
         builder.AppendLine($"    #region {graphicsApi}");
 
-        for (int shaderIndex = 0; shaderIndex < shaders.Length; shaderIndex++)
+        for (int j = 0; j < shaders.Length; j++)
         {
-            if (shaderIndex > 0)
+            if (j > 0)
             {
                 builder.AppendLine();
             }
 
-            string fieldName = GetShaderFieldName(graphicsApi, shaders[shaderIndex]);
-            ShaderDesc emptyShader = CreateEmptyShader(shaders[shaderIndex].EntryPoint);
+            string fieldName = GetShaderFieldName(graphicsApi, shaders[j]);
+            ShaderDesc emptyShader = CreateEmptyShader(shaders[j].EntryPoint);
 
             builder.AppendLine(FormatShaderDesc(fieldName, emptyShader));
         }
@@ -192,24 +192,24 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
     builder.AppendLine("        CodeBytes =");
     builder.AppendLine("        [");
 
-    for (int index = 0; index < codeBytes.Length; index += BytesPerLine)
+    for (int i = 0; i < codeBytes.Length; i += BytesPerLine)
     {
-        int count = Math.Min(BytesPerLine, codeBytes.Length - index);
+        int count = Math.Min(BytesPerLine, codeBytes.Length - i);
 
         builder.Append("            ");
 
-        for (int offset = 0; offset < count; offset++)
+        for (int j = 0; j < count; j++)
         {
-            if (offset > 0)
+            if (j > 0)
             {
                 builder.Append(", ");
             }
 
             builder.Append("0x");
-            builder.Append(codeBytes[index + offset].ToString("X2", CultureInfo.InvariantCulture));
+            builder.Append(codeBytes[i + j].ToString("X2", CultureInfo.InvariantCulture));
         }
 
-        if (index + count < codeBytes.Length)
+        if (i + count < codeBytes.Length)
         {
             builder.Append(',');
         }

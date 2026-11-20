@@ -61,8 +61,8 @@ internal class MetalFXRayReconstruction(MetalFXVendor vendor, RayReconstructionD
         scaler.ReactiveMaskTexture = args.ReactiveMask?.Metal() ?? default;
         scaler.JitterOffsetX = -args.JitterOffset.X;
         scaler.JitterOffsetY = -args.JitterOffset.Y;
-        scaler.MotionVectorScaleX = Desc.RenderWidth;
-        scaler.MotionVectorScaleY = Desc.RenderHeight;
+        scaler.MotionVectorScaleX = args.MotionVectors.Desc.Width;
+        scaler.MotionVectorScaleY = args.MotionVectors.Desc.Height;
         scaler.ShouldResetHistory = args.Reset;
         scaler.IsDepthReversed = UpscalingHelper.IsDepthReversed(args.Projection);
         scaler.WorldToViewMatrix = MetalFXFormats.Metal(args.View);
