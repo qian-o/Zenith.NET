@@ -88,15 +88,16 @@ float3 Sanitize(float3 value)
                   isfinite(value.z) ? max(value.z, 0.0) : 0.0);
 }
 
-float3 Demodulate(float3 color, float3 diffuseAlbedo, float3 specularAlbedo, out float3 diffuseRadiance, out float3 specularRadiance)
+float3 Demodulate(float3 color, float3 diffuseAlbedo, float3 specularAlbedo, out float3 diffuseRadiance,
+                  out float3 specularRadiance)
 {
     float3 totalAlbedo = diffuseAlbedo + specularAlbedo;
     float3 modulatedMask = saturate((totalAlbedo - 0.005) / 0.015);
     float3 safeTotal = max(totalAlbedo, 1e-4);
     float3 demodulated = min(color * modulatedMask / safeTotal, float3(64.0, 64.0, 64.0));
 
-    diffuseRadiance = diffuseAlbedo > 1e-4 ? demodulated : 0.0;
-    specularRadiance = specularAlbedo > 1e-4 ? demodulated : 0.0;
+    diffuseRadiance = select(diffuseAlbedo > 1e-4, demodulated, 0.0);
+    specularRadiance = select(specularAlbedo > 1e-4, demodulated, 0.0);
 
     return max(color - (diffuseRadiance * diffuseAlbedo + specularRadiance * specularAlbedo), 0.0);
 }
@@ -234,7 +235,7 @@ void PrepareCS(uint3 dispatchThreadId : SV_DispatchThreadID)
 #else
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComposeCS(uint3 dispatchThreadId : SV_DispatchThreadID)
+void ComposeCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadId.xy;
 
