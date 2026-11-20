@@ -70,6 +70,11 @@ internal static unsafe class Extensions
         {
             FSRApiResourceUsage usage = FSRFormats.FSR(texture.Desc.Usages);
 
+            if (texture.Desc.Type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray)
+            {
+                usage |= FSRApiResourceUsage.ArrayView;
+            }
+
             if (ZenithHelper.HasDepth(texture.Desc.Format))
             {
                 usage |= FSRApiResourceUsage.DepthTarget;

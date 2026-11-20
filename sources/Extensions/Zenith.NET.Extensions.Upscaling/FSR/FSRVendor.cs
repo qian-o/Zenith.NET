@@ -121,7 +121,7 @@ internal unsafe class FSRVendor : Vendor
             Output = diffuseOutput.FSR()
         };
 
-        dispatchDesc.AddNext(out FSRDispatchDescDenoiserDirectSpecular specularSignal);
+        dispatchDesc.AddNext(out FSRDispatchDescDenoiserIndirectSpecular specularSignal);
         specularSignal.Signal = new()
         {
             Input = specularInput.FSR(),
@@ -255,7 +255,7 @@ file static unsafe class ParameterBuilder
                 Width = desc.RenderWidth,
                 Height = desc.RenderHeight
             },
-            SignalFlags = (uint)(FSRApiDenoiserSignalFlags.IndirectDiffuse | FSRApiDenoiserSignalFlags.DirectSpecular)
+            SignalFlags = (uint)(FSRApiDenoiserSignalFlags.IndirectDiffuse | FSRApiDenoiserSignalFlags.IndirectSpecular)
         };
 
         FSRCreateContextDescUpscale upscaler = CreationParams(desc.RenderWidth, desc.RenderHeight, desc.OutputWidth, desc.OutputHeight, PixelFormat.R16G16B16A16Float, args.Exposure, args.Projection);
@@ -352,7 +352,7 @@ file static unsafe class ParameterBuilder
         FSRConfigureDescFrameGeneration configure = new()
         {
             FrameGenerationEnabled = true,
-            HUDLessColor = args.Hudless?.FSR() ?? default,
+            HUDLessColor = args.Hudless is not null && args.Hudless != args.Color ? args.Hudless.FSR() : default,
             Flags = (uint)FSRApiDispatchFrameGenerationFlags.NoSwapChainContextNotify,
             GenerationRect = generationRect,
             FrameID = frameId

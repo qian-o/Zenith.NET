@@ -82,23 +82,27 @@ ConstantBuffer<PrepareConstants> prepare;
 ConstantBuffer<ComposeConstants> compose;
 #endif
 
+static const float MaxHalf = 65504.0;
+
 float3 Sanitize(float3 value)
 {
-    return select(isfinite(value), max(value, 0.0), 0.0);
+    return select(isfinite(value), clamp(value, 0.0, MaxHalf), 0.0);
 }
 
 float3 Demodulate(float3 color, float3 diffuseAlbedo, float3 specularAlbedo, out float3 diffuseRadiance,
                   out float3 specularRadiance)
 {
-    float3 totalAlbedo = diffuseAlbedo + specularAlbedo;
+    float3 effectiveDiffuse = select(diffuseAlbedo > 1e-4, diffuseAlbedo, 0.0);
+    float3 effectiveSpecular = select(specularAlbedo > 1e-4, specularAlbedo, 0.0);
+    float3 totalAlbedo = effectiveDiffuse + effectiveSpecular;
     float3 modulatedMask = saturate((totalAlbedo - 0.005) / 0.015);
     float3 safeTotal = max(totalAlbedo, 1e-4);
-    float3 demodulated = min(color * modulatedMask / safeTotal, float3(64.0, 64.0, 64.0));
+    float3 demodulated = min(color * modulatedMask / safeTotal, MaxHalf);
 
-    diffuseRadiance = select(diffuseAlbedo > 1e-4, demodulated, 0.0);
-    specularRadiance = select(specularAlbedo > 1e-4, demodulated, 0.0);
+    diffuseRadiance = select(effectiveDiffuse > 0.0, demodulated, 0.0);
+    specularRadiance = select(effectiveSpecular > 0.0, demodulated, 0.0);
 
-    return max(color - (diffuseRadiance * diffuseAlbedo + specularRadiance * specularAlbedo), 0.0);
+    return color * (1.0 - modulatedMask);
 }
 
 float2 OctahedralEncode(float3 normal)
@@ -154,7 +158,7 @@ float SamplePreviousLinearDepth(float2 previousUv, float currentLinearDepth)
     float d01 = prepare.PreviousLinearDepth.Load(int3(p01, 0));
     float d11 = prepare.PreviousLinearDepth.Load(int3(p11, 0));
 
-    float depthScale = max(currentLinearDepth * 0.05, 0.05);
+    float depthScale = max(abs(currentLinearDepth) * 0.05, 0.05);
 
     float w00 = (1.0 - fracCoord.x) * (1.0 - fracCoord.y) * exp(-abs(d00 - currentLinearDepth) / depthScale);
     float w10 = fracCoord.x * (1.0 - fracCoord.y) * exp(-abs(d10 - currentLinearDepth) / depthScale);
@@ -186,13 +190,15 @@ void PrepareCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 
     float3 color = Sanitize(prepare.Color.Load(int3(pixel, 0)).rgb);
     float deviceDepth = prepare.Depth.Load(int3(pixel, 0));
-    float2 motionVector = prepare.MotionVectors.Load(int3(pixel, 0));
+    float2 rawMotionVector = prepare.MotionVectors.Load(int3(pixel, 0));
+    float2 motionVector = select(isfinite(rawMotionVector), clamp(rawMotionVector, -MaxHalf, MaxHalf), 0.0);
     float3 diffuseAlbedo = Sanitize(prepare.DiffuseAlbedo.Load(int3(pixel, 0)).rgb);
     float3 specularAlbedo = Sanitize(prepare.SpecularAlbedo.Load(int3(pixel, 0)).rgb);
     float3 normal = prepare.Normals.Load(int3(pixel, 0)).rgb;
     float roughness = saturate(prepare.Roughness.Load(int3(pixel, 0)));
 
-    float linearDepth = ReconstructLinearDepth(deviceDepth);
+    float absLinearDepth = ReconstructLinearDepth(deviceDepth);
+    float signedLinearDepth = prepare.M34 < 0.0 ? -absLinearDepth : absLinearDepth;
     float linearDepthDelta = 0.0;
 
     if (prepare.Reset == 0)
@@ -202,11 +208,11 @@ void PrepareCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 
         if (all(previousUv >= 0.0) && all(previousUv <= 1.0))
         {
-            float previousLinearDepth = SamplePreviousLinearDepth(previousUv, linearDepth);
+            float previousLinearDepth = SamplePreviousLinearDepth(previousUv, signedLinearDepth);
 
             if (isfinite(previousLinearDepth))
             {
-                linearDepthDelta = previousLinearDepth - linearDepth;
+                linearDepthDelta = clamp(previousLinearDepth - signedLinearDepth, -MaxHalf, MaxHalf);
             }
         }
     }
@@ -215,17 +221,19 @@ void PrepareCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float3 specularRadiance;
     Demodulate(color, diffuseAlbedo, specularAlbedo, diffuseRadiance, specularRadiance);
 
-    float diffuseHitDistance = max(linearDepth * 0.5, 0.1);
+    float diffuseHitDistance = clamp(absLinearDepth * 0.5, 0.1, MaxHalf);
     float specularHitDistance = prepare.HasSpecularHitDistance != 0
                                     ? max(prepare.SpecularHitDistance.Load(int3(pixel, 0)), 0.0)
-                                    : max(linearDepth * lerp(1.0, 0.25, roughness), 0.1);
+                                    : max(absLinearDepth * lerp(1.0, 0.25, roughness), 0.1);
 
     if (!isfinite(specularHitDistance))
     {
         specularHitDistance = prepare.MaxLinearDepth;
     }
 
-    prepare.LinearDepth[pixel] = linearDepth;
+    specularHitDistance = min(specularHitDistance, MaxHalf);
+
+    prepare.LinearDepth[pixel] = signedLinearDepth;
     prepare.MotionVectors3D[pixel] = float4(motionVector, linearDepthDelta, 0.0);
     prepare.PackedNormals[pixel] = float4(OctahedralEncode(normal), roughness, 0.0);
     prepare.DiffuseRadiance[pixel] = float4(diffuseRadiance, diffuseHitDistance);
@@ -260,10 +268,10 @@ void ComposeCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         float4 overlay = compose.TransparencyOverlay.Load(int3(pixel, 0));
         float alpha = isfinite(overlay.a) ? saturate(overlay.a) : 0.0;
 
-        color = lerp(color, Sanitize(overlay.rgb), alpha);
+        color = color * (1.0 - alpha) + Sanitize(overlay.rgb);
         compose.TransparencyMask[pixel] = alpha;
     }
 
-    compose.ComposedColor[pixel] = float4(color, 1.0);
+    compose.ComposedColor[pixel] = float4(min(color, MaxHalf), 1.0);
 }
 #endif
