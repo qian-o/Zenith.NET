@@ -84,8 +84,7 @@ ConstantBuffer<ComposeConstants> compose;
 
 float3 Sanitize(float3 value)
 {
-    return float3(isfinite(value.x) ? max(value.x, 0.0) : 0.0, isfinite(value.y) ? max(value.y, 0.0) : 0.0,
-                  isfinite(value.z) ? max(value.z, 0.0) : 0.0);
+    return select(isfinite(value), max(value, 0.0), 0.0);
 }
 
 float3 Demodulate(float3 color, float3 diffuseAlbedo, float3 specularAlbedo, out float3 diffuseRadiance,
@@ -116,7 +115,7 @@ float2 OctahedralEncode(float3 normal)
 
     if (normal.z < 0.0)
     {
-        float2 signNotZero = float2(normal.x >= 0.0 ? 1.0 : -1.0, normal.y >= 0.0 ? 1.0 : -1.0);
+        float2 signNotZero = select(normal.xy >= 0.0, 1.0, -1.0);
         normal.xy = (1.0 - abs(normal.yx)) * signNotZero;
     }
 
@@ -176,7 +175,7 @@ float SamplePreviousLinearDepth(float2 previousUv, float currentLinearDepth)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void PrepareCS(uint3 dispatchThreadId : SV_DispatchThreadID)
+void PrepareCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadId.xy;
 
@@ -218,8 +217,8 @@ void PrepareCS(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float diffuseHitDistance = max(linearDepth * 0.5, 0.1);
     float specularHitDistance = prepare.HasSpecularHitDistance != 0
-        ? max(prepare.SpecularHitDistance.Load(int3(pixel, 0)), 0.0)
-        : max(linearDepth * lerp(1.0, 0.25, roughness), 0.1);
+                                    ? max(prepare.SpecularHitDistance.Load(int3(pixel, 0)), 0.0)
+                                    : max(linearDepth * lerp(1.0, 0.25, roughness), 0.1);
 
     if (!isfinite(specularHitDistance))
     {
