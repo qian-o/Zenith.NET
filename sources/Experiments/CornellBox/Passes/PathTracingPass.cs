@@ -14,11 +14,8 @@ internal unsafe class PathTracingPass : DisposableObject
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline primaryRayPipeline;
     private readonly ComputePipeline pathTracePipeline;
-    private readonly ComputePipeline reactivePipeline;
-    private readonly ComputePipeline rayReconstructionPipeline;
 
     private Texture visibility = null!;
-    private Texture reflectionGuide = null!;
     private Texture previousLinearDepth = null!;
     private Texture currentLinearDepth = null!;
     private Matrix4x4 previousViewProjection = Matrix4x4.Identity;
@@ -34,8 +31,6 @@ internal unsafe class PathTracingPass : DisposableObject
 
         primaryRayPipeline = CreatePipeline("PrimaryRayCS");
         pathTracePipeline = CreatePipeline("PathTraceCS");
-        reactivePipeline = CreatePipeline("ReactiveMaskCS");
-        rayReconstructionPipeline = CreatePipeline("RayReconstructionGuidesCS");
     }
 
     public uint Width { get; private set; }
@@ -74,6 +69,10 @@ internal unsafe class PathTracingPass : DisposableObject
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
+        uint flags = (reset ? 1u : 0u)
+                   | (ReactiveMask is not null ? 2u : 0u)
+                   | (DiffuseAlbedo is not null ? 4u : 0u);
+
         PathTracingConstants constants = new()
         {
             InverseView = inverseView,
@@ -84,7 +83,7 @@ internal unsafe class PathTracingPass : DisposableObject
             FrameIndex = frameIndex,
             RenderSize = new(Width, Height),
             JitterOffset = jitterOffset,
-            Reset = reset ? 1u : 0u,
+            Flags = flags,
             Scene = scene.AccelerationStructure,
             Vertices = scene.Vertices,
             Indices = scene.Indices,
@@ -92,11 +91,8 @@ internal unsafe class PathTracingPass : DisposableObject
             Instances = scene.Instances,
             VisibilityStorage = visibility.StorageHandle,
             VisibilitySampled = visibility.SampledHandle,
-            ReflectionGuideStorage = reflectionGuide.StorageHandle,
-            ReflectionGuideSampled = reflectionGuide.SampledHandle,
             PreviousLinearDepth = previousLinearDepth.SampledHandle,
-            CurrentLinearDepthStorage = currentLinearDepth.StorageHandle,
-            CurrentLinearDepthSampled = currentLinearDepth.SampledHandle,
+            CurrentLinearDepth = currentLinearDepth.StorageHandle,
             Color = Color.StorageHandle,
             Depth = Depth.StorageHandle,
             MotionVectors = MotionVectors.StorageHandle,
@@ -119,35 +115,37 @@ internal unsafe class PathTracingPass : DisposableObject
             commandBuffer.Transition(previousLinearDepth, default, TextureLayout.Undefined, TextureLayout.Sampled);
         }
 
-        commandBuffer.Transition(visibility, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(MotionVectors, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Undefined, TextureLayout.Storage);
+        TransitionPrimaryOutputs(commandBuffer, TextureLayout.Undefined, TextureLayout.Storage);
 
         Dispatch(commandBuffer, primaryRayPipeline);
 
-        commandBuffer.Transition(visibility, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Storage, TextureLayout.Sampled);
+        TransitionPrimaryOutputs(commandBuffer, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(reflectionGuide, default, TextureLayout.Undefined, TextureLayout.Storage);
+
+        if (ReactiveMask is not null)
+        {
+            commandBuffer.Transition(ReactiveMask, default, TextureLayout.Undefined, TextureLayout.Storage);
+        }
+
+        if (SpecularHitDistance is not null)
+        {
+            commandBuffer.Transition(SpecularHitDistance, default, TextureLayout.Undefined, TextureLayout.Storage);
+        }
 
         Dispatch(commandBuffer, pathTracePipeline);
 
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(reflectionGuide, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         if (ReactiveMask is not null)
         {
-            TransitionGuides(commandBuffer, TextureLayout.Undefined, TextureLayout.Storage);
-
-            Dispatch(commandBuffer, DiffuseAlbedo is not null ? rayReconstructionPipeline : reactivePipeline);
-
-            TransitionGuides(commandBuffer, TextureLayout.Storage, TextureLayout.Sampled);
+            commandBuffer.Transition(ReactiveMask, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
 
-        commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
+        if (SpecularHitDistance is not null)
+        {
+            commandBuffer.Transition(SpecularHitDistance, default, TextureLayout.Storage, TextureLayout.Sampled);
+        }
 
         (previousLinearDepth, currentLinearDepth) = (currentLinearDepth, previousLinearDepth);
         previousViewProjection = viewProjection;
@@ -168,8 +166,6 @@ internal unsafe class PathTracingPass : DisposableObject
     {
         DestroyTextures();
 
-        rayReconstructionPipeline?.Dispose();
-        reactivePipeline?.Dispose();
         pathTracePipeline?.Dispose();
         primaryRayPipeline?.Dispose();
         constantBuffer?.Dispose();
@@ -184,9 +180,12 @@ internal unsafe class PathTracingPass : DisposableObject
         commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
     }
 
-    private void TransitionGuides(CommandBuffer commandBuffer, TextureLayout oldLayout, TextureLayout newLayout)
+    private void TransitionPrimaryOutputs(CommandBuffer commandBuffer, TextureLayout oldLayout, TextureLayout newLayout)
     {
-        commandBuffer.Transition(ReactiveMask!, default, oldLayout, newLayout);
+        commandBuffer.Transition(visibility, default, oldLayout, newLayout);
+        commandBuffer.Transition(Depth, default, oldLayout, newLayout);
+        commandBuffer.Transition(MotionVectors, default, oldLayout, newLayout);
+        commandBuffer.Transition(currentLinearDepth, default, oldLayout, newLayout);
 
         if (DiffuseAlbedo is not null)
         {
@@ -194,7 +193,6 @@ internal unsafe class PathTracingPass : DisposableObject
             commandBuffer.Transition(SpecularAlbedo!, default, oldLayout, newLayout);
             commandBuffer.Transition(Normals!, default, oldLayout, newLayout);
             commandBuffer.Transition(Roughness!, default, oldLayout, newLayout);
-            commandBuffer.Transition(SpecularHitDistance!, default, oldLayout, newLayout);
         }
     }
 
@@ -222,7 +220,6 @@ internal unsafe class PathTracingPass : DisposableObject
         }
 
         visibility = CreateTexture(PixelFormat.R32G32B32A32UInt, width, height);
-        reflectionGuide = CreateTexture(PixelFormat.R16G16B16A16Float, width, height);
         previousLinearDepth = CreateTexture(PixelFormat.R32Float, width, height);
         currentLinearDepth = CreateTexture(PixelFormat.R32Float, width, height);
     }
@@ -233,8 +230,6 @@ internal unsafe class PathTracingPass : DisposableObject
         currentLinearDepth = null!;
         previousLinearDepth?.Dispose();
         previousLinearDepth = null!;
-        reflectionGuide?.Dispose();
-        reflectionGuide = null!;
         visibility?.Dispose();
         visibility = null!;
 
@@ -281,7 +276,7 @@ internal unsafe class PathTracingPass : DisposableObject
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 480)]
+[StructLayout(LayoutKind.Explicit, Size = 448)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -309,7 +304,7 @@ file struct PathTracingConstants
     public Vector2 JitterOffset;
 
     [FieldOffset(288)]
-    public uint Reset;
+    public uint Flags;
 
     [FieldOffset(304)]
     public ResourceHandle Scene;
@@ -333,44 +328,35 @@ file struct PathTracingConstants
     public ResourceHandle VisibilitySampled;
 
     [FieldOffset(360)]
-    public ResourceHandle ReflectionGuideStorage;
-
-    [FieldOffset(368)]
-    public ResourceHandle ReflectionGuideSampled;
-
-    [FieldOffset(376)]
     public ResourceHandle PreviousLinearDepth;
 
-    [FieldOffset(384)]
-    public ResourceHandle CurrentLinearDepthStorage;
+    [FieldOffset(368)]
+    public ResourceHandle CurrentLinearDepth;
 
-    [FieldOffset(392)]
-    public ResourceHandle CurrentLinearDepthSampled;
-
-    [FieldOffset(400)]
+    [FieldOffset(376)]
     public ResourceHandle Color;
 
-    [FieldOffset(408)]
+    [FieldOffset(384)]
     public ResourceHandle Depth;
 
-    [FieldOffset(416)]
+    [FieldOffset(392)]
     public ResourceHandle MotionVectors;
 
-    [FieldOffset(424)]
+    [FieldOffset(400)]
     public ResourceHandle ReactiveMask;
 
-    [FieldOffset(432)]
+    [FieldOffset(408)]
     public ResourceHandle DiffuseAlbedo;
 
-    [FieldOffset(440)]
+    [FieldOffset(416)]
     public ResourceHandle SpecularAlbedo;
 
-    [FieldOffset(448)]
+    [FieldOffset(424)]
     public ResourceHandle Normals;
 
-    [FieldOffset(456)]
+    [FieldOffset(432)]
     public ResourceHandle Roughness;
 
-    [FieldOffset(464)]
+    [FieldOffset(440)]
     public ResourceHandle SpecularHitDistance;
 }

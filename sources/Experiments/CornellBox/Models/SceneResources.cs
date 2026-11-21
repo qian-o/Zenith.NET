@@ -14,25 +14,32 @@ internal unsafe class SceneResources : DisposableObject
     private readonly BottomLevelAccelerationStructure[] bottomLevels;
     private readonly TopLevelAccelerationStructure topLevel;
     private readonly SceneInstance[] instances;
-    private readonly Matrix4x4[] transforms;
+    private readonly Matrix4x4[] dynamicTransforms = new Matrix4x4[CornellBoxGeometry.DynamicInstanceCount];
+    private readonly int firstDynamicSlot;
+
+    private bool wasPaused;
 
     public SceneResources()
     {
-        CornellBoxGeometry.CreateScene(out SceneVertex[] vertices, out uint[] indices, out (uint FirstIndex, uint IndexCount)[] meshes, out (int MeshIndex, bool IsDynamic, uint MaterialOverride, byte VisibilityMask)[] placements, out SceneMaterial[] materials);
+        CornellBoxGeometry.CreateScene(out SceneVertex[] vertices,
+                                       out uint[] indices,
+                                       out (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes,
+                                       out (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, uint MaterialOverride, byte VisibilityMask)[] placements,
+                                       out firstDynamicSlot,
+                                       out SceneMaterial[] materials);
 
         instances = new SceneInstance[placements.Length];
-        transforms = new Matrix4x4[placements.Length];
-        Array.Fill(transforms, Matrix4x4.Identity);
-        CornellBoxGeometry.WriteTransforms(0.0f, transforms);
+        CornellBoxGeometry.WriteTransforms(0.0f, dynamicTransforms);
 
         for (int i = 0; i < placements.Length; i++)
         {
-            (int meshIndex, bool isDynamic, uint materialOverride, _) = placements[i];
+            (int meshIndex, Matrix4x4 transform, bool isDynamic, uint materialOverride, _) = placements[i];
+            Matrix4x4 initialTransform = i >= firstDynamicSlot ? dynamicTransforms[i - firstDynamicSlot] : transform;
 
             instances[i] = new()
             {
-                ObjectToWorld = transforms[i],
-                PreviousObjectToWorld = transforms[i],
+                ObjectToWorld = initialTransform,
+                PreviousObjectToWorld = initialTransform,
                 FirstIndex = meshes[meshIndex].FirstIndex,
                 IsDynamic = isDynamic ? 1u : 0u,
                 MaterialOverride = materialOverride
@@ -58,7 +65,7 @@ internal unsafe class SceneResources : DisposableObject
                     RayTracingGeometry.Triangles(new()
                     {
                         VertexBuffer = vertexBuffer,
-                        VertexCount = (uint)vertices.Length,
+                        VertexCount = meshes[i].VertexBound,
                         VertexStrideInBytes = (uint)sizeof(SceneVertex),
                         IndexBuffer = indexBuffer,
                         IndexFormat = IndexFormat.UInt32,
@@ -74,14 +81,14 @@ internal unsafe class SceneResources : DisposableObject
         RayTracingInstance[] rayTracingInstances = new RayTracingInstance[placements.Length];
         for (int i = 0; i < placements.Length; i++)
         {
-            (int meshIndex, _, _, byte visibilityMask) = placements[i];
+            (int meshIndex, _, _, _, byte visibilityMask) = placements[i];
 
             rayTracingInstances[i] = new()
             {
                 AccelerationStructure = bottomLevels[meshIndex],
                 InstanceId = (uint)i,
                 VisibilityMask = visibilityMask,
-                Transform = transforms[i],
+                Transform = instances[i].ObjectToWorld,
                 Flags = RayTracingInstanceFlags.None
             };
         }
@@ -105,23 +112,33 @@ internal unsafe class SceneResources : DisposableObject
 
     public ResourceHandle Instances => instanceBuffer.StorageReadOnlyHandle;
 
-    public void Update(CommandBuffer commandBuffer, double elapsedSeconds, bool reset)
+    public void Update(CommandBuffer commandBuffer, double elapsedSeconds, bool isPaused, bool reset)
     {
-        CornellBoxGeometry.WriteTransforms((float)elapsedSeconds, transforms);
-
-        for (int i = CornellBoxGeometry.FirstDynamicSlot; i < instances.Length; i++)
+        if (isPaused && wasPaused && !reset)
         {
-            instances[i].PreviousObjectToWorld = reset ? transforms[i] : instances[i].ObjectToWorld;
-            instances[i].ObjectToWorld = transforms[i];
-            topLevel.Desc.Instances[i].Transform = transforms[i];
+            return;
         }
 
-        fixed (SceneInstance* pointer = instances)
+        wasPaused = isPaused;
+
+        CornellBoxGeometry.WriteTransforms((float)elapsedSeconds, dynamicTransforms);
+
+        for (int i = 0; i < CornellBoxGeometry.DynamicInstanceCount; i++)
         {
-            commandBuffer.Upload(instanceBuffer, 0, new()
+            int slot = firstDynamicSlot + i;
+            Matrix4x4 transform = dynamicTransforms[i];
+
+            instances[slot].PreviousObjectToWorld = reset ? transform : instances[slot].ObjectToWorld;
+            instances[slot].ObjectToWorld = transform;
+            topLevel.Desc.Instances[slot].Transform = transform;
+        }
+
+        fixed (SceneInstance* pointer = &instances[firstDynamicSlot])
+        {
+            commandBuffer.Upload(instanceBuffer, (uint)(firstDynamicSlot * sizeof(SceneInstance)), new()
             {
                 Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(SceneInstance) * instances.Length)
+                SizeInBytes = (uint)(CornellBoxGeometry.DynamicInstanceCount * sizeof(SceneInstance))
             });
         }
 

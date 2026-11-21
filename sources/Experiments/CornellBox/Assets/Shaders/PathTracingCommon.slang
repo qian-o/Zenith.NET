@@ -9,6 +9,10 @@ static const float MinimumRoughness = 0.035;
 
 static const uint InvalidIndex = 0xFFFFFFFFu;
 
+static const uint FlagReset = 1u;
+static const uint FlagHasReactiveMask = 2u;
+static const uint FlagHasRayReconstructionGuides = 4u;
+
 static const uint PatternSolid = 0u;
 static const uint PatternChecker = 1u;
 static const uint PatternGrid = 2u;
@@ -64,26 +68,31 @@ struct SceneInstance
     uint Padding;
 };
 
-struct SurfaceHit
+struct GeometryHit
 {
     float3 Position;
-    uint InstanceIndex;
+    uint MaterialId;
 
     float3 ObjectPosition;
     uint IsDynamic;
 
     float3 Normal;
+    float3 LocalNormal;
+    float3 GeometricNormal;
+};
+
+struct ShadingSurface
+{
+    float3 Position;
     float Roughness;
 
-    float3 GeometricNormal;
+    float3 Normal;
     float Metallic;
 
-    float3 Albedo;
-    float Emission;
-
-    float Transmission;
-    float Ior;
+    float3 GeometricNormal;
     float Clearcoat;
+
+    float3 Albedo;
     float ClearcoatRoughness;
 };
 
@@ -109,20 +118,87 @@ float NextRandom(inout uint seed)
     return float(seed) * (1.0 / 4294967296.0);
 }
 
-uint PackBarycentrics(float2 barycentrics)
+float2 EncodeOctahedral(float3 n)
 {
-    uint bx = uint(round(saturate(barycentrics.x) * 65535.0));
-    uint by = uint(round(saturate(barycentrics.y) * 65535.0));
+    n /= max(abs(n.x) + abs(n.y) + abs(n.z), 1e-6);
+    if (n.z < 0.0)
+    {
+        n.xy = (1.0 - abs(n.yx)) * select(n.xy >= 0.0, float2(1.0, 1.0), float2(-1.0, -1.0));
+    }
 
-    return (bx & 0xFFFFu) | ((by & 0xFFFFu) << 16u);
+    return n.xy;
 }
 
-float2 UnpackBarycentrics(uint packedValue)
+float3 DecodeOctahedral(float2 e)
 {
-    float bx = float(packedValue & 0xFFFFu) * (1.0 / 65535.0);
-    float by = float((packedValue >> 16u) & 0xFFFFu) * (1.0 / 65535.0);
+    float3 n = float3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+    if (n.z < 0.0)
+    {
+        n.xy = (1.0 - abs(n.yx)) * select(n.xy >= 0.0, float2(1.0, 1.0), float2(-1.0, -1.0));
+    }
 
-    return float2(bx, by);
+    return normalize(n);
+}
+
+uint PackNormal32(float3 n)
+{
+    float2 oct = EncodeOctahedral(n);
+    uint ix = uint(round(saturate(oct.x * 0.5 + 0.5) * 65534.0));
+    uint iy = uint(round(saturate(oct.y * 0.5 + 0.5) * 65534.0));
+
+    return ix | (iy << 16u);
+}
+
+float3 UnpackNormal32(uint packedValue)
+{
+    float ex = (float(packedValue & 0xFFFFu) * (2.0 / 65534.0)) - 1.0;
+    float ey = (float((packedValue >> 16u) & 0xFFFFu) * (2.0 / 65534.0)) - 1.0;
+
+    return DecodeOctahedral(float2(ex, ey));
+}
+
+uint PackGeoAndMeta(float3 geoNormal, uint materialId, bool isDynamic, float baseReactivity)
+{
+    float2 oct = EncodeOctahedral(geoNormal);
+    uint gx = uint(round(saturate(oct.x * 0.5 + 0.5) * 510.0));
+    uint gy = uint(round(saturate(oct.y * 0.5 + 0.5) * 510.0));
+    uint matBits = materialId & 0x3Fu;
+    uint dynBit = isDynamic ? 1u : 0u;
+    uint reactBits = uint(round(saturate(baseReactivity) * 127.0));
+
+    return gx | (gy << 9u) | (matBits << 18u) | (dynBit << 24u) | (reactBits << 25u);
+}
+
+void UnpackGeoAndMeta(uint packedValue, out float3 geoNormal, out uint materialId, out bool isDynamic,
+                      out float baseReactivity)
+{
+    float ex = (float(packedValue & 0x1FFu) * (2.0 / 510.0)) - 1.0;
+    float ey = (float((packedValue >> 9u) & 0x1FFu) * (2.0 / 510.0)) - 1.0;
+    geoNormal = DecodeOctahedral(float2(ex, ey));
+    materialId = (packedValue >> 18u) & 0x3Fu;
+    isDynamic = ((packedValue >> 24u) & 1u) != 0u;
+    baseReactivity = float((packedValue >> 25u) & 0x7Fu) * (1.0 / 127.0);
+}
+
+uint PackAlbedoRoughness(float3 albedo, float roughness)
+{
+    float3 encoded = sqrt(saturate(albedo));
+    uint r = uint(round(encoded.r * 255.0));
+    uint g = uint(round(encoded.g * 255.0));
+    uint b = uint(round(encoded.b * 255.0));
+    uint rough = uint(round(saturate(roughness) * 255.0));
+
+    return r | (g << 8u) | (b << 16u) | (rough << 24u);
+}
+
+void UnpackAlbedoRoughness(uint packedValue, out float3 albedo, out float roughness)
+{
+    float3 encoded = float3(
+        float(packedValue & 0xFFu),
+        float((packedValue >> 8u) & 0xFFu),
+        float((packedValue >> 16u) & 0xFFu)) * (1.0 / 255.0);
+    albedo = encoded * encoded;
+    roughness = max(float((packedValue >> 24u) & 0xFFu) * (1.0 / 255.0), MinimumRoughness);
 }
 
 float2 ComputeMotionVector(float4 currentClip, float4 previousClip)
@@ -215,7 +291,7 @@ float FbmNoise2D(float2 p)
     float sum = 0.0;
     float amp = 0.5;
     float2 q = p;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         sum += ValueNoise2D(q) * amp;
         q = float2(q.x * 1.6 - q.y * 1.2, q.x * 1.2 + q.y * 1.6);
@@ -275,10 +351,9 @@ void EvaluateProceduralPattern(SceneMaterial material, float3 objectPos, float3 
     }
 }
 
-SurfaceHit ReconstructSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics, float3 rayDirection,
-                              StructuredBuffer<SceneVertex> vertices, StructuredBuffer<uint> indices,
-                              StructuredBuffer<SceneMaterial> materials, StructuredBuffer<SceneInstance> instances,
-                              bool flipFacingToRay)
+GeometryHit ReconstructGeometryHit(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
+                                   StructuredBuffer<SceneVertex> vertices, StructuredBuffer<uint> indices,
+                                   StructuredBuffer<SceneInstance> instances)
 {
     SceneInstance instance = instances[instanceIndex];
     uint firstIndex = instance.FirstIndex + primitiveIndex * 3u;
@@ -297,34 +372,33 @@ SurfaceHit ReconstructSurface(uint instanceIndex, uint primitiveIndex, float2 ba
         localFaceNormal = -localFaceNormal;
     }
 
-    uint materialId = instance.MaterialOverride != InvalidIndex ? instance.MaterialOverride : v0.MaterialId;
-    SceneMaterial mat = materials[materialId];
+    GeometryHit hit;
+    hit.Position = mul(float4(localPos, 1.0), instance.ObjectToWorld).xyz;
+    hit.ObjectPosition = localPos;
+    hit.MaterialId = instance.MaterialOverride != InvalidIndex ? instance.MaterialOverride : v0.MaterialId;
+    hit.IsDynamic = instance.IsDynamic;
+    hit.Normal = normalize(mul(float4(localNormal, 0.0), instance.ObjectToWorld).xyz);
+    hit.LocalNormal = localNormal;
+    hit.GeometricNormal = normalize(mul(float4(localFaceNormal, 0.0), instance.ObjectToWorld).xyz);
 
+    return hit;
+}
+
+ShadingSurface BuildShadingSurface(GeometryHit hit, SceneMaterial mat)
+{
     float3 albedo = mat.Albedo;
     float roughness = max(mat.Roughness, MinimumRoughness);
-    EvaluateProceduralPattern(mat, localPos, localNormal, albedo, roughness);
+    EvaluateProceduralPattern(mat, hit.ObjectPosition, hit.LocalNormal, albedo, roughness);
 
-    SurfaceHit surface;
-    surface.Position = mul(float4(localPos, 1.0), instance.ObjectToWorld).xyz;
-    surface.ObjectPosition = localPos;
-    surface.InstanceIndex = instanceIndex;
-    surface.IsDynamic = instance.IsDynamic;
-    surface.Normal = normalize(mul(float4(localNormal, 0.0), instance.ObjectToWorld).xyz);
-    surface.GeometricNormal = normalize(mul(float4(localFaceNormal, 0.0), instance.ObjectToWorld).xyz);
-    surface.Albedo = albedo;
+    ShadingSurface surface;
+    surface.Position = hit.Position;
     surface.Roughness = roughness;
+    surface.Normal = hit.Normal;
     surface.Metallic = saturate(mat.Metallic);
-    surface.Emission = mat.Emission;
-    surface.Transmission = saturate(mat.Transmission);
-    surface.Ior = max(mat.Ior, 1.0);
+    surface.GeometricNormal = hit.GeometricNormal;
     surface.Clearcoat = saturate(mat.Clearcoat);
+    surface.Albedo = albedo;
     surface.ClearcoatRoughness = max(mat.ClearcoatRoughness, MinimumRoughness);
-
-    if (flipFacingToRay && dot(surface.GeometricNormal, rayDirection) > 0.0)
-    {
-        surface.Normal = -surface.Normal;
-        surface.GeometricNormal = -surface.GeometricNormal;
-    }
 
     return surface;
 }
@@ -397,7 +471,8 @@ float3 SampleCosineHemisphere(float3 normal, inout uint rng)
     return normalize(t * (cos(phi) * sinTheta) + b * (sin(phi) * sinTheta) + normal * cosTheta);
 }
 
-void ComputeLobeProbabilities(SurfaceHit surface, float3 V, out float specProb, out float coatProb, out float diffProb)
+void ComputeLobeProbabilities(ShadingSurface surface, float3 V, out float specProb, out float coatProb,
+                              out float diffProb)
 {
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
     float NdotV = saturate(dot(surface.Normal, V));
@@ -405,7 +480,7 @@ void ComputeLobeProbabilities(SurfaceHit surface, float3 V, out float specProb, 
 
     float coatWeight = surface.Clearcoat * (0.04 + 0.96 * pow(1.0 - NdotV, 5.0)) * 0.5;
     float specWeight = max(F.r, max(F.g, F.b));
-    float diffWeight = (1.0 - specWeight) * (1.0 - surface.Metallic) * (1.0 - surface.Transmission);
+    float diffWeight = (1.0 - specWeight) * (1.0 - surface.Metallic);
 
     float sum = max(coatWeight + specWeight + diffWeight, 1e-4);
     coatProb = coatWeight / sum;
@@ -413,64 +488,52 @@ void ComputeLobeProbabilities(SurfaceHit surface, float3 V, out float specProb, 
     diffProb = diffWeight / sum;
 }
 
-float3 EvaluateOpaqueBRDF(SurfaceHit surface, float3 V, float3 L)
+float PowerHeuristic(float pdfA, float pdfB)
 {
-    float NdotL = max(dot(surface.Normal, L), 0.0);
-    float NdotV = max(dot(surface.Normal, V), 1e-3);
-    if (NdotL <= 0.0)
-    {
-        return 0.0;
-    }
+    float a2 = pdfA * pdfA;
 
-    float3 H = normalize(V + L);
-    float NdotH = max(dot(surface.Normal, H), 0.0);
-    float HdotV = max(dot(H, V), 0.0);
-
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
-    float D = DistributionGGX(NdotH, surface.Roughness);
-    float G = GeometrySmith(NdotV, NdotL, surface.Roughness);
-    float3 F = FresnelSchlick(HdotV, F0);
-    float3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 1e-4);
-
-    float3 kD = (1.0 - F) * (1.0 - surface.Metallic) * (1.0 - surface.Transmission);
-    float3 diffuse = kD * surface.Albedo * InvPI;
-
-    float3 clearcoat = 0.0;
-    if (surface.Clearcoat > 0.0)
-    {
-        float Dc = DistributionGGX(NdotH, surface.ClearcoatRoughness);
-        float Gc = GeometrySmith(NdotV, NdotL, surface.ClearcoatRoughness);
-        float Fc = (0.04 + 0.96 * pow(saturate(1.0 - HdotV), 5.0)) * surface.Clearcoat;
-        clearcoat = float3(Dc * Gc * Fc / max(4.0 * NdotV * NdotL, 1e-4));
-        diffuse *= (1.0 - Fc * 0.5);
-    }
-
-    return diffuse + specular + clearcoat;
+    return a2 / max(a2 + pdfB * pdfB, 1e-5);
 }
 
-float ComputeOpaqueBRDFPdf(SurfaceHit surface, float3 V, float3 L)
+float3 EvaluateDirectLightingMIS(ShadingSurface surface, float3 V, float3 L, float NdotL, float pdfLight)
 {
-    float NdotL = max(dot(surface.Normal, L), 0.0);
-    if (NdotL <= 0.0)
-    {
-        return 0.0;
-    }
-
     float specProb;
     float coatProb;
     float diffProb;
     ComputeLobeProbabilities(surface, V, specProb, coatProb, diffProb);
 
+    float NdotV = max(dot(surface.Normal, V), 1e-3);
     float3 H = normalize(V + L);
     float NdotH = max(dot(surface.Normal, H), 0.0);
     float HdotV = max(dot(H, V), 1e-4);
 
-    float pdfSpec = DistributionGGX(NdotH, surface.Roughness) * NdotH / (4.0 * HdotV);
-    float pdfCoat =
-        surface.Clearcoat > 0.0 ? DistributionGGX(NdotH, surface.ClearcoatRoughness) * NdotH / (4.0 * HdotV) : 0.0;
-    float pdfDiff = NdotL * InvPI;
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
+    float D = DistributionGGX(NdotH, surface.Roughness);
+    float G = GeometrySmith(NdotV, NdotL, surface.Roughness);
+    float3 F = FresnelSchlick(HdotV, F0);
+    float denom = max(4.0 * NdotV * NdotL, 1e-4);
+    float3 specular = (D * G * F) / denom;
+    float3 diffuse = (1.0 - F) * (1.0 - surface.Metallic) * surface.Albedo * InvPI;
 
-    return specProb * pdfSpec + coatProb * pdfCoat + diffProb * pdfDiff;
+    float3 clearcoat = 0.0;
+    float pdfCoat = 0.0;
+    if (surface.Clearcoat > 0.0)
+    {
+        float Dc = DistributionGGX(NdotH, surface.ClearcoatRoughness);
+        float Gc = GeometrySmith(NdotV, NdotL, surface.ClearcoatRoughness);
+        float Fc = (0.04 + 0.96 * pow(saturate(1.0 - HdotV), 5.0)) * surface.Clearcoat;
+        clearcoat = float3(Dc * Gc * Fc / denom);
+        diffuse *= (1.0 - Fc * 0.5);
+        pdfCoat = Dc * NdotH / (4.0 * HdotV);
+    }
+
+    float pdfSpec = D * NdotH / (4.0 * HdotV);
+    float pdfDiff = NdotL * InvPI;
+    float pdfBrdf = specProb * pdfSpec + coatProb * pdfCoat + diffProb * pdfDiff;
+    float misWeight = PowerHeuristic(pdfLight, pdfBrdf);
+    float3 brdf = diffuse + specular + clearcoat;
+
+    return brdf * (NdotL * misWeight / pdfLight);
 }
 
 float3 EstimateEnvSpecularAlbedo(float3 specularColor, float roughness, float NdotV)
@@ -488,13 +551,6 @@ float3 EstimateEnvSpecularAlbedo(float3 specularColor, float roughness, float Nd
     bias *= saturate(specularColor.g * 50.0);
 
     return specularColor * max(0.0, scale) + max(0.0, bias);
-}
-
-float PowerHeuristic(float pdfA, float pdfB)
-{
-    float a2 = pdfA * pdfA;
-
-    return a2 / max(a2 + pdfB * pdfB, 1e-5);
 }
 
 bool TraceVisibilityRay(RaytracingAccelerationStructure scene, float3 origin, float3 direction, float maxDistance)
@@ -518,7 +574,7 @@ bool TraceVisibilityRay(RaytracingAccelerationStructure scene, float3 origin, fl
     return query.CommittedStatus() == COMMITTED_NOTHING;
 }
 
-float3 SampleCeilingDirectLight(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V,
+float3 SampleCeilingDirectLight(RaytracingAccelerationStructure scene, ShadingSurface surface, float3 V,
                                 float pickProbability, inout uint rng)
 {
     float u = NextRandom(rng) * 2.0 - 1.0;
@@ -544,14 +600,11 @@ float3 SampleCeilingDirectLight(RaytracingAccelerationStructure scene, SurfaceHi
 
     float pdfSolidAngle = distSq / max(L.y * CeilingLightArea, 1e-4);
     float pdfLight = max(pickProbability * pdfSolidAngle, 1e-5);
-    float pdfBrdf = ComputeOpaqueBRDFPdf(surface, V, L);
-    float misWeight = PowerHeuristic(pdfLight, pdfBrdf);
-    float3 brdf = EvaluateOpaqueBRDF(surface, V, L);
 
-    return CeilingLightRadiance * brdf * (NdotL * misWeight / pdfLight);
+    return CeilingLightRadiance * EvaluateDirectLightingMIS(surface, V, L, NdotL, pdfLight);
 }
 
-float3 SampleSunDirectLight(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V,
+float3 SampleSunDirectLight(RaytracingAccelerationStructure scene, ShadingSurface surface, float3 V,
                             float sunPickProbability, inout uint rng)
 {
     float3 t;
@@ -577,14 +630,11 @@ float3 SampleSunDirectLight(RaytracingAccelerationStructure scene, SurfaceHit su
 
     float solidAngle = max(TwoPI * (1.0 - SunCosRadius), 1e-4);
     float pdfSun = max(sunPickProbability / solidAngle, 1e-5);
-    float pdfBrdf = ComputeOpaqueBRDFPdf(surface, V, L);
-    float misWeight = PowerHeuristic(pdfSun, pdfBrdf);
-    float3 brdf = EvaluateOpaqueBRDF(surface, V, L);
 
-    return (SunIrradiance / solidAngle) * brdf * (NdotL * misWeight / pdfSun);
+    return (SunIrradiance / solidAngle) * EvaluateDirectLightingMIS(surface, V, L, NdotL, pdfSun);
 }
 
-float3 SampleDirectLighting(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V, inout uint rng)
+float3 SampleDirectLighting(RaytracingAccelerationStructure scene, ShadingSurface surface, float3 V, inout uint rng)
 {
     bool canSampleSun = dot(surface.Normal, SunDirection) > 0.0;
     float3 toCeiling = CeilingLightCenter - surface.Position;

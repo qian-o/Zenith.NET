@@ -58,7 +58,7 @@ internal class Renderer : DisposableObject
         Matrix4x4 projection = camera.Projection;
         float deltaTimeInSeconds = (float)deltaSeconds;
 
-        scene.Update(commandBuffer, elapsedSeconds, reset);
+        scene.Update(commandBuffer, elapsedSeconds, IsPaused, reset);
 
         pathTracingPass.Record(commandBuffer, scene, camera.Position, view, projection, jitterOffset, frameIndex, reset);
 
