@@ -68,6 +68,11 @@ internal class UpscalingPass : DisposableObject
 
     public void Resize()
     {
+        if (Color.Desc.Width == App.PhysicalWidth && Color.Desc.Height == App.PhysicalHeight)
+        {
+            return;
+        }
+
         DestroyResources();
         CreateResources();
     }

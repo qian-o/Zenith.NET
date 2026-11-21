@@ -16,7 +16,6 @@ internal class Renderer : DisposableObject
     private UpscalingPass? upscalingPass;
     private double elapsedSeconds;
     private uint frameIndex;
-    private bool wasPaused;
 
     public Renderer()
     {
@@ -29,7 +28,7 @@ internal class Renderer : DisposableObject
 
     public UpscalingQuality? Quality { get; set; } = App.Context.UpscalingCapabilities.SuperResolutionSupported ? UpscalingQuality.Quality : null;
 
-    public bool IsRayReconstructionEnabled { get; set; } = App.Context.UpscalingCapabilities.RayReconstructionSupported;
+    public bool IsRayReconstructionEnabled { get; set; } = App.Context.UpscalingCapabilities.SuperResolutionSupported && App.Context.UpscalingCapabilities.RayReconstructionSupported;
 
     public bool IsPaused { get; set; }
 
@@ -48,7 +47,6 @@ internal class Renderer : DisposableObject
         IsPaused = false;
         elapsedSeconds = 0.0;
         frameIndex = 0;
-        wasPaused = false;
     }
 
     public FrameGenerationSwapChainArgs Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
@@ -58,23 +56,11 @@ internal class Renderer : DisposableObject
 
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
-        float deltaTimeInSeconds = (float)Math.Clamp(deltaSeconds, 1.0 / 500.0, 0.25);
+        float deltaTimeInSeconds = (float)deltaSeconds;
 
-        if (IsPaused && !reset)
-        {
-            if (!wasPaused)
-            {
-                scene.FreezeMotion(commandBuffer);
-            }
-        }
-        else
-        {
-            scene.Update(commandBuffer, elapsedSeconds, reset);
-        }
+        scene.Update(commandBuffer, elapsedSeconds, reset);
 
-        wasPaused = IsPaused;
-
-        pathTracingPass.Record(commandBuffer, scene, camera, view, projection, jitterOffset, frameIndex, reset);
+        pathTracingPass.Record(commandBuffer, scene, camera.Position, view, projection, jitterOffset, frameIndex, reset);
 
         Texture color = pathTracingPass.Color;
 
@@ -103,17 +89,14 @@ internal class Renderer : DisposableObject
 
     public void Resize()
     {
-        UpscalingQuality? effectiveQuality = App.Context.UpscalingCapabilities.SuperResolutionSupported ? Quality : null;
-        bool effectiveRayReconstruction = effectiveQuality is not null && IsRayReconstructionEnabled && App.Context.UpscalingCapabilities.RayReconstructionSupported;
-
-        if (effectiveQuality is UpscalingQuality activeQuality)
+        if (Quality is UpscalingQuality quality)
         {
-            if (upscalingPass is null || upscalingPass.Quality != activeQuality || upscalingPass.IsRayReconstructionEnabled != effectiveRayReconstruction)
+            if (upscalingPass is null || upscalingPass.Quality != quality || upscalingPass.IsRayReconstructionEnabled != IsRayReconstructionEnabled)
             {
                 upscalingPass?.Dispose();
-                upscalingPass = new(activeQuality, effectiveRayReconstruction);
+                upscalingPass = new(quality, IsRayReconstructionEnabled);
             }
-            else if (upscalingPass.Color.Desc.Width != App.PhysicalWidth || upscalingPass.Color.Desc.Height != App.PhysicalHeight)
+            else
             {
                 upscalingPass.Resize();
             }
@@ -124,7 +107,7 @@ internal class Renderer : DisposableObject
             upscalingPass = null;
         }
 
-        pathTracingPass.Resize(upscalingPass?.RenderWidth ?? App.PhysicalWidth, upscalingPass?.RenderHeight ?? App.PhysicalHeight, upscalingPass is not null, effectiveRayReconstruction);
+        pathTracingPass.Resize(upscalingPass?.RenderWidth ?? App.PhysicalWidth, upscalingPass?.RenderHeight ?? App.PhysicalHeight, upscalingPass is not null, upscalingPass?.IsRayReconstructionEnabled is true);
         outputPass.Resize();
 
         frameIndex = 0;

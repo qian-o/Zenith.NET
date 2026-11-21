@@ -1,7 +1,5 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Upscaling;
@@ -64,7 +62,7 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public void Record(CommandBuffer commandBuffer,
                        SceneResources scene,
-                       CameraHandler camera,
+                       Vector3 cameraPosition,
                        Matrix4x4 view,
                        Matrix4x4 projection,
                        Vector2 jitterOffset,
@@ -76,26 +74,22 @@ internal unsafe class PathTracingPass : DisposableObject
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
-        uint packedFlags = (scene.LightCount & 0xFFFFu) | (reset ? 0x10000u : 0u);
-
         PathTracingConstants constants = new()
         {
             InverseView = inverseView,
             InverseProjection = inverseProjection,
             ViewProjection = viewProjection,
             PreviousViewProjection = effectivePreviousViewProjection,
-            CameraPositionAndFrame = new(camera.Position, Unsafe.BitCast<uint, float>(frameIndex)),
-            RenderSizeAndJitter = new(Width, Height, jitterOffset.X, jitterOffset.Y),
-            SunDirectionAndCosRadius = SceneResources.SunDirectionAndCosRadius,
-            SunIrradianceAndWeight = SceneResources.SunIrradianceAndWeight,
-            SkyZenithAndIntensity = SceneResources.SkyZenithAndIntensity,
-            SkyHorizonAndFlags = new(SceneResources.SkyHorizon, Unsafe.BitCast<uint, float>(packedFlags)),
+            CameraPosition = cameraPosition,
+            FrameIndex = frameIndex,
+            RenderSize = new(Width, Height),
+            JitterOffset = jitterOffset,
+            Reset = reset ? 1u : 0u,
             Scene = scene.AccelerationStructure,
             Vertices = scene.Vertices,
             Indices = scene.Indices,
             Materials = scene.Materials,
             Instances = scene.Instances,
-            Lights = scene.Lights,
             VisibilityStorage = visibility.StorageHandle,
             VisibilitySampled = visibility.SampledHandle,
             ReflectionGuideStorage = reflectionGuide.StorageHandle,
@@ -146,29 +140,11 @@ internal unsafe class PathTracingPass : DisposableObject
 
         if (ReactiveMask is not null)
         {
-            commandBuffer.Transition(ReactiveMask, default, TextureLayout.Undefined, TextureLayout.Storage);
-
-            if (DiffuseAlbedo is not null)
-            {
-                commandBuffer.Transition(DiffuseAlbedo, default, TextureLayout.Undefined, TextureLayout.Storage);
-                commandBuffer.Transition(SpecularAlbedo!, default, TextureLayout.Undefined, TextureLayout.Storage);
-                commandBuffer.Transition(Normals!, default, TextureLayout.Undefined, TextureLayout.Storage);
-                commandBuffer.Transition(Roughness!, default, TextureLayout.Undefined, TextureLayout.Storage);
-                commandBuffer.Transition(SpecularHitDistance!, default, TextureLayout.Undefined, TextureLayout.Storage);
-            }
+            TransitionGuides(commandBuffer, TextureLayout.Undefined, TextureLayout.Storage);
 
             Dispatch(commandBuffer, DiffuseAlbedo is not null ? rayReconstructionPipeline : reactivePipeline);
 
-            commandBuffer.Transition(ReactiveMask, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-            if (DiffuseAlbedo is not null)
-            {
-                commandBuffer.Transition(DiffuseAlbedo, default, TextureLayout.Storage, TextureLayout.Sampled);
-                commandBuffer.Transition(SpecularAlbedo!, default, TextureLayout.Storage, TextureLayout.Sampled);
-                commandBuffer.Transition(Normals!, default, TextureLayout.Storage, TextureLayout.Sampled);
-                commandBuffer.Transition(Roughness!, default, TextureLayout.Storage, TextureLayout.Sampled);
-                commandBuffer.Transition(SpecularHitDistance!, default, TextureLayout.Storage, TextureLayout.Sampled);
-            }
+            TransitionGuides(commandBuffer, TextureLayout.Storage, TextureLayout.Sampled);
         }
 
         commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
@@ -208,6 +184,20 @@ internal unsafe class PathTracingPass : DisposableObject
         commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
     }
 
+    private void TransitionGuides(CommandBuffer commandBuffer, TextureLayout oldLayout, TextureLayout newLayout)
+    {
+        commandBuffer.Transition(ReactiveMask!, default, oldLayout, newLayout);
+
+        if (DiffuseAlbedo is not null)
+        {
+            commandBuffer.Transition(DiffuseAlbedo, default, oldLayout, newLayout);
+            commandBuffer.Transition(SpecularAlbedo!, default, oldLayout, newLayout);
+            commandBuffer.Transition(Normals!, default, oldLayout, newLayout);
+            commandBuffer.Transition(Roughness!, default, oldLayout, newLayout);
+            commandBuffer.Transition(SpecularHitDistance!, default, oldLayout, newLayout);
+        }
+    }
+
     private void CreateTextures(uint width, uint height, bool hasReactiveMask, bool hasRayReconstructionGuides)
     {
         Width = width;
@@ -217,7 +207,7 @@ internal unsafe class PathTracingPass : DisposableObject
         Depth = CreateTexture(PixelFormat.R32Float, width, height);
         MotionVectors = CreateTexture(PixelFormat.R32G32Float, width, height);
 
-        if (hasReactiveMask || hasRayReconstructionGuides)
+        if (hasReactiveMask)
         {
             ReactiveMask = CreateTexture(PixelFormat.R16Float, width, height);
         }
@@ -291,7 +281,7 @@ internal unsafe class PathTracingPass : DisposableObject
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 528)]
+[StructLayout(LayoutKind.Explicit, Size = 480)]
 file struct PathTracingConstants
 {
     [FieldOffset(0)]
@@ -307,86 +297,80 @@ file struct PathTracingConstants
     public Matrix4x4 PreviousViewProjection;
 
     [FieldOffset(256)]
-    public Vector4 CameraPositionAndFrame;
+    public Vector3 CameraPosition;
+
+    [FieldOffset(268)]
+    public uint FrameIndex;
 
     [FieldOffset(272)]
-    public Vector4 RenderSizeAndJitter;
+    public Vector2 RenderSize;
+
+    [FieldOffset(280)]
+    public Vector2 JitterOffset;
 
     [FieldOffset(288)]
-    public Vector4 SunDirectionAndCosRadius;
+    public uint Reset;
 
     [FieldOffset(304)]
-    public Vector4 SunIrradianceAndWeight;
-
-    [FieldOffset(320)]
-    public Vector4 SkyZenithAndIntensity;
-
-    [FieldOffset(336)]
-    public Vector4 SkyHorizonAndFlags;
-
-    [FieldOffset(352)]
     public ResourceHandle Scene;
 
-    [FieldOffset(360)]
+    [FieldOffset(312)]
     public ResourceHandle Vertices;
 
-    [FieldOffset(368)]
+    [FieldOffset(320)]
     public ResourceHandle Indices;
 
-    [FieldOffset(376)]
+    [FieldOffset(328)]
     public ResourceHandle Materials;
 
-    [FieldOffset(384)]
+    [FieldOffset(336)]
     public ResourceHandle Instances;
 
-    [FieldOffset(392)]
-    public ResourceHandle Lights;
-
-    [FieldOffset(400)]
+    [FieldOffset(344)]
     public ResourceHandle VisibilityStorage;
 
-    [FieldOffset(408)]
+    [FieldOffset(352)]
     public ResourceHandle VisibilitySampled;
 
-    [FieldOffset(416)]
+    [FieldOffset(360)]
     public ResourceHandle ReflectionGuideStorage;
 
-    [FieldOffset(424)]
+    [FieldOffset(368)]
     public ResourceHandle ReflectionGuideSampled;
 
-    [FieldOffset(432)]
+    [FieldOffset(376)]
     public ResourceHandle PreviousLinearDepth;
 
-    [FieldOffset(440)]
+    [FieldOffset(384)]
     public ResourceHandle CurrentLinearDepthStorage;
 
-    [FieldOffset(448)]
+    [FieldOffset(392)]
     public ResourceHandle CurrentLinearDepthSampled;
 
-    [FieldOffset(456)]
+    [FieldOffset(400)]
     public ResourceHandle Color;
 
-    [FieldOffset(464)]
+    [FieldOffset(408)]
     public ResourceHandle Depth;
 
-    [FieldOffset(472)]
+    [FieldOffset(416)]
     public ResourceHandle MotionVectors;
 
-    [FieldOffset(480)]
+    [FieldOffset(424)]
     public ResourceHandle ReactiveMask;
 
-    [FieldOffset(488)]
+    [FieldOffset(432)]
     public ResourceHandle DiffuseAlbedo;
 
-    [FieldOffset(496)]
+    [FieldOffset(440)]
     public ResourceHandle SpecularAlbedo;
 
-    [FieldOffset(504)]
+    [FieldOffset(448)]
     public ResourceHandle Normals;
 
-    [FieldOffset(512)]
+    [FieldOffset(456)]
     public ResourceHandle Roughness;
 
-    [FieldOffset(520)]
+    [FieldOffset(464)]
     public ResourceHandle SpecularHitDistance;
 }

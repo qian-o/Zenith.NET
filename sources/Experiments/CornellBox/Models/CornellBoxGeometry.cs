@@ -4,7 +4,8 @@ namespace CornellBox.Models;
 
 internal static class CornellBoxGeometry
 {
-    private const int DynamicTrefoilSlot = 6;
+    public const int FirstDynamicSlot = 6;
+
     private const int DynamicRingOuterSlot = 7;
     private const int DynamicRingMiddleSlot = 8;
     private const int DynamicRingInnerSlot = 9;
@@ -65,7 +66,7 @@ internal static class CornellBoxGeometry
 
         (vertices, indices, meshes) = builder.ToArrays();
 
-        List<(int MeshIndex, bool IsDynamic, uint MaterialOverride, byte VisibilityMask)> placementList =
+        placements =
         [
             (sanctuaryShellMesh, false, uint.MaxValue, 0x01),
             (sanctuaryExhibitsMesh, false, uint.MaxValue, 0x01),
@@ -77,17 +78,14 @@ internal static class CornellBoxGeometry
             (outerRingMesh, true, uint.MaxValue, 0x01),
             (middleRingMesh, true, uint.MaxValue, 0x01),
             (innerRingMesh, true, uint.MaxValue, 0x01),
-            (mirrorOrbMesh, true, uint.MaxValue, 0x01)
+            (mirrorOrbMesh, true, uint.MaxValue, 0x01),
+            (pendulumMesh, true, uint.MaxValue, 0x01),
+            (pendulumMesh, true, 7u, 0x01),
+            (pendulumMesh, true, uint.MaxValue, 0x01),
+            (pendulumMesh, true, 7u, 0x01),
+            (pendulumMesh, true, uint.MaxValue, 0x01),
+            (rubyKnotMesh, true, uint.MaxValue, 0x01)
         ];
-
-        for (int i = 0; i < PendulumCount; i++)
-        {
-            uint materialOverride = (i % 2) is 0 ? uint.MaxValue : 7u;
-            placementList.Add((pendulumMesh, true, materialOverride, 0x01));
-        }
-
-        placementList.Add((rubyKnotMesh, true, uint.MaxValue, 0x01));
-        placements = [.. placementList];
 
         materials =
         [
@@ -118,15 +116,10 @@ internal static class CornellBoxGeometry
 
     public static void WriteTransforms(float elapsedSeconds, Span<Matrix4x4> transforms)
     {
-        for (int i = 0; i < DynamicTrefoilSlot; i++)
-        {
-            transforms[i] = Matrix4x4.Identity;
-        }
-
         float armillaryBob = 4.0f * MathF.Sin(elapsedSeconds * 1.10f);
         Matrix4x4 ringTranslation = Matrix4x4.CreateTranslation(new(0.0f, 250.0f + armillaryBob, 305.0f));
 
-        transforms[DynamicTrefoilSlot] = Matrix4x4.CreateRotationX(0.30f * MathF.Sin(elapsedSeconds * 0.72f)) * Matrix4x4.CreateRotationY(elapsedSeconds * 0.85f) * ringTranslation;
+        transforms[FirstDynamicSlot] = Matrix4x4.CreateRotationX(0.30f * MathF.Sin(elapsedSeconds * 0.72f)) * Matrix4x4.CreateRotationY(elapsedSeconds * 0.85f) * ringTranslation;
 
         Matrix4x4 outerRotation = Matrix4x4.CreateRotationY(elapsedSeconds * 0.62f) * Matrix4x4.CreateRotationZ(0.22f);
         Matrix4x4 middleRotation = Matrix4x4.CreateRotationX(elapsedSeconds * 1.02f) * outerRotation;
@@ -661,30 +654,6 @@ internal static class CornellBoxGeometry
         {
             float maxBevel = MathF.Min(halfExtents.X, MathF.Min(halfExtents.Y, halfExtents.Z)) * 0.48f;
             float bevelRadius = Math.Clamp(bevel, 0.0f, maxBevel);
-            if (bevelRadius <= 0.0001f)
-            {
-                Matrix4x4 flatRotation = Matrix4x4.CreateRotationY(yawRadians);
-                Span<Vector3> corners =
-                [
-                    Vector3.Transform(new(-halfExtents.X, -halfExtents.Y, -halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(halfExtents.X, -halfExtents.Y, -halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(halfExtents.X, -halfExtents.Y, halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(-halfExtents.X, -halfExtents.Y, halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(-halfExtents.X, halfExtents.Y, -halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(halfExtents.X, halfExtents.Y, -halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(halfExtents.X, halfExtents.Y, halfExtents.Z), flatRotation) + center,
-                    Vector3.Transform(new(-halfExtents.X, halfExtents.Y, halfExtents.Z), flatRotation) + center
-                ];
-                AddQuad(corners[4], corners[7], corners[6], corners[5], materialId);
-                AddQuad(corners[0], corners[1], corners[2], corners[3], materialId);
-                AddQuad(corners[0], corners[4], corners[5], corners[1], materialId);
-                AddQuad(corners[3], corners[2], corners[6], corners[7], materialId);
-                AddQuad(corners[0], corners[3], corners[7], corners[4], materialId);
-                AddQuad(corners[1], corners[5], corners[6], corners[2], materialId);
-
-                return;
-            }
-
             Vector3 inner = halfExtents - new Vector3(bevelRadius);
             Matrix4x4 rotation = Matrix4x4.CreateRotationY(yawRadians);
 
@@ -763,11 +732,6 @@ internal static class CornellBoxGeometry
 
         public void AddLathe(Vector3 baseCenter, ReadOnlySpan<Vector2> profile, uint materialId, int radialSegments = 44, bool capBottom = true, bool capTop = true)
         {
-            if (profile.Length < 2)
-            {
-                return;
-            }
-
             int count = profile.Length;
             Span<Vector2> radialNormals = stackalloc Vector2[count];
             for (int i = 0; i < count; i++)

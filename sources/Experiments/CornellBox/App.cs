@@ -31,11 +31,6 @@ internal static class App
 
     static App()
     {
-        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
-        {
-            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
-        }
-
         if (OperatingSystem.IsWindows())
         {
             Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
@@ -44,9 +39,13 @@ internal static class App
         {
             Context = GraphicsContext.CreateMetal(useValidationLayer: true);
         }
-        else
+        else if (OperatingSystem.IsLinux())
         {
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+        }
+        else
+        {
+            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
         }
 
         if (!Context.Capabilities.RayTracingSupported)
@@ -85,7 +84,6 @@ internal static class App
         {
             NearPlane = 8.0f,
             FarPlane = 8000.0f,
-            Fov = 45.0f,
             Speed = 280.0f
         };
 
@@ -119,19 +117,10 @@ internal static class App
 
     private static void OnUpdate(double deltaSeconds)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0 || LogicalWidth is 0 || LogicalHeight is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
-
-        uint surfaceWidth = frameGenerationSwapChain?.Desc.Surface.Width ?? swapChain!.Desc.Surface.Width;
-        uint surfaceHeight = frameGenerationSwapChain?.Desc.Surface.Height ?? swapChain!.Desc.Surface.Height;
-        if (surfaceWidth != PhysicalWidth || surfaceHeight != PhysicalHeight)
-        {
-            Resize();
-        }
-
-        deltaSeconds = Math.Clamp(deltaSeconds, 0.0001, 0.1);
 
         camera.Update(deltaSeconds);
         renderer.Update(deltaSeconds);
@@ -146,12 +135,12 @@ internal static class App
 
     private static void OnRender(double deltaSeconds)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0 || LogicalWidth is 0 || LogicalHeight is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
 
-        deltaSeconds = Math.Clamp(deltaSeconds, 0.0001, 0.1);
+        Context.GraphicsQueue.Timeline.Signal().Wait();
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -176,12 +165,17 @@ internal static class App
 
     private static void OnFramebufferResize(Vector2D<int> size)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0 || LogicalWidth is 0 || LogicalHeight is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0)
         {
             return;
         }
 
-        Resize();
+        frameGenerationSwapChain?.Resize(PhysicalWidth, PhysicalHeight);
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+
+        swapChain?.Resize(PhysicalWidth, PhysicalHeight);
+        renderer.Resize();
     }
 
     private static void OnClosing()
@@ -266,16 +260,14 @@ internal static class App
 
         if (verticalSyncChanged || frameGenerationChanged)
         {
-            RecreateSwapChain();
-        }
-        else if (renderChanged)
-        {
-            frameGenerationSwapChain?.Resize(PhysicalWidth, PhysicalHeight);
+            DestroySwapChain();
+            CreateSwapChain();
         }
 
         if (renderChanged)
         {
-            WaitIdle();
+            Context.GraphicsQueue.Timeline.Signal().Wait();
+
             renderer.Resize();
         }
     }
@@ -304,7 +296,7 @@ internal static class App
     {
         Surface surface = CreateSurface();
 
-        if (isFrameGenerationEnabled && Context.UpscalingCapabilities.FrameGenerationSupported)
+        if (isFrameGenerationEnabled)
         {
             frameGenerationSwapChain = Context.CreateFrameGenerationSwapChain(new()
             {
@@ -329,43 +321,9 @@ internal static class App
         frameGenerationSwapChain?.Dispose();
         frameGenerationSwapChain = null;
 
-        WaitIdle();
+        Context.GraphicsQueue.Timeline.Signal().Wait();
 
         swapChain?.Dispose();
         swapChain = null;
-    }
-
-    private static void RecreateSwapChain()
-    {
-        DestroySwapChain();
-        CreateSwapChain();
-    }
-
-    private static void Resize()
-    {
-        if (frameGenerationSwapChain is not null)
-        {
-            frameGenerationSwapChain.Resize(PhysicalWidth, PhysicalHeight);
-            WaitIdle();
-        }
-        else
-        {
-            WaitIdle();
-            swapChain!.Resize(PhysicalWidth, PhysicalHeight);
-        }
-
-        renderer.Resize();
-    }
-
-    private static void WaitIdle()
-    {
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-        Context.ComputeQueue.Timeline.Signal().Wait();
-        Context.TransferQueue.Timeline.Signal().Wait();
-
-        if (frameGenerationSwapChain is null)
-        {
-            Context.PresentQueue.Timeline.Signal().Wait();
-        }
     }
 }

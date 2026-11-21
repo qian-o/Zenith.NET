@@ -28,8 +28,6 @@ internal class CameraHandler : DisposableObject
 
         SetLookAt(position, target);
 
-        mouse.MouseDown += OnMouseDown;
-        mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
@@ -43,13 +41,13 @@ internal class CameraHandler : DisposableObject
 
     public Vector3 Up { get; private set; }
 
-    public float NearPlane { get; set; } = 8.0f;
+    public float NearPlane { get; set; } = 0.1f;
 
-    public float FarPlane { get; set; } = 8000.0f;
+    public float FarPlane { get; set; } = 200.0f;
 
     public float Fov { get; set; } = 45.0f;
 
-    public float Speed { get; set; } = 280.0f;
+    public float Speed { get; set; } = 12.0f;
 
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
@@ -106,12 +104,7 @@ internal class CameraHandler : DisposableObject
             keyboard.KeyDown -= OnKeyDown;
         }
 
-        if (mouse is not null)
-        {
-            mouse.MouseMove -= OnMouseMove;
-            mouse.MouseUp -= OnMouseUp;
-            mouse.MouseDown -= OnMouseDown;
-        }
+        mouse?.MouseMove -= OnMouseMove;
 
         keyDowns.Clear();
         lastMousePosition = null;
@@ -137,34 +130,16 @@ internal class CameraHandler : DisposableObject
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
-    private void OnMouseDown(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
-        {
-            lastMousePosition = mouse.Position;
-        }
-    }
-
-    private void OnMouseUp(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
-        {
-            lastMousePosition = null;
-        }
-    }
-
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        if (!lastMousePosition.HasValue || App.LogicalWidth is 0 || App.LogicalHeight is 0)
+        if (mouse.IsButtonPressed(MouseButton.Right) && lastMousePosition is Vector2 lastPosition)
         {
-            return;
+            Vector2 delta = position - lastPosition;
+
+            yawInRadians -= delta.X * (MathF.PI / App.LogicalWidth);
+            pitchInRadians = Math.Clamp(pitchInRadians - (delta.Y * (MathF.PI / App.LogicalHeight)), -MaxPitchInRadians, MaxPitchInRadians);
+            UpdateBasis();
         }
-
-        Vector2 delta = position - lastMousePosition.Value;
-
-        yawInRadians -= delta.X * (MathF.PI / App.LogicalWidth);
-        pitchInRadians = Math.Clamp(pitchInRadians - (delta.Y * (MathF.PI / App.LogicalHeight)), -MaxPitchInRadians, MaxPitchInRadians);
-        UpdateBasis();
 
         lastMousePosition = position;
     }

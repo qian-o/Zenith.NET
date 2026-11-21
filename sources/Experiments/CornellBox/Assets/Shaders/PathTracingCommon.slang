@@ -15,6 +15,18 @@ static const uint PatternGrid = 2u;
 static const uint PatternStripes = 3u;
 static const uint PatternMarble = 4u;
 
+static const float3 SunDirection = float3(0.44068358, 0.52080786, -0.73113406);
+static const float SunCosRadius = 0.99968752;
+static const float3 SunIrradiance = float3(5.8, 4.40, 2.95);
+static const float SunPickWeight = 0.50;
+static const float3 SkyZenithColor = float3(0.09, 0.24, 0.58);
+static const float3 SkyHorizonColor = float3(0.50, 0.63, 0.78);
+static const float SkyIntensity = 1.05;
+static const float3 CeilingLightCenter = float3(0.0, 553.5, 275.0);
+static const float2 CeilingLightHalfSize = float2(93.0, 83.0);
+static const float CeilingLightArea = 30876.0;
+static const float3 CeilingLightRadiance = float3(25.0, 22.25, 17.5);
+
 struct SceneVertex
 {
     float3 Position;
@@ -52,21 +64,6 @@ struct SceneInstance
     uint Padding;
 };
 
-struct SceneLight
-{
-    float3 Position;
-    float Padding;
-
-    float3 EdgeU;
-    float HalfWidth;
-
-    float3 EdgeV;
-    float HalfHeight;
-
-    float3 Radiance;
-    float SelectionWeight;
-};
-
 struct SurfaceHit
 {
     float3 Position;
@@ -98,9 +95,9 @@ uint PCGHash(uint input)
     return (word >> 22u) ^ word;
 }
 
-uint InitRandomSeed(uint2 pixel, uint2 size, uint frameIndex, uint salt)
+uint InitRandomSeed(uint2 pixel, uint2 size, uint frameIndex)
 {
-    uint baseSeed = pixel.x + pixel.y * size.x + frameIndex * 1664525u + salt * 1013904223u;
+    uint baseSeed = pixel.x + pixel.y * size.x + frameIndex * 1664525u + 1013904223u;
 
     return PCGHash(baseSeed);
 }
@@ -163,25 +160,24 @@ void BuildOrthonormalBasis(float3 n, out float3 tangent, out float3 bitangent)
     bitangent = cross(n, tangent);
 }
 
-float3 EvaluateSkyRadiance(float3 direction, float3 zenithColor, float3 horizonColor, float skyIntensity,
-                           float3 sunDirection, float sunCosRadius, float3 sunIrradiance, bool includeSunDisk)
+float3 EvaluateSkyRadiance(float3 direction, bool includeSunDisk)
 {
     float upFactor = saturate(direction.y * 0.72 + 0.28);
-    float3 gradient = lerp(horizonColor, zenithColor, pow(upFactor, 0.78)) * skyIntensity;
+    float3 gradient = lerp(SkyHorizonColor, SkyZenithColor, pow(upFactor, 0.78)) * SkyIntensity;
 
-    float sunAlign = saturate(dot(direction, sunDirection));
+    float sunAlign = saturate(dot(direction, SunDirection));
     float mieGlow = pow(sunAlign, 14.0) * 0.55 + pow(sunAlign, 3.0) * 0.14;
-    gradient += sunIrradiance * (mieGlow * 0.10);
+    gradient += SunIrradiance * (mieGlow * 0.10);
 
     if (direction.y < 0.0)
     {
         gradient *= lerp(1.0, 0.30, saturate(-direction.y * 3.0));
     }
 
-    if (includeSunDisk && any(sunIrradiance > 0.0) && sunAlign >= sunCosRadius)
+    if (includeSunDisk && sunAlign >= SunCosRadius)
     {
-        float solidAngle = max(TwoPI * (1.0 - sunCosRadius), 1e-4);
-        gradient += sunIrradiance / solidAngle;
+        float solidAngle = max(TwoPI * (1.0 - SunCosRadius), 1e-4);
+        gradient += SunIrradiance / solidAngle;
     }
 
     return gradient;
@@ -522,16 +518,12 @@ bool TraceVisibilityRay(RaytracingAccelerationStructure scene, float3 origin, fl
     return query.CommittedStatus() == COMMITTED_NOTHING;
 }
 
-float3 SampleSingleAnalyticLight(RaytracingAccelerationStructure scene, StructuredBuffer<SceneLight> lights,
-                                 SurfaceHit surface, float3 V, float selectionPickProbability, uint selectedIndex,
-                                 inout uint rng)
+float3 SampleCeilingDirectLight(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V,
+                                float pickProbability, inout uint rng)
 {
-    SceneLight light = lights[selectedIndex];
     float u = NextRandom(rng) * 2.0 - 1.0;
     float v = NextRandom(rng) * 2.0 - 1.0;
-    float3 lightPoint = light.Position + light.EdgeU * (u * light.HalfWidth) + light.EdgeV * (v * light.HalfHeight);
-    float3 lightNormal = normalize(cross(light.EdgeU, light.EdgeV));
-    float area = max(4.0 * light.HalfWidth * light.HalfHeight, 1e-3);
+    float3 lightPoint = CeilingLightCenter + float3(u * CeilingLightHalfSize.x, 0.0, v * CeilingLightHalfSize.y);
 
     float3 toLight = lightPoint - surface.Position;
     float distSq = dot(toLight, toLight);
@@ -539,13 +531,7 @@ float3 SampleSingleAnalyticLight(RaytracingAccelerationStructure scene, Structur
     float3 L = toLight / dist;
 
     float NdotL = dot(surface.Normal, L);
-    if (NdotL <= 0.0)
-    {
-        return 0.0;
-    }
-
-    float lightCosine = dot(lightNormal, -L);
-    if (lightCosine <= 0.0)
+    if (NdotL <= 0.0 || L.y <= 0.0)
     {
         return 0.0;
     }
@@ -556,26 +542,26 @@ float3 SampleSingleAnalyticLight(RaytracingAccelerationStructure scene, Structur
         return 0.0;
     }
 
-    float pdfSolidAngle = distSq / max(lightCosine * area, 1e-4);
-    float pdfLight = max(selectionPickProbability * pdfSolidAngle, 1e-5);
+    float pdfSolidAngle = distSq / max(L.y * CeilingLightArea, 1e-4);
+    float pdfLight = max(pickProbability * pdfSolidAngle, 1e-5);
     float pdfBrdf = ComputeOpaqueBRDFPdf(surface, V, L);
     float misWeight = PowerHeuristic(pdfLight, pdfBrdf);
     float3 brdf = EvaluateOpaqueBRDF(surface, V, L);
 
-    return light.Radiance * brdf * (NdotL * misWeight / pdfLight);
+    return CeilingLightRadiance * brdf * (NdotL * misWeight / pdfLight);
 }
 
-float3 SampleSunDirectLight(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V, float3 sunDirection,
-                            float sunCosRadius, float3 sunIrradiance, float sunPickProbability, inout uint rng)
+float3 SampleSunDirectLight(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V,
+                            float sunPickProbability, inout uint rng)
 {
     float3 t;
     float3 b;
-    BuildOrthonormalBasis(sunDirection, t, b);
+    BuildOrthonormalBasis(SunDirection, t, b);
 
-    float cosTheta = lerp(1.0, sunCosRadius, NextRandom(rng));
+    float cosTheta = lerp(1.0, SunCosRadius, NextRandom(rng));
     float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
     float phi = TwoPI * NextRandom(rng);
-    float3 L = normalize(sunDirection * cosTheta + (t * cos(phi) + b * sin(phi)) * sinTheta);
+    float3 L = normalize(SunDirection * cosTheta + (t * cos(phi) + b * sin(phi)) * sinTheta);
 
     float NdotL = dot(surface.Normal, L);
     if (NdotL <= 0.0)
@@ -589,70 +575,31 @@ float3 SampleSunDirectLight(RaytracingAccelerationStructure scene, SurfaceHit su
         return 0.0;
     }
 
-    float solidAngle = max(TwoPI * (1.0 - sunCosRadius), 1e-4);
+    float solidAngle = max(TwoPI * (1.0 - SunCosRadius), 1e-4);
     float pdfSun = max(sunPickProbability / solidAngle, 1e-5);
     float pdfBrdf = ComputeOpaqueBRDFPdf(surface, V, L);
     float misWeight = PowerHeuristic(pdfSun, pdfBrdf);
     float3 brdf = EvaluateOpaqueBRDF(surface, V, L);
 
-    return (sunIrradiance / solidAngle) * brdf * (NdotL * misWeight / pdfSun);
+    return (SunIrradiance / solidAngle) * brdf * (NdotL * misWeight / pdfSun);
 }
 
-float3 SampleDirectLightingStochastic(RaytracingAccelerationStructure scene, StructuredBuffer<SceneLight> lights,
-                                      uint lightCount, SurfaceHit surface, float3 V, float3 sunDirection,
-                                      float sunCosRadius, float3 sunIrradiance, float baseSunWeight, inout uint rng)
+float3 SampleDirectLighting(RaytracingAccelerationStructure scene, SurfaceHit surface, float3 V, inout uint rng)
 {
-    bool canSampleSun = baseSunWeight > 0.0 && dot(surface.Normal, sunDirection) > 0.0;
+    bool canSampleSun = dot(surface.Normal, SunDirection) > 0.0;
+    float3 toCeiling = CeilingLightCenter - surface.Position;
+    bool canSampleCeiling = dot(surface.Normal, toCeiling * rsqrt(max(dot(toCeiling, toCeiling), 2500.0))) > -0.25;
 
-    float localTotalWeight = 0.0;
-    float weights[16];
-    uint cappedCount = min(lightCount, 16u);
-
-    for (uint i = 0u; i < cappedCount; i++)
-    {
-        SceneLight candidate = lights[i];
-        float3 delta = candidate.Position - surface.Position;
-        float distSq = max(dot(delta, delta), 2500.0);
-        float facing = dot(surface.Normal, delta * rsqrt(distSq));
-        float w = facing > -0.25 ? (candidate.SelectionWeight * 250000.0 / distSq) : 0.0;
-        weights[i] = w;
-        localTotalWeight += w;
-    }
-
-    if (!canSampleSun && localTotalWeight <= 1e-6)
+    if (!canSampleSun && !canSampleCeiling)
     {
         return 0.0;
     }
 
-    float sunProb = canSampleSun ? (localTotalWeight > 1e-6 ? clamp(baseSunWeight, 0.20, 0.80) : 1.0) : 0.0;
-
-    float pick = NextRandom(rng);
-    if (canSampleSun && pick < sunProb)
+    float sunProb = canSampleSun ? (canSampleCeiling ? SunPickWeight : 1.0) : 0.0;
+    if (canSampleSun && NextRandom(rng) < sunProb)
     {
-        return SampleSunDirectLight(scene, surface, V, sunDirection, sunCosRadius, sunIrradiance, sunProb, rng);
+        return SampleSunDirectLight(scene, surface, V, sunProb, rng);
     }
 
-    if (localTotalWeight <= 1e-6)
-    {
-        return 0.0;
-    }
-
-    float localShare = max(1.0 - sunProb, 1e-4);
-    float target = ((pick - sunProb) / localShare) * localTotalWeight;
-    float cumulative = 0.0;
-    uint chosenIndex = 0u;
-    float chosenProb = localShare;
-
-    for (uint i = 0u; i < cappedCount; i++)
-    {
-        cumulative += weights[i];
-        if (target <= cumulative || i == (cappedCount - 1u))
-        {
-            chosenIndex = i;
-            chosenProb = max(localShare * (weights[i] / localTotalWeight), 1e-5);
-            break;
-        }
-    }
-
-    return SampleSingleAnalyticLight(scene, lights, surface, V, chosenProb, chosenIndex, rng);
+    return canSampleCeiling ? SampleCeilingDirectLight(scene, surface, V, 1.0 - sunProb, rng) : 0.0;
 }

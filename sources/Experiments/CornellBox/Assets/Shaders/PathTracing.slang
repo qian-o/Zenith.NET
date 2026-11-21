@@ -12,17 +12,14 @@ struct PathTracingConstants
 
     float4x4 PreviousViewProjection;
 
-    float4 CameraPositionAndFrame;
+    float3 CameraPosition;
+    uint FrameIndex;
 
-    float4 RenderSizeAndJitter;
+    float2 RenderSize;
+    float2 JitterOffset;
 
-    float4 SunDirectionAndCosRadius;
-
-    float4 SunIrradianceAndWeight;
-
-    float4 SkyZenithAndIntensity;
-
-    float4 SkyHorizonAndFlags;
+    uint Reset;
+    uint3 Padding;
 
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
 
@@ -33,8 +30,6 @@ struct PathTracingConstants
     DescriptorHandle<StructuredBuffer<SceneMaterial>> Materials;
 
     DescriptorHandle<StructuredBuffer<SceneInstance>> Instances;
-
-    DescriptorHandle<StructuredBuffer<SceneLight>> Lights;
 
     DescriptorHandle<RWTexture2D<uint4>> VisibilityStorage;
 
@@ -70,6 +65,12 @@ struct PathTracingConstants
 };
 
 ConstantBuffer<PathTracingConstants> pathTracing;
+
+float3 GetCameraRayDirection(uint2 pixel)
+{
+    return ComputeCameraRayDirection(pixel, pathTracing.RenderSize, pathTracing.JitterOffset,
+                                     pathTracing.InverseProjection, pathTracing.InverseView);
+}
 
 bool TraceClosestHit(float3 origin, float3 direction, out uint instanceIndex, out uint primitiveIndex,
                      out float2 barycentrics, out float hitDistance)
@@ -191,7 +192,6 @@ float EvaluateDisocclusionReactivity(uint2 pixel, float2 renderSize, float2 moti
 SurfaceHit EvaluateGuideReactivity(uint2 pixel, uint4 vis, float3 direction, out float reactivity,
                                    out bool isPureMirror, out float3 reflectedTint, out float specularHitDistance)
 {
-    bool isResetFrame = (asuint(pathTracing.SkyHorizonAndFlags.w) & 0x10000u) != 0u;
     uint instanceIndex = vis.x & 0xFFFFu;
     float glassReactivity = float((vis.x >> 16u) & 0xFFFFu) * (1.0 / 65535.0);
     uint primitiveIndex = vis.y;
@@ -254,14 +254,14 @@ SurfaceHit EvaluateGuideReactivity(uint2 pixel, uint4 vis, float3 direction, out
         }
     }
 
-    reactivity = EvaluateDisocclusionReactivity(pixel, pathTracing.RenderSizeAndJitter.xy, effectiveMotion,
-                                                currentLinearW, isDynamicNow, isResetFrame);
+    reactivity = EvaluateDisocclusionReactivity(pixel, pathTracing.RenderSize, effectiveMotion, currentLinearW,
+                                                isDynamicNow, pathTracing.Reset != 0u);
 
     reactivity = max(reactivity, glassReactivity);
 
     if (hasStochasticDynamicRefl)
     {
-        float reflSpeed = length(stochasticReflMotion * pathTracing.RenderSizeAndJitter.xy);
+        float reflSpeed = length(stochasticReflMotion * pathTracing.RenderSize);
         reactivity = max(reactivity, saturate(reflSpeed * 1.8) * (1.0 - saturate(surface.Roughness * 2.5)));
     }
 
@@ -275,17 +275,15 @@ SurfaceHit EvaluateGuideReactivity(uint2 pixel, uint4 vis, float3 direction, out
 void PrimaryRayCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
-    uint2 renderSize = uint2(pathTracing.RenderSizeAndJitter.xy);
+    uint2 renderSize = uint2(pathTracing.RenderSize);
 
     if (any(pixel >= renderSize))
     {
         return;
     }
 
-    float3 origin = pathTracing.CameraPositionAndFrame.xyz;
-    float3 direction =
-        ComputeCameraRayDirection(pixel, pathTracing.RenderSizeAndJitter.xy, pathTracing.RenderSizeAndJitter.zw,
-                                  pathTracing.InverseProjection, pathTracing.InverseView);
+    float3 origin = pathTracing.CameraPosition;
+    float3 direction = GetCameraRayDirection(pixel);
 
     uint primaryInstance;
     uint primaryPrimitive;
@@ -411,34 +409,20 @@ void PrimaryRayCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 void PathTraceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
-    uint2 renderSize = uint2(pathTracing.RenderSizeAndJitter.xy);
+    uint2 renderSize = uint2(pathTracing.RenderSize);
 
     if (any(pixel >= renderSize))
     {
         return;
     }
 
-    uint frameIndex = asuint(pathTracing.CameraPositionAndFrame.w);
-    uint packedFlags = asuint(pathTracing.SkyHorizonAndFlags.w);
-    uint lightCount = packedFlags & 0xFFFFu;
-    float3 sunDir = pathTracing.SunDirectionAndCosRadius.xyz;
-    float sunCosRadius = pathTracing.SunDirectionAndCosRadius.w;
-    float3 sunIrradiance = pathTracing.SunIrradianceAndWeight.xyz;
-    float sunWeight = pathTracing.SunIrradianceAndWeight.w;
-    float3 skyZenith = pathTracing.SkyZenithAndIntensity.xyz;
-    float skyIntensity = pathTracing.SkyZenithAndIntensity.w;
-    float3 skyHorizon = pathTracing.SkyHorizonAndFlags.xyz;
-
-    float3 origin = pathTracing.CameraPositionAndFrame.xyz;
-    float3 direction =
-        ComputeCameraRayDirection(pixel, pathTracing.RenderSizeAndJitter.xy, pathTracing.RenderSizeAndJitter.zw,
-                                  pathTracing.InverseProjection, pathTracing.InverseView);
+    float3 origin = pathTracing.CameraPosition;
+    float3 direction = GetCameraRayDirection(pixel);
 
     uint4 vis = pathTracing.VisibilitySampled.Load(int3(pixel, 0));
     if (vis.x == InvalidIndex)
     {
-        float3 skyColor = EvaluateSkyRadiance(direction, skyZenith, skyHorizon, skyIntensity, sunDir, sunCosRadius,
-                                              sunIrradiance, true);
+        float3 skyColor = EvaluateSkyRadiance(direction, true);
         pathTracing.Color[pixel] = float4(min(skyColor, float3(24.0)), 1.0);
         pathTracing.ReflectionGuideStorage[pixel] = float4(MissDistance, 0.0, 0.0, 0.0);
 
@@ -454,7 +438,7 @@ void PathTraceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         ReconstructSurface(primaryInstance, primaryPrimitive, primaryBary, direction, pathTracing.Vertices,
                            pathTracing.Indices, pathTracing.Materials, pathTracing.Instances, false);
 
-    uint rng = InitRandomSeed(pixel, renderSize, frameIndex, 1u);
+    uint rng = InitRandomSeed(pixel, renderSize, pathTracing.FrameIndex);
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = 0.0;
     float specularHitDistance = 0.0;
@@ -487,8 +471,7 @@ void PathTraceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         if (!hasHit)
         {
             bool showSun = bounce == 0 || lastBounceWasDelta;
-            float3 env = EvaluateSkyRadiance(direction, skyZenith, skyHorizon, skyIntensity, sunDir, sunCosRadius,
-                                             sunIrradiance, showSun);
+            float3 env = EvaluateSkyRadiance(direction, showSun);
             radiance += throughput * env;
             break;
         }
@@ -549,9 +532,7 @@ void PathTraceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
         float3 V = -direction;
 
-        radiance +=
-            throughput * SampleDirectLightingStochastic(pathTracing.Scene, pathTracing.Lights, lightCount, surface, V,
-                                                        sunDir, sunCosRadius, sunIrradiance, sunWeight, rng);
+        radiance += throughput * SampleDirectLighting(pathTracing.Scene, surface, V, rng);
 
         if (bounce == MaxPathBounces)
         {
@@ -653,7 +634,7 @@ void PathTraceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 void ReactiveMaskCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
-    uint2 renderSize = uint2(pathTracing.RenderSizeAndJitter.xy);
+    uint2 renderSize = uint2(pathTracing.RenderSize);
 
     if (any(pixel >= renderSize))
     {
@@ -668,9 +649,7 @@ void ReactiveMaskCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         return;
     }
 
-    float3 direction =
-        ComputeCameraRayDirection(pixel, pathTracing.RenderSizeAndJitter.xy, pathTracing.RenderSizeAndJitter.zw,
-                                  pathTracing.InverseProjection, pathTracing.InverseView);
+    float3 direction = GetCameraRayDirection(pixel);
 
     float reactivity;
     bool isPureMirror;
@@ -686,16 +665,14 @@ void ReactiveMaskCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 void RayReconstructionGuidesCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
-    uint2 renderSize = uint2(pathTracing.RenderSizeAndJitter.xy);
+    uint2 renderSize = uint2(pathTracing.RenderSize);
 
     if (any(pixel >= renderSize))
     {
         return;
     }
 
-    float3 direction =
-        ComputeCameraRayDirection(pixel, pathTracing.RenderSizeAndJitter.xy, pathTracing.RenderSizeAndJitter.zw,
-                                  pathTracing.InverseProjection, pathTracing.InverseView);
+    float3 direction = GetCameraRayDirection(pixel);
 
     uint4 vis = pathTracing.VisibilitySampled.Load(int3(pixel, 0));
     if (vis.x == InvalidIndex)
