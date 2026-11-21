@@ -1,8 +1,12 @@
 ﻿struct OutputConstants
 {
-    DescriptorHandle<Texture2D<float4>> Input;
+    uint Width;
 
-    uint4 FrameIndexPadding;
+    uint FrameIndex;
+
+    uint2 Padding;
+
+    DescriptorHandle<Texture2D<float4>> Input;
 };
 
 ConstantBuffer<OutputConstants> output;
@@ -15,10 +19,25 @@ uint Hash(uint value)
     return (word >> 22u) ^ word;
 }
 
+float3 AcesFilm(float3 x)
+{
+    float3 numerator = x * (x * 2.51 + 0.03);
+    float3 denominator = x * (x * 2.43 + 0.59) + 0.14;
+
+    return saturate(numerator / denominator);
+}
+
+float3 LinearToSrgb(float3 linearColor)
+{
+    float3 clamped = max(linearColor, 0.0);
+
+    return select(clamped <= 0.0031308, clamped * 12.92, 1.055 * pow(clamped, 1.0 / 2.4) - 0.055);
+}
+
 [shader("vertex")]
 float4 FullscreenVS(uint vertexId: SV_VertexID) : SV_POSITION
 {
-    float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
+    float2 uv = float2((vertexId << 1u) & 2u, vertexId & 2u);
 
     return float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
 }
@@ -27,20 +46,13 @@ float4 FullscreenVS(uint vertexId: SV_VertexID) : SV_POSITION
 float4 ToneMappingFS(float4 position: SV_POSITION) : SV_TARGET
 {
     uint2 pixel = uint2(position.xy);
-    uint width;
-    uint height;
-    output.Input.GetDimensions(width, height);
+    float3 hdr = output.Input.Load(int3(pixel, 0)).rgb;
+    float3 srgbColor = LinearToSrgb(AcesFilm(max(hdr, 0.0)));
 
-    float3 color = max(output.Input.Load(int3(pixel, 0)).rgb, 0.0);
-    float3 numerator = color * (color * 2.51 + 0.03);
-    float3 denominator = color * (color * 2.43 + 0.59) + 0.14;
-    color = saturate(numerator / denominator);
-    color = select(color <= 0.0031308, color * 12.92, 1.055 * pow(color, 1.0 / 2.4) - 0.055);
+    uint seed = Hash(pixel.x + pixel.y * max(output.Width, 1u) + output.FrameIndex * 1664525u);
+    float ditherA = float(seed >> 8u) * (1.0 / 16777216.0);
+    float ditherB = float(Hash(seed) >> 8u) * (1.0 / 16777216.0);
+    srgbColor += (ditherA - ditherB) * (1.0 / 255.0);
 
-    uint seed = Hash(pixel.x + pixel.y * width + output.FrameIndexPadding.x * 1664525u);
-    float first = float(seed >> 8u) * (1.0 / 16777216.0);
-    float second = float(Hash(seed) >> 8u) * (1.0 / 16777216.0);
-    color += (first - second) / 255.0;
-
-    return float4(saturate(color), 1.0);
+    return float4(saturate(srgbColor), 1.0);
 }

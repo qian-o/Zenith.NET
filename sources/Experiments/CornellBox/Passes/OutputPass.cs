@@ -8,19 +8,26 @@ namespace CornellBox.Passes;
 internal unsafe class OutputPass : DisposableObject
 {
     private readonly Buffer constantBuffer;
-    private readonly GraphicsPipeline toneMappingPipeline;
+    private readonly GraphicsPipeline pipeline;
 
     public OutputPass()
     {
-        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant(256));
+        constantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(OutputConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
 
-        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "FullscreenVS"));
-        using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang"), "ToneMappingFS"));
+        string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Output.slang");
 
-        toneMappingPipeline = App.Context.CreateGraphicsPipeline(new()
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "FullscreenVS"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "ToneMappingFS"));
+
+        pipeline = App.Context.CreateGraphicsPipeline(new()
         {
             VertexShader = vertexShader,
-            FragmentShader = toneMappingFragmentShader,
+            FragmentShader = fragmentShader,
             InputLayouts = [],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             AttachmentFormats = new()
@@ -36,29 +43,29 @@ internal unsafe class OutputPass : DisposableObject
             }
         });
 
-        CreateOutput();
+        CreateTextures();
     }
 
     public Texture Color { get; private set; } = null!;
 
     public void Record(CommandBuffer commandBuffer, Texture input, uint frameIndex)
     {
-        OutputConstants toneMappingConstants = new()
+        OutputConstants constants = new()
         {
-            Input = input.SampledHandle,
-            FrameIndex = frameIndex
+            Width = Color.Desc.Width,
+            FrameIndex = frameIndex,
+            Input = input.SampledHandle
         };
 
-        commandBuffer.Upload(constantBuffer, 0, new()
+        constantBuffer.Upload(0, new()
         {
-            Pointer = (nint)(&toneMappingConstants),
+            Pointer = (nint)(&constants),
             SizeInBytes = (uint)sizeof(OutputConstants)
         });
-        commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.FragmentShading);
 
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(Color)], null);
-        commandBuffer.SetPipeline(toneMappingPipeline);
+        commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
@@ -67,18 +74,24 @@ internal unsafe class OutputPass : DisposableObject
 
     public void Resize()
     {
-        DestroyOutput();
-        CreateOutput();
+        if (Color.Desc.Width == App.PhysicalWidth && Color.Desc.Height == App.PhysicalHeight)
+        {
+            return;
+        }
+
+        DestroyTextures();
+        CreateTextures();
     }
 
     protected override void Destroy()
     {
-        DestroyOutput();
-        toneMappingPipeline.Dispose();
-        constantBuffer.Dispose();
+        DestroyTextures();
+
+        pipeline?.Dispose();
+        constantBuffer?.Dispose();
     }
 
-    private void CreateOutput()
+    private void CreateTextures()
     {
         Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
@@ -86,7 +99,7 @@ internal unsafe class OutputPass : DisposableObject
         });
     }
 
-    private void DestroyOutput()
+    private void DestroyTextures()
     {
         Color?.Dispose();
         Color = null!;
@@ -97,8 +110,11 @@ internal unsafe class OutputPass : DisposableObject
 file struct OutputConstants
 {
     [FieldOffset(0)]
-    public ResourceHandle Input;
+    public uint Width;
+
+    [FieldOffset(4)]
+    public uint FrameIndex;
 
     [FieldOffset(16)]
-    public uint FrameIndex;
+    public ResourceHandle Input;
 }

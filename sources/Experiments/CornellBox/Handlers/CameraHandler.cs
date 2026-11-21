@@ -6,27 +6,33 @@ namespace CornellBox.Handlers;
 
 internal class CameraHandler : DisposableObject
 {
+    private const float MaxPitchInRadians = 89.0f * MathF.PI / 180.0f;
+
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
     private readonly HashSet<Key> keyDowns = [];
+    private readonly Vector3 initialPosition;
+    private readonly Vector3 initialTarget;
 
     private Vector2? lastMousePosition;
+    private float yawInRadians;
+    private float pitchInRadians;
 
     public CameraHandler(IInputContext input, Vector3 position, Vector3 target)
     {
         mouse = input.Mice[0];
         keyboard = input.Keyboards[0];
 
+        initialPosition = position;
+        initialTarget = target;
+
+        SetLookAt(position, target);
+
         mouse.MouseDown += OnMouseDown;
         mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
-
-        Position = position;
-        Forward = Vector3.Normalize(target - position);
-        Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
-        Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
     public Vector3 Position { get; private set; }
@@ -37,21 +43,29 @@ internal class CameraHandler : DisposableObject
 
     public Vector3 Up { get; private set; }
 
-    public float NearPlane { get; set; } = 0.1f;
+    public float NearPlane { get; set; } = 8.0f;
 
-    public float FarPlane { get; set; } = 200.0f;
+    public float FarPlane { get; set; } = 8000.0f;
 
     public float Fov { get; set; } = 45.0f;
 
-    public float Speed { get; set; } = 12.0f;
+    public float Speed { get; set; } = 280.0f;
 
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)App.LogicalWidth / App.LogicalHeight, NearPlane, FarPlane);
 
+    public void Reset()
+    {
+        lastMousePosition = null;
+        keyDowns.Clear();
+        SetLookAt(initialPosition, initialTarget);
+    }
+
     public void Update(double deltaSeconds)
     {
-        float distance = Speed * (float)deltaSeconds;
+        float multiplier = keyDowns.Contains(Key.ShiftLeft) || keyDowns.Contains(Key.ShiftRight) ? 2.5f : 1.0f;
+        float distance = Speed * multiplier * (float)deltaSeconds;
 
         if (keyDowns.Contains(Key.W))
         {
@@ -86,15 +100,41 @@ internal class CameraHandler : DisposableObject
 
     protected override void Destroy()
     {
-        keyboard.KeyUp -= OnKeyUp;
-        keyboard.KeyDown -= OnKeyDown;
+        if (keyboard is not null)
+        {
+            keyboard.KeyUp -= OnKeyUp;
+            keyboard.KeyDown -= OnKeyDown;
+        }
 
-        mouse.MouseMove -= OnMouseMove;
-        mouse.MouseUp -= OnMouseUp;
-        mouse.MouseDown -= OnMouseDown;
+        if (mouse is not null)
+        {
+            mouse.MouseMove -= OnMouseMove;
+            mouse.MouseUp -= OnMouseUp;
+            mouse.MouseDown -= OnMouseDown;
+        }
 
         keyDowns.Clear();
         lastMousePosition = null;
+    }
+
+    private void SetLookAt(Vector3 position, Vector3 target)
+    {
+        Vector3 direction = Vector3.Normalize(target - position);
+
+        Position = position;
+        pitchInRadians = Math.Clamp(MathF.Asin(Math.Clamp(direction.Y, -1.0f, 1.0f)), -MaxPitchInRadians, MaxPitchInRadians);
+        yawInRadians = MathF.Atan2(direction.X, direction.Z);
+
+        UpdateBasis();
+    }
+
+    private void UpdateBasis()
+    {
+        float cosPitch = MathF.Cos(pitchInRadians);
+
+        Forward = Vector3.Normalize(new(MathF.Sin(yawInRadians) * cosPitch, MathF.Sin(pitchInRadians), MathF.Cos(yawInRadians) * cosPitch));
+        Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
+        Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
@@ -115,27 +155,16 @@ internal class CameraHandler : DisposableObject
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        const float ClipRadians = 89.0f * MathF.PI / 180.0f;
-
-        if (!lastMousePosition.HasValue)
+        if (!lastMousePosition.HasValue || App.LogicalWidth is 0 || App.LogicalHeight is 0)
         {
             return;
         }
 
-        float pixelToRadianX = MathF.PI / App.LogicalWidth;
-        float pixelToRadianY = MathF.PI / App.LogicalHeight;
         Vector2 delta = position - lastMousePosition.Value;
-        float yaw = -(delta.X * pixelToRadianX);
-        float pitch = -(delta.Y * pixelToRadianY);
-        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
 
-        pitch = newPitch - MathF.Asin(Forward.Y);
-
-        Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Up, yaw));
-        Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Right, pitch));
-        Forward = Vector3.Normalize(Forward);
-        Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
-        Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
+        yawInRadians -= delta.X * (MathF.PI / App.LogicalWidth);
+        pitchInRadians = Math.Clamp(pitchInRadians - (delta.Y * (MathF.PI / App.LogicalHeight)), -MaxPitchInRadians, MaxPitchInRadians);
+        UpdateBasis();
 
         lastMousePosition = position;
     }

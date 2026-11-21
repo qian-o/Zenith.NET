@@ -1,13 +1,16 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
-using CornellBox.Models;
+using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Zenith.NET;
+using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
 using Zenith.NET.Extensions.Upscaling;
+using Zenith.NET.Metal;
+using Zenith.NET.Vulkan;
 
 namespace CornellBox;
 
@@ -19,17 +22,53 @@ internal static class App
     private static readonly IInputContext input;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
-    private static readonly UserInterface userInterface;
     private static readonly Renderer renderer;
-    private static readonly Presentation presentation;
+
+    private static SwapChain? swapChain;
+    private static FrameGenerationSwapChain? frameGenerationSwapChain;
+    private static bool isFrameGenerationEnabled;
+    private static bool isVerticalSyncEnabled;
 
     static App()
     {
-        Context = PlatformHelper.CreateContext();
-        Context.InitializeUpscaling();
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
+        {
+            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
+        }
+        else
+        {
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+        }
+
+        if (!Context.Capabilities.RayTracingSupported)
+        {
+            Context.Dispose();
+
+            throw new PlatformNotSupportedException($"Selected GPU '{Context.Capabilities.DeviceName}' does not support hardware ray tracing.");
+        }
+
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
-        window = CreateWindow();
+        Context.InitializeUpscaling();
+
+        window = Window.Create(WindowOptions.Default with
+        {
+            Size = new(1280, 720),
+            API = GraphicsAPI.None,
+            Title = "Cornell Box - Zenith.NET"
+        });
+        window.Initialize();
+        window.Center();
+
         input = window.CreateInput();
         imGui = new(input);
 
@@ -39,16 +78,18 @@ internal static class App
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
 
-        camera = new(input, new(278.0f, 720.0f, -1900.0f), new(278.0f, 180.0f, 240.0f))
+        isFrameGenerationEnabled = Context.UpscalingCapabilities.FrameGenerationSupported;
+        CreateSwapChain();
+
+        camera = new(input, new(0.0f, 244.0f, -935.0f), new(0.0f, 210.0f, 255.0f))
         {
-            NearPlane = 10.0f,
+            NearPlane = 8.0f,
             FarPlane = 8000.0f,
-            Speed = 240.0f
+            Fov = 45.0f,
+            Speed = 280.0f
         };
 
-        userInterface = new();
-        renderer = new(userInterface.RenderSettings);
-        presentation = new(PlatformHelper.CreateSurface(window), userInterface.IsFrameGenerationEnabled);
+        renderer = new();
     }
 
     public static GraphicsContext Context { get; }
@@ -68,80 +109,263 @@ internal static class App
         window.Update += OnUpdate;
         window.Render += OnRender;
         window.FramebufferResize += OnFramebufferResize;
+        window.Closing += OnClosing;
 
         window.Run();
 
-        window.FramebufferResize -= OnFramebufferResize;
-        window.Render -= OnRender;
-        window.Update -= OnUpdate;
-
-        presentation.WaitForPendingWork();
-
-        presentation.Dispose();
-        renderer.Dispose();
-        camera.Dispose();
-        imGui.Dispose();
-        input.Dispose();
-
-        Context.Dispose();
-
         window.Dispose();
+        Context.Dispose();
     }
 
     private static void OnUpdate(double deltaSeconds)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0 || LogicalWidth is 0 || LogicalHeight is 0)
         {
             return;
         }
 
+        uint surfaceWidth = frameGenerationSwapChain?.Desc.Surface.Width ?? swapChain!.Desc.Surface.Width;
+        uint surfaceHeight = frameGenerationSwapChain?.Desc.Surface.Height ?? swapChain!.Desc.Surface.Height;
+        if (surfaceWidth != PhysicalWidth || surfaceHeight != PhysicalHeight)
+        {
+            Resize();
+        }
+
+        deltaSeconds = Math.Clamp(deltaSeconds, 0.0001, 0.1);
+
         camera.Update(deltaSeconds);
         renderer.Update(deltaSeconds);
-        userInterface.Update(deltaSeconds);
 
-        presentation.WaitForPendingWork();
-        renderer.ApplySettings(userInterface.RenderSettings);
-        presentation.Configure(userInterface.IsFrameGenerationEnabled);
+        Context.BeginImGuiFrame(deltaSeconds, LogicalWidth, LogicalHeight, DpiScale);
+
+        ImGuiHelper.Overlay(DrawOverlay);
+        ImGuiHelper.Settings(DrawSettings);
+
+        ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, Vector2.Zero, new(LogicalWidth, LogicalHeight));
     }
 
     private static void OnRender(double deltaSeconds)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0 || LogicalWidth is 0 || LogicalHeight is 0)
         {
             return;
         }
 
-        presentation.WaitForPendingWork();
+        deltaSeconds = Math.Clamp(deltaSeconds, 0.0001, 0.1);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-        RenderedFrame frame = renderer.Render(commandBuffer, camera, deltaSeconds);
 
-        presentation.Present(commandBuffer, frame);
+        FrameGenerationSwapChainArgs args = renderer.Render(commandBuffer, camera, deltaSeconds);
+
+        Texture drawable = frameGenerationSwapChain?.Drawable ?? swapChain!.Drawable;
+        commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(drawable, default));
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+
+        if (frameGenerationSwapChain is not null)
+        {
+            commandBuffer.Submit();
+            frameGenerationSwapChain.Present(args);
+        }
+        else
+        {
+            commandBuffer.Submit().Wait();
+            swapChain!.Present();
+        }
     }
 
     private static void OnFramebufferResize(Vector2D<int> size)
     {
-        if (PhysicalWidth is 0 || PhysicalHeight is 0)
+        if (PhysicalWidth is 0 || PhysicalHeight is 0 || LogicalWidth is 0 || LogicalHeight is 0)
         {
             return;
         }
 
-        presentation.WaitForPendingWork();
-        renderer.Resize();
-        presentation.Configure(userInterface.IsFrameGenerationEnabled);
+        Resize();
     }
 
-    private static IWindow CreateWindow()
+    private static void OnClosing()
     {
-        IWindow window = Window.Create(WindowOptions.Default with
-        {
-            Size = new(1280, 720),
-            API = GraphicsAPI.None,
-            Title = "Cornell Box - Zenith.NET"
-        });
-        window.Initialize();
-        window.Center();
+        window.Closing -= OnClosing;
+        window.FramebufferResize -= OnFramebufferResize;
+        window.Render -= OnRender;
+        window.Update -= OnUpdate;
 
-        return window;
+        DestroySwapChain();
+        renderer.Dispose();
+        camera.Dispose();
+        imGui.Dispose();
+        input.Dispose();
+    }
+
+    private static void DrawOverlay()
+    {
+        float framerate = ImGui.GetIO().Framerate * (frameGenerationSwapChain is not null ? 2.0f : 1.0f);
+
+        ImGui.Text(Context.Capabilities.DeviceName);
+        ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
+        ImGui.Text($"FPS: {framerate:F1}");
+    }
+
+    private static void DrawSettings()
+    {
+        bool isPaused = renderer.IsPaused;
+        if (ImGui.Checkbox("Pause", ref isPaused))
+        {
+            renderer.IsPaused = isPaused;
+        }
+
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Reset").X - (ImGui.GetStyle().FramePadding.X * 2.0f));
+
+        if (ImGui.Button("Reset"))
+        {
+            camera.Reset();
+            renderer.Reset();
+        }
+
+        bool verticalSyncChanged = ImGui.Checkbox("VSync", ref isVerticalSyncEnabled);
+
+        ImGui.Separator();
+
+        bool renderChanged = false;
+
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.SuperResolutionSupported);
+
+        int qualityIndex = renderer.Quality is UpscalingQuality quality ? (int)quality + 1 : 0;
+        if (ImGui.Combo("Upscaling Quality", ref qualityIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+        {
+            renderer.Quality = qualityIndex is 0 ? null : (UpscalingQuality)(qualityIndex - 1);
+
+            if (renderer.Quality is null)
+            {
+                renderer.IsRayReconstructionEnabled = false;
+            }
+
+            renderChanged = true;
+        }
+
+        ImGui.EndDisabled();
+
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.RayReconstructionSupported || renderer.Quality is null);
+
+        bool isRayReconstructionEnabled = renderer.IsRayReconstructionEnabled;
+        if (ImGui.Checkbox("Ray Reconstruction", ref isRayReconstructionEnabled))
+        {
+            renderer.IsRayReconstructionEnabled = isRayReconstructionEnabled;
+            renderChanged = true;
+        }
+
+        ImGui.EndDisabled();
+
+        ImGui.BeginDisabled(!Context.UpscalingCapabilities.FrameGenerationSupported);
+
+        bool frameGenerationChanged = ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled);
+
+        ImGui.EndDisabled();
+
+        if (verticalSyncChanged || frameGenerationChanged)
+        {
+            RecreateSwapChain();
+        }
+        else if (renderChanged)
+        {
+            frameGenerationSwapChain?.Resize(PhysicalWidth, PhysicalHeight);
+        }
+
+        if (renderChanged)
+        {
+            WaitIdle();
+            renderer.Resize();
+        }
+    }
+
+    private static Surface CreateSurface()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return Surface.Win32(window.Native!.Win32!.Value.Hwnd, PhysicalWidth, PhysicalHeight);
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), PhysicalWidth, PhysicalHeight);
+        }
+
+        if (window.Native!.Wayland.HasValue)
+        {
+            return Surface.Wayland(window.Native.Wayland.Value.Display, window.Native.Wayland.Value.Surface, PhysicalWidth, PhysicalHeight);
+        }
+
+        return Surface.Xlib(window.Native.X11!.Value.Display, (nint)window.Native.X11.Value.Window, PhysicalWidth, PhysicalHeight);
+    }
+
+    private static void CreateSwapChain()
+    {
+        Surface surface = CreateSurface();
+
+        if (isFrameGenerationEnabled && Context.UpscalingCapabilities.FrameGenerationSupported)
+        {
+            frameGenerationSwapChain = Context.CreateFrameGenerationSwapChain(new()
+            {
+                Surface = surface,
+                Format = ColorFormat,
+                IsVerticalSyncEnabled = isVerticalSyncEnabled
+            });
+        }
+        else
+        {
+            swapChain = Context.CreateSwapChain(new()
+            {
+                Surface = surface,
+                Format = ColorFormat,
+                IsVerticalSyncEnabled = isVerticalSyncEnabled
+            });
+        }
+    }
+
+    private static void DestroySwapChain()
+    {
+        frameGenerationSwapChain?.Dispose();
+        frameGenerationSwapChain = null;
+
+        WaitIdle();
+
+        swapChain?.Dispose();
+        swapChain = null;
+    }
+
+    private static void RecreateSwapChain()
+    {
+        DestroySwapChain();
+        CreateSwapChain();
+    }
+
+    private static void Resize()
+    {
+        if (frameGenerationSwapChain is not null)
+        {
+            frameGenerationSwapChain.Resize(PhysicalWidth, PhysicalHeight);
+            WaitIdle();
+        }
+        else
+        {
+            WaitIdle();
+            swapChain!.Resize(PhysicalWidth, PhysicalHeight);
+        }
+
+        renderer.Resize();
+    }
+
+    private static void WaitIdle()
+    {
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+        Context.ComputeQueue.Timeline.Signal().Wait();
+        Context.TransferQueue.Timeline.Signal().Wait();
+
+        if (frameGenerationSwapChain is null)
+        {
+            Context.PresentQueue.Timeline.Signal().Wait();
+        }
     }
 }

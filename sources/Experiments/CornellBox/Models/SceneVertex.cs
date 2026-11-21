@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace CornellBox.Models;
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct Vertex
+internal struct SceneVertex
 {
     [FieldOffset(0)]
     public Vector3 Position;

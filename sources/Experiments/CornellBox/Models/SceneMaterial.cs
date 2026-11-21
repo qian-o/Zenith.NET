@@ -1,0 +1,113 @@
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
+
+namespace CornellBox.Models;
+
+[StructLayout(LayoutKind.Explicit, Size = 48)]
+internal struct SceneMaterial
+{
+    [FieldOffset(0)]
+    public Vector3 Albedo;
+
+    [FieldOffset(12)]
+    public float Roughness;
+
+    [FieldOffset(16)]
+    public float Metallic;
+
+    [FieldOffset(20)]
+    public float Emission;
+
+    [FieldOffset(24)]
+    public float Transmission;
+
+    [FieldOffset(28)]
+    public float Ior;
+
+    [FieldOffset(32)]
+    public float Clearcoat;
+
+    [FieldOffset(36)]
+    public float ClearcoatRoughness;
+
+    [FieldOffset(40)]
+    public Pattern PatternType;
+
+    [FieldOffset(44)]
+    public float PatternScale;
+
+    public static SceneMaterial Matte(Vector3 albedo, float roughness = 0.82f, Pattern pattern = Pattern.Solid, float patternScale = 50.0f)
+    {
+        return new()
+        {
+            Albedo = albedo,
+            Roughness = roughness,
+            Ior = 1.5f,
+            PatternType = pattern,
+            PatternScale = patternScale
+        };
+    }
+
+    public static SceneMaterial Metal(Vector3 albedo, float roughness, Pattern pattern = Pattern.Solid, float patternScale = 50.0f)
+    {
+        return new()
+        {
+            Albedo = albedo,
+            Roughness = roughness,
+            Metallic = 1.0f,
+            Ior = 1.5f,
+            PatternType = pattern,
+            PatternScale = patternScale
+        };
+    }
+
+    public static SceneMaterial Coated(Vector3 albedo, float baseRoughness, float clearcoat = 1.0f, float coatRoughness = 0.05f, Pattern pattern = Pattern.Solid, float patternScale = 50.0f, float metallic = 0.0f)
+    {
+        return new()
+        {
+            Albedo = albedo,
+            Roughness = baseRoughness,
+            Metallic = metallic,
+            Ior = 1.5f,
+            Clearcoat = clearcoat,
+            ClearcoatRoughness = coatRoughness,
+            PatternType = pattern,
+            PatternScale = patternScale
+        };
+    }
+
+    public static SceneMaterial Glass(Vector3 tint, float ior = 1.52f, float roughness = 0.02f)
+    {
+        return new()
+        {
+            Albedo = tint,
+            Roughness = roughness,
+            Transmission = 1.0f,
+            Ior = ior
+        };
+    }
+
+    public static SceneMaterial Emissive(Vector3 color, float intensity)
+    {
+        return new()
+        {
+            Albedo = color,
+            Roughness = 0.5f,
+            Emission = intensity,
+            Ior = 1.5f
+        };
+    }
+
+    public enum Pattern : uint
+    {
+        Solid = 0,
+
+        Checker = 1,
+
+        Grid = 2,
+
+        Stripes = 3,
+
+        Marble = 4
+    }
+}
