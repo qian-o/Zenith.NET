@@ -138,8 +138,7 @@ float TraceAO(float3 origin, float3 normal, float u1, float u2, float uRange)
     ray.TMin = RayMinDistance;
     ray.TMax = AoRadius * lerp(0.08, 1.0, uRange * uRange);
 
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>
-        query;
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
     query.TraceRayInline(shadow.Scene, RAY_FLAG_NONE, RayMaskAll, ray);
     query.Proceed();
 

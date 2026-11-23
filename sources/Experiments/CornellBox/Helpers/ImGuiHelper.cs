@@ -9,7 +9,7 @@ internal static class ImGuiHelper
         ImGui.SetNextWindowPos(new(10.0f, 10.0f), ImGuiCond.Always, new(0.0f, 0.0f));
         ImGui.SetNextWindowBgAlpha(0.35f);
 
-        if (ImGui.Begin("Overlay", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoDecoration))
+        if (ImGui.Begin("Overlay", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs))
         {
             action();
         }

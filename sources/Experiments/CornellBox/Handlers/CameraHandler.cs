@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Zenith.NET;
 
@@ -15,7 +14,6 @@ internal class CameraHandler : DisposableObject
     private readonly Vector3 initialPosition;
     private readonly Vector3 initialTarget;
 
-    private bool isRotating;
     private Vector2? lastMousePosition;
     private float yawInRadians;
     private float pitchInRadians;
@@ -30,8 +28,6 @@ internal class CameraHandler : DisposableObject
 
         SetLookAt(position, target);
 
-        mouse.MouseDown += OnMouseDown;
-        mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
@@ -59,7 +55,6 @@ internal class CameraHandler : DisposableObject
 
     public void Reset()
     {
-        isRotating = false;
         lastMousePosition = null;
         keyDowns.Clear();
         SetLookAt(initialPosition, initialTarget);
@@ -67,13 +62,6 @@ internal class CameraHandler : DisposableObject
 
     public void Update(double deltaSeconds)
     {
-        if (ImGui.GetIO().WantCaptureKeyboard)
-        {
-            keyDowns.Clear();
-
-            return;
-        }
-
         float multiplier = (keyDowns.Contains(Key.ShiftLeft) || keyDowns.Contains(Key.ShiftRight)) ? 2.5f : 1.0f;
         float distance = Speed * multiplier * (float)deltaSeconds;
 
@@ -119,13 +107,10 @@ internal class CameraHandler : DisposableObject
         if (mouse is not null)
         {
             mouse.MouseMove -= OnMouseMove;
-            mouse.MouseUp -= OnMouseUp;
-            mouse.MouseDown -= OnMouseDown;
         }
 
         keyDowns.Clear();
         lastMousePosition = null;
-        isRotating = false;
     }
 
     private void SetLookAt(Vector3 position, Vector3 target)
@@ -148,32 +133,9 @@ internal class CameraHandler : DisposableObject
         Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
     }
 
-    private void OnMouseDown(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right && !ImGui.GetIO().WantCaptureMouse)
-        {
-            isRotating = true;
-            lastMousePosition = mouse.Position;
-        }
-    }
-
-    private void OnMouseUp(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Right)
-        {
-            isRotating = false;
-            lastMousePosition = null;
-        }
-    }
-
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        if (!isRotating)
-        {
-            return;
-        }
-
-        if (lastMousePosition is Vector2 lastPosition)
+        if (mouse.IsButtonPressed(MouseButton.Right) && lastMousePosition is Vector2 lastPosition)
         {
             Vector2 delta = position - lastPosition;
 
@@ -187,10 +149,7 @@ internal class CameraHandler : DisposableObject
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
-        if (!ImGui.GetIO().WantCaptureKeyboard)
-        {
-            keyDowns.Add(key);
-        }
+        keyDowns.Add(key);
     }
 
     private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)

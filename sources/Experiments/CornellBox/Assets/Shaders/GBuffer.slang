@@ -56,6 +56,11 @@ struct SkyVSOutput
     float2 UV : TEXCOORD0;
 };
 
+struct PositionVSInput
+{
+    float4 Position : POSITION;
+};
+
 struct MeshVSInput
 {
     float4 Position : POSITION;
@@ -231,7 +236,7 @@ MotionDepthFSOutput SkyMotionDepthFS(SkyVSOutput input)
 }
 
 [shader("vertex")]
-MotionDepthVSOutput MotionDepthVS(MeshVSInput input, uint instanceId: SV_InstanceID)
+MotionDepthVSOutput MotionDepthVS(PositionVSInput input, uint instanceId: SV_InstanceID)
 {
     SceneInstance instance = gBuffer.Instances[gBuffer.BaseInstance + instanceId];
     float3 localPos = input.Position.xyz;

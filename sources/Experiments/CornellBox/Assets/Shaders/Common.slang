@@ -1309,8 +1309,7 @@ bool TraceVisibilityRay(RaytracingAccelerationStructure scene, float3 origin, fl
     ray.TMin = RayMinDistance;
     ray.TMax = maxDistance - RayOffset;
 
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>
-        query;
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
     query.TraceRayInline(scene, RAY_FLAG_NONE, RayMaskOpaque, ray);
     query.Proceed();
 

@@ -50,10 +50,15 @@ internal static class MTLFormats
 
         if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
-            result |= MTLStages.Vertex | MTLStages.Object | MTLStages.Mesh;
+            result |= MTLStages.Vertex;
         }
 
-        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
+        if (barrierStages.HasFlag(BarrierStages.MeshShading))
+        {
+            result |= MTLStages.Object | MTLStages.Mesh;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading) || barrierStages.HasFlag(BarrierStages.ColorAttachment) || barrierStages.HasFlag(BarrierStages.DepthStencilAttachment))
         {
             result |= MTLStages.Fragment;
         }

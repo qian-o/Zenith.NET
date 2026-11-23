@@ -68,9 +68,15 @@ internal static class DXFormats
             access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer | BarrierAccess.IndexBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument;
         }
 
+        if (barrierStages.HasFlag(BarrierStages.MeshShading))
+        {
+            sync |= BarrierSync.VertexShading | BarrierSync.ExecuteIndirect;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument;
+        }
+
         if (barrierStages.HasFlag(BarrierStages.FragmentShading))
         {
-            sync |= BarrierSync.AllShading;
+            sync |= BarrierSync.PixelShading;
             access |= BarrierAccess.ConstantBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource;
         }
 
@@ -78,6 +84,18 @@ internal static class DXFormats
         {
             sync |= BarrierSync.ComputeShading | BarrierSync.ExecuteIndirect;
             access |= BarrierAccess.ConstantBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ColorAttachment))
+        {
+            sync |= BarrierSync.RenderTarget;
+            access |= BarrierAccess.RenderTarget;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.DepthStencilAttachment))
+        {
+            sync |= BarrierSync.DepthStencil;
+            access |= BarrierAccess.DepthStencilWrite | BarrierAccess.DepthStencilRead;
         }
 
         if (barrierStages.HasFlag(BarrierStages.Copy))
@@ -587,12 +605,12 @@ internal static class DXFormats
     {
         return textureLayout switch
         {
-            TextureLayout.Undefined => (BarrierSync.None, BarrierAccess.NoAccess, BarrierLayout.Undefined),
+            TextureLayout.Undefined => (BarrierSync.All, BarrierAccess.NoAccess, BarrierLayout.Undefined),
             TextureLayout.Common => (BarrierSync.All, BarrierAccess.ShaderResource | BarrierAccess.CopyDest | BarrierAccess.CopySource, BarrierLayout.Common),
             TextureLayout.Sampled => (BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource),
             TextureLayout.Storage => (BarrierSync.AllShading, BarrierAccess.UnorderedAccess, BarrierLayout.UnorderedAccess),
             TextureLayout.ColorAttachment => (BarrierSync.RenderTarget, BarrierAccess.RenderTarget, BarrierLayout.RenderTarget),
-            TextureLayout.DepthStencilAttachment => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilWrite, BarrierLayout.DepthStencilWrite),
+            TextureLayout.DepthStencilAttachment => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilWrite | BarrierAccess.DepthStencilRead, BarrierLayout.DepthStencilWrite),
             TextureLayout.DepthStencilReadOnly => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilRead, BarrierLayout.DepthStencilRead),
             TextureLayout.CopySrc => (BarrierSync.Copy, BarrierAccess.CopySource, BarrierLayout.CopySource),
             TextureLayout.CopyDst => (BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.CopyDest),

@@ -14,8 +14,6 @@ internal unsafe class ScenePass : DisposableObject
     private readonly GraphicsPipeline pipeline;
     private readonly GraphicsPipeline backgroundPipeline;
 
-    private bool isInitialized;
-
     public ScenePass()
     {
         constantBuffer = App.Context.CreateBuffer(new()
@@ -132,11 +130,9 @@ internal unsafe class ScenePass : DisposableObject
             SizeInBytes = (uint)sizeof(BackgroundConstants)
         });
 
-        TextureLayout colorLayout = isInitialized ? TextureLayout.Sampled : TextureLayout.Undefined;
-        TextureLayout depthLayout = isInitialized ? TextureLayout.DepthStencilAttachment : TextureLayout.Undefined;
-        commandBuffer.Transition(Color, default, colorLayout, TextureLayout.ColorAttachment);
-        commandBuffer.Transition(LinearDepth, default, colorLayout, TextureLayout.ColorAttachment);
-        commandBuffer.Transition(DepthStencil, default, depthLayout, TextureLayout.DepthStencilAttachment);
+        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(LinearDepth, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(DepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
         commandBuffer.BeginRenderPass([ColorAttachment.Clear(Color, Vector4.Zero), ColorAttachment.Clear(LinearDepth, Vector4.Zero)], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
         commandBuffer.SetPipeline(backgroundPipeline);
@@ -152,7 +148,6 @@ internal unsafe class ScenePass : DisposableObject
 
         commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
         commandBuffer.Transition(LinearDepth, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
-        isInitialized = true;
     }
 
     public void Resize()
@@ -196,8 +191,6 @@ internal unsafe class ScenePass : DisposableObject
         LinearDepth = null!;
         Color?.Dispose();
         Color = null!;
-
-        isInitialized = false;
     }
 }
 

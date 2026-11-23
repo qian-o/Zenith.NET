@@ -117,12 +117,12 @@ internal unsafe class OutputPass : DisposableObject
     {
         Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
 
         displayColor = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
     }
 

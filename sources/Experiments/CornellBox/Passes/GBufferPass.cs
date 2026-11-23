@@ -70,6 +70,14 @@ internal unsafe class GBufferPass : DisposableObject
         skyMotionPipeline = CreatePassPipeline(skyVertexShader, skyFragmentShader, [], attachmentFormats, skyDepthState);
         skyMotionDepthPipeline = CreatePassPipeline(skyVertexShader, skyMotionDepthFragmentShader, [], motionDepthAttachmentFormats, skyDepthState);
 
+        InputLayout positionInputLayout = new();
+        positionInputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Position
+        });
+        positionInputLayout.StrideInBytes = (uint)sizeof(SceneVertex);
+
         InputLayout inputLayout = new();
         inputLayout.Add(new()
         {
@@ -90,9 +98,9 @@ internal unsafe class GBufferPass : DisposableObject
         using Shader dynamicMotionDepthFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "DynamicMotionDepthFS"));
 
         meshPipeline = CreatePassPipeline(meshVertexShader, meshFragmentShader, [inputLayout], attachmentFormats, DepthStencilState.DepthReadWrite());
-        meshMotionDepthPipeline = CreatePassPipeline(meshMotionDepthVertexShader, meshMotionDepthFragmentShader, [inputLayout], motionDepthAttachmentFormats, DepthStencilState.DepthReadWrite());
-        staticDepthPipeline = CreatePassPipeline(meshMotionDepthVertexShader, staticDepthFragmentShader, [inputLayout], staticDepthAttachmentFormats, DepthStencilState.DepthReadWrite());
-        dynamicMotionDepthPipeline = CreatePassPipeline(meshMotionDepthVertexShader, dynamicMotionDepthFragmentShader, [inputLayout], motionDepthAttachmentFormats, DepthStencilState.DepthReadWrite());
+        meshMotionDepthPipeline = CreatePassPipeline(meshMotionDepthVertexShader, meshMotionDepthFragmentShader, [positionInputLayout], motionDepthAttachmentFormats, DepthStencilState.DepthReadWrite());
+        staticDepthPipeline = CreatePassPipeline(meshMotionDepthVertexShader, staticDepthFragmentShader, [positionInputLayout], staticDepthAttachmentFormats, DepthStencilState.DepthReadWrite());
+        dynamicMotionDepthPipeline = CreatePassPipeline(meshMotionDepthVertexShader, dynamicMotionDepthFragmentShader, [positionInputLayout], motionDepthAttachmentFormats, DepthStencilState.DepthReadWrite());
     }
 
     public uint Width { get; private set; }
@@ -178,6 +186,8 @@ internal unsafe class GBufferPass : DisposableObject
 
             if (frame.ViewProjection == frame.PreviousViewProjection)
             {
+                bool renderedStaticDepth = false;
+
                 if (!hasValidStaticDepth)
                 {
                     commandBuffer.Transition(staticOutputDepth, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
@@ -189,6 +199,7 @@ internal unsafe class GBufferPass : DisposableObject
 
                     commandBuffer.Transition(staticOutputDepth, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
                     hasValidStaticDepth = true;
+                    renderedStaticDepth = true;
                 }
 
                 commandBuffer.Transition(staticOutputDepth, default, TextureLayout.Sampled, TextureLayout.CopySrc);
@@ -202,7 +213,15 @@ internal unsafe class GBufferPass : DisposableObject
                 commandBuffer.Transition(staticOutputDepth, default, TextureLayout.CopySrc, TextureLayout.Sampled);
                 commandBuffer.Transition(outputDepth, default, TextureLayout.CopyDst, TextureLayout.ColorAttachment);
                 commandBuffer.Transition(outputMotionVectors, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-                commandBuffer.Transition(outputDepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
+
+                if (renderedStaticDepth)
+                {
+                    commandBuffer.Barrier(BarrierStages.DepthStencilAttachment, BarrierStages.DepthStencilAttachment);
+                }
+                else
+                {
+                    commandBuffer.Transition(outputDepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
+                }
 
                 commandBuffer.BeginRenderPass([
                     ColorAttachment.Load(outputDepth),

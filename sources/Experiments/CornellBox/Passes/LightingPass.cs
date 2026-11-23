@@ -66,7 +66,7 @@ internal unsafe class LightingPass : DisposableObject
             IrradianceAtlas = giProbe.IrradianceAtlas.SampledHandle,
             DistanceAtlas = giProbe.DistanceAtlas.SampledHandle,
             LinearSampler = giProbe.LinearSampler.Handle,
-            PrevLinearDepth = shadow.PreviousLinearDepth.SampledHandle,
+            PrevLinearDepth = frame.ResetLighting ? default : shadow.PreviousLinearDepth.SampledHandle,
             Color = Color.StorageHandle,
             ReactiveMask = ReactiveMask?.StorageHandle ?? default
         };

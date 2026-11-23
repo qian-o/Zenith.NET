@@ -66,7 +66,7 @@ internal unsafe class ParticlePass : DisposableObject
         });
 
         commandBuffer.Transition(color, default, TextureLayout.Sampled, TextureLayout.ColorAttachment);
-        commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);
+        commandBuffer.Barrier(BarrierStages.DepthStencilAttachment, BarrierStages.DepthStencilAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.Load(color)], DepthStencilAttachment.Load(depthStencil));
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constants, 0);

@@ -61,13 +61,19 @@ internal static class VKFormats
 
         if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
-            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit | PipelineStageFlags2.PreRasterizationShadersBit;
+            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit;
             access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.IndexReadBit | AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.MeshShading))
+        {
+            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.PreRasterizationShadersBit;
+            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
         }
 
         if (barrierStages.HasFlag(BarrierStages.FragmentShading))
         {
-            stage |= PipelineStageFlags2.AllCommandsBit;
+            stage |= PipelineStageFlags2.FragmentShaderBit;
             access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
         }
 
@@ -75,6 +81,18 @@ internal static class VKFormats
         {
             stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.ComputeShaderBit;
             access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ColorAttachment))
+        {
+            stage |= PipelineStageFlags2.ColorAttachmentOutputBit;
+            access |= AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.DepthStencilAttachment))
+        {
+            stage |= PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit;
+            access |= AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit;
         }
 
         if (barrierStages.HasFlag(BarrierStages.Copy))
@@ -646,7 +664,7 @@ internal static class VKFormats
     {
         return textureLayout switch
         {
-            TextureLayout.Undefined => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined),
+            TextureLayout.Undefined => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.None, ImageLayout.Undefined),
             TextureLayout.Common => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit, ImageLayout.General),
             TextureLayout.Sampled => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.ShaderSampledReadBit, ImageLayout.ShaderReadOnlyOptimal),
             TextureLayout.Storage => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit, ImageLayout.General),

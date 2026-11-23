@@ -75,13 +75,6 @@ internal unsafe class ShadowPass : DisposableObject
             filterWarmupFrames--;
         }
 
-        if (frame.Reset)
-        {
-            commandBuffer.Transition(prevHistory, default, TextureLayout.Undefined, TextureLayout.Sampled);
-            commandBuffer.Transition(prevHistoryLength, default, TextureLayout.Undefined, TextureLayout.Sampled);
-            commandBuffer.Transition(prevLinearDepth, default, TextureLayout.Undefined, TextureLayout.Sampled);
-        }
-
         uint stride = (uint)sizeof(ShadowConstants);
         ShadowConstants* slots = stackalloc ShadowConstants[(int)ConstantSlotCount];
 
@@ -101,11 +94,11 @@ internal unsafe class ShadowPass : DisposableObject
             Depth = gBuffer.Depth.SampledHandle,
             NormalAndRoughness = gBuffer.NormalAndRoughness.SampledHandle,
             MotionVectors = gBuffer.MotionVectors.SampledHandle,
-            PrevLinearDepth = prevLinearDepth.SampledHandle,
+            PrevLinearDepth = frame.Reset ? default : prevLinearDepth.SampledHandle,
             CurrLinearDepth = currLinearDepth.StorageHandle,
-            PrevHistory = prevHistory.SampledHandle,
+            PrevHistory = frame.Reset ? default : prevHistory.SampledHandle,
             CurrHistory = currHistory.StorageHandle,
-            PrevHistoryLength = prevHistoryLength.SampledHandle,
+            PrevHistoryLength = frame.Reset ? default : prevHistoryLength.SampledHandle,
             CurrHistoryLength = currHistoryLength.StorageHandle
         };
 

@@ -171,7 +171,7 @@ internal unsafe class WaterPass : DisposableObject
     {
         Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R16G16B16A16Float, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
         });
     }
 

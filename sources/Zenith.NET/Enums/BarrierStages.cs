@@ -7,13 +7,19 @@ public enum BarrierStages
 
     VertexShading = 1 << 0,
 
-    FragmentShading = 1 << 1,
+    MeshShading = 1 << 1,
 
-    ComputeShading = 1 << 2,
+    FragmentShading = 1 << 2,
 
-    Copy = 1 << 3,
+    ComputeShading = 1 << 3,
 
-    Resolve = 1 << 4,
+    ColorAttachment = 1 << 4,
 
-    All = 1 << 5
+    DepthStencilAttachment = 1 << 5,
+
+    Copy = 1 << 6,
+
+    Resolve = 1 << 7,
+
+    All = 1 << 8
 }

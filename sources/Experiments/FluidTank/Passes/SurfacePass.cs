@@ -141,7 +141,7 @@ internal unsafe class SurfacePass : DisposableObject
         commandBuffer.Transition(Thickness, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
         Dispatch(commandBuffer, tracePipeline, Depth.Desc.Width, Depth.Desc.Height, 1);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading | BarrierStages.FragmentShading);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading | BarrierStages.ComputeShading);
         commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(Thickness, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);

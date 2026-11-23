@@ -25,7 +25,6 @@ internal unsafe class GiProbePass : DisposableObject
     private Texture prevDistanceAtlas;
     private Texture currDistanceAtlas;
     private uint warmupFramesRemaining;
-    private bool hasInitializedAtlases;
 
     public GiProbePass()
     {
@@ -61,13 +60,6 @@ internal unsafe class GiProbePass : DisposableObject
         if (frame.ResetLighting)
         {
             warmupFramesRemaining = 16;
-
-            if (!hasInitializedAtlases)
-            {
-                commandBuffer.Transition(prevIrradianceAtlas, default, TextureLayout.Undefined, TextureLayout.Sampled);
-                commandBuffer.Transition(prevDistanceAtlas, default, TextureLayout.Undefined, TextureLayout.Sampled);
-                hasInitializedAtlases = true;
-            }
 
             slots[0] = CreateConstants(in frame, frame.FrameIndex, hysteresis: 0.0f, probeStride: 1, probePhase: 0, resetFlag: 1, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
             slots[1] = CreateConstants(in frame, frame.FrameIndex + 1, hysteresis: 0.0f, probeStride: 1, probePhase: 0, resetFlag: 0, currIrradianceAtlas, currDistanceAtlas, prevIrradianceAtlas, prevDistanceAtlas);
@@ -177,8 +169,8 @@ internal unsafe class GiProbePass : DisposableObject
                 Indices = scene.Indices,
                 Materials = scene.Materials,
                 Instances = scene.Instances,
-                PrevIrradianceAtlas = prevIrr.SampledHandle,
-                PrevDistanceAtlas = prevDist.SampledHandle,
+                PrevIrradianceAtlas = resetFlag is 0 ? prevIrr.SampledHandle : default,
+                PrevDistanceAtlas = resetFlag is 0 ? prevDist.SampledHandle : default,
                 CurrIrradianceAtlas = currIrr.StorageHandle,
                 CurrDistanceAtlas = currDist.StorageHandle,
                 LinearSampler = linearSampler.Handle
