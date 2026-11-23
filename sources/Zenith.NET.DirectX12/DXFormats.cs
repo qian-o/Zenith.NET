@@ -610,7 +610,7 @@ internal static class DXFormats
             TextureLayout.Sampled => (BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource),
             TextureLayout.Storage => (BarrierSync.AllShading, BarrierAccess.UnorderedAccess, BarrierLayout.UnorderedAccess),
             TextureLayout.ColorAttachment => (BarrierSync.RenderTarget, BarrierAccess.RenderTarget, BarrierLayout.RenderTarget),
-            TextureLayout.DepthStencilAttachment => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilWrite | BarrierAccess.DepthStencilRead, BarrierLayout.DepthStencilWrite),
+            TextureLayout.DepthStencilAttachment => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilWrite, BarrierLayout.DepthStencilWrite),
             TextureLayout.DepthStencilReadOnly => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilRead, BarrierLayout.DepthStencilRead),
             TextureLayout.CopySrc => (BarrierSync.Copy, BarrierAccess.CopySource, BarrierLayout.CopySource),
             TextureLayout.CopyDst => (BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.CopyDest),
