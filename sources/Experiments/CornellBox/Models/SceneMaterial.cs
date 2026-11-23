@@ -31,12 +31,12 @@ internal struct SceneMaterial
     public float ClearcoatRoughness;
 
     [FieldOffset(40)]
-    public Pattern PatternType;
+    public MaterialPattern PatternType;
 
     [FieldOffset(44)]
     public float PatternScale;
 
-    public static SceneMaterial Matte(Vector3 albedo, float roughness = 0.82f, Pattern pattern = Pattern.Solid, float patternScale = 50.0f)
+    public static SceneMaterial Matte(Vector3 albedo, float roughness = 0.82f, MaterialPattern pattern = MaterialPattern.Solid, float patternScale = 50.0f)
     {
         return new()
         {
@@ -48,7 +48,7 @@ internal struct SceneMaterial
         };
     }
 
-    public static SceneMaterial Metal(Vector3 albedo, float roughness, Pattern pattern = Pattern.Solid, float patternScale = 50.0f)
+    public static SceneMaterial Metal(Vector3 albedo, float roughness, MaterialPattern pattern = MaterialPattern.Solid, float patternScale = 50.0f)
     {
         return new()
         {
@@ -61,7 +61,7 @@ internal struct SceneMaterial
         };
     }
 
-    public static SceneMaterial Coated(Vector3 albedo, float baseRoughness, float clearcoat = 1.0f, float coatRoughness = 0.05f, Pattern pattern = Pattern.Solid, float patternScale = 50.0f, float metallic = 0.0f)
+    public static SceneMaterial Coated(Vector3 albedo, float baseRoughness, float clearcoat = 1.0f, float coatRoughness = 0.05f, MaterialPattern pattern = MaterialPattern.Solid, float patternScale = 50.0f, float metallic = 0.0f)
     {
         return new()
         {
@@ -96,18 +96,5 @@ internal struct SceneMaterial
             Emission = intensity,
             Ior = 1.5f
         };
-    }
-
-    public enum Pattern : uint
-    {
-        Solid = 0,
-
-        Checker = 1,
-
-        Grid = 2,
-
-        Stripes = 3,
-
-        Marble = 4
     }
 }

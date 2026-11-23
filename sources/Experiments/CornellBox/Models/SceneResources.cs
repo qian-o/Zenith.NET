@@ -7,33 +7,34 @@ namespace CornellBox.Models;
 
 internal unsafe class SceneResources : DisposableObject
 {
-    private readonly Buffer vertexBuffer;
-    private readonly Buffer indexBuffer;
     private readonly Buffer materialBuffer;
     private readonly Buffer instanceBuffer;
     private readonly BottomLevelAccelerationStructure[] bottomLevels;
     private readonly TopLevelAccelerationStructure topLevel;
     private readonly SceneInstance[] instances;
+    private readonly DrawBatch[] drawBatches;
     private readonly Matrix4x4[] dynamicTransforms = new Matrix4x4[CornellBoxGeometry.DynamicInstanceCount];
     private readonly int firstDynamicSlot;
 
-    private bool wasPaused;
+    private bool hasSettledPause;
 
     public SceneResources()
     {
-        CornellBoxGeometry.CreateScene(out SceneVertex[] vertices,
-                                       out uint[] indices,
-                                       out (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes,
-                                       out (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, uint MaterialOverride, byte VisibilityMask)[] placements,
-                                       out firstDynamicSlot,
-                                       out SceneMaterial[] materials);
+        (SceneVertex[] vertices,
+         uint[] indices,
+         (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes,
+         (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, MaterialId MaterialOverride, byte VisibilityMask)[] placements,
+         int dynamicSlotStart,
+         SceneMaterial[] materials) = CornellBoxGeometry.CreateScene();
+
+        firstDynamicSlot = dynamicSlotStart;
 
         instances = new SceneInstance[placements.Length];
         CornellBoxGeometry.WriteTransforms(0.0f, dynamicTransforms);
 
         for (int i = 0; i < placements.Length; i++)
         {
-            (int meshIndex, Matrix4x4 transform, bool isDynamic, uint materialOverride, _) = placements[i];
+            (int meshIndex, Matrix4x4 transform, bool isDynamic, MaterialId materialOverride, _) = placements[i];
             Matrix4x4 initialTransform = i >= firstDynamicSlot ? dynamicTransforms[i - firstDynamicSlot] : transform;
 
             instances[i] = new()
@@ -42,15 +43,32 @@ internal unsafe class SceneResources : DisposableObject
                 PreviousObjectToWorld = initialTransform,
                 FirstIndex = meshes[meshIndex].FirstIndex,
                 IsDynamic = isDynamic ? 1u : 0u,
-                MaterialOverride = materialOverride
+                MaterialOverride = (uint)materialOverride
             };
         }
 
+        List<DrawBatch> batchList = [];
+        int batchStart = 0;
+        while (batchStart < placements.Length)
+        {
+            int meshIndex = placements[batchStart].MeshIndex;
+            int batchEnd = batchStart + 1;
+            while (batchEnd < placements.Length && placements[batchEnd].MeshIndex == meshIndex)
+            {
+                batchEnd++;
+            }
+
+            batchList.Add(new(meshes[meshIndex].FirstIndex, meshes[meshIndex].IndexCount, (uint)batchStart, (uint)(batchEnd - batchStart)));
+            batchStart = batchEnd;
+        }
+
+        drawBatches = [.. batchList];
+
         CommandBuffer uploadCommandBuffer = App.Context.TransferQueue.CommandBuffer();
-        vertexBuffer = CreateBuffer(uploadCommandBuffer, vertices);
-        indexBuffer = CreateBuffer(uploadCommandBuffer, indices);
-        materialBuffer = CreateBuffer(uploadCommandBuffer, materials);
-        instanceBuffer = CreateBuffer(uploadCommandBuffer, instances);
+        VertexBuffer = CreateBuffer(uploadCommandBuffer, vertices, BufferUsages.Vertex | BufferUsages.StorageReadOnly);
+        IndexBuffer = CreateBuffer(uploadCommandBuffer, indices, BufferUsages.Index | BufferUsages.StorageReadOnly);
+        materialBuffer = CreateBuffer(uploadCommandBuffer, materials, BufferUsages.StorageReadOnly);
+        instanceBuffer = CreateBuffer(uploadCommandBuffer, instances, BufferUsages.StorageReadOnly);
         uploadCommandBuffer.Submit().Wait();
 
         CommandBuffer buildCommandBuffer = App.Context.GraphicsQueue.CommandBuffer();
@@ -64,10 +82,10 @@ internal unsafe class SceneResources : DisposableObject
                 [
                     RayTracingGeometry.Triangles(new()
                     {
-                        VertexBuffer = vertexBuffer,
+                        VertexBuffer = VertexBuffer,
                         VertexCount = meshes[i].VertexBound,
                         VertexStrideInBytes = (uint)sizeof(SceneVertex),
-                        IndexBuffer = indexBuffer,
+                        IndexBuffer = IndexBuffer,
                         IndexFormat = IndexFormat.UInt32,
                         IndexCount = meshes[i].IndexCount,
                         IndexOffsetInBytes = meshes[i].FirstIndex * sizeof(uint),
@@ -102,11 +120,19 @@ internal unsafe class SceneResources : DisposableObject
         buildCommandBuffer.Submit().Wait();
     }
 
+    public Buffer VertexBuffer { get; }
+
+    public Buffer IndexBuffer { get; }
+
+    public ReadOnlySpan<DrawBatch> DrawBatches => drawBatches;
+
+    public uint FirstDynamicInstance => (uint)firstDynamicSlot;
+
     public ResourceHandle AccelerationStructure => topLevel.Handle;
 
-    public ResourceHandle Vertices => vertexBuffer.StorageReadOnlyHandle;
+    public ResourceHandle Vertices => VertexBuffer.StorageReadOnlyHandle;
 
-    public ResourceHandle Indices => indexBuffer.StorageReadOnlyHandle;
+    public ResourceHandle Indices => IndexBuffer.StorageReadOnlyHandle;
 
     public ResourceHandle Materials => materialBuffer.StorageReadOnlyHandle;
 
@@ -114,12 +140,12 @@ internal unsafe class SceneResources : DisposableObject
 
     public void Update(CommandBuffer commandBuffer, double elapsedSeconds, bool isPaused, bool reset)
     {
-        if (isPaused && wasPaused && !reset)
+        if (isPaused && hasSettledPause && !reset)
         {
             return;
         }
 
-        wasPaused = isPaused;
+        hasSettledPause = isPaused;
 
         CornellBoxGeometry.WriteTransforms((float)elapsedSeconds, dynamicTransforms);
 
@@ -142,7 +168,7 @@ internal unsafe class SceneResources : DisposableObject
             });
         }
 
-        commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.ComputeShading);
+        commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.VertexShading | BarrierStages.ComputeShading);
         commandBuffer.UpdateAccelerationStructure(topLevel, topLevel.Desc);
     }
 
@@ -160,24 +186,42 @@ internal unsafe class SceneResources : DisposableObject
 
         instanceBuffer?.Dispose();
         materialBuffer?.Dispose();
-        indexBuffer?.Dispose();
-        vertexBuffer?.Dispose();
+        IndexBuffer?.Dispose();
+        VertexBuffer?.Dispose();
     }
 
-    private static Buffer CreateBuffer<T>(CommandBuffer commandBuffer, ReadOnlySpan<T> data) where T : unmanaged
+    private static Buffer CreateBuffer<T>(CommandBuffer commandBuffer, ReadOnlySpan<T> data, BufferUsages usages) where T : unmanaged
     {
-        Buffer buffer = App.Context.CreateBuffer(BufferDesc.StorageReadOnly((uint)(sizeof(T) * data.Length), (uint)sizeof(T)));
+        uint sizeInBytes = (uint)(sizeof(T) * data.Length);
+        Buffer buffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = (uint)sizeof(T),
+            Usages = usages | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
+        });
 
         fixed (T* pointer = data)
         {
             commandBuffer.Upload(buffer, 0, new()
             {
                 Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(T) * data.Length)
+                SizeInBytes = sizeInBytes
             });
         }
 
         return buffer;
+    }
+
+    public readonly struct DrawBatch(uint firstIndex, uint indexCount, uint baseInstance, uint instanceCount)
+    {
+        public readonly uint FirstIndex = firstIndex;
+
+        public readonly uint IndexCount = indexCount;
+
+        public readonly uint BaseInstance = baseInstance;
+
+        public readonly uint InstanceCount = instanceCount;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 144)]

@@ -6,6 +6,9 @@ internal static class CornellBoxGeometry
 {
     public const int DynamicInstanceCount = 11;
 
+    private const byte OpaqueRayMask = 0x01;
+    private const byte RefractiveRayMask = 0x02;
+    private const MaterialId NoMaterialOverride = (MaterialId)uint.MaxValue;
     private const int DynamicTrefoilSlot = 0;
     private const int DynamicRingOuterSlot = 1;
     private const int DynamicRingMiddleSlot = 2;
@@ -15,16 +18,16 @@ internal static class CornellBoxGeometry
     private const int PendulumCount = 5;
     private const int DynamicLeftSculptureSlot = FirstPendulumSlot + PendulumCount;
 
-    public static void CreateScene(out SceneVertex[] vertices,
-                                   out uint[] indices,
-                                   out (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes,
-                                   out (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, uint MaterialOverride, byte VisibilityMask)[] placements,
-                                   out int firstDynamicSlot,
-                                   out SceneMaterial[] materials)
+    public static (SceneVertex[] Vertices,
+                   uint[] Indices,
+                   (uint FirstIndex, uint IndexCount, uint VertexBound)[] Meshes,
+                   (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, MaterialId MaterialOverride, byte VisibilityMask)[] Placements,
+                   int FirstDynamicSlot,
+                   SceneMaterial[] Materials) CreateScene()
     {
         MeshBuilder builder = new();
 
-        AddSculptedUrn(builder, Vector3.Zero, 1.0f, 8);
+        AddSculptedUrn(builder, Vector3.Zero, 1.0f, MaterialId.PolishedCopper);
         int sculptedUrnMesh = builder.CommitMesh();
 
         AddClassicalColumn(builder, Vector3.Zero);
@@ -32,6 +35,9 @@ internal static class CornellBoxGeometry
 
         AddTerracottaPlanter(builder, Vector3.Zero);
         int terracottaPlanterMesh = builder.CommitMesh();
+
+        AddClassicalLantern(builder, Vector3.Zero);
+        int classicalLanternMesh = builder.CommitMesh();
 
         AddCourtyardBench(builder, Vector3.Zero);
         int courtyardBenchMesh = builder.CommitMesh();
@@ -51,30 +57,30 @@ internal static class CornellBoxGeometry
         AddTurnedPedestal(builder, Vector3.Zero, 52.0f, 96.0f);
         int northCenterPedestalMesh = builder.CommitMesh();
 
-        builder.AddSphere(Vector3.Zero, 48.0f, 12, 52, 26);
+        builder.AddSphere(Vector3.Zero, 48.0f, MaterialId.ClearGlass, 52, 26);
         int glassSphereMesh = builder.CommitMesh();
 
-        builder.AddTorusKnot(2, 3, 27.0f, 11.5f, 6.2f, 6, 144, 20);
+        builder.AddTorusKnot(2, 3, 27.0f, 11.5f, 6.2f, MaterialId.BrushedGold, 144, 20);
         int trefoilKnotMesh = builder.CommitMesh();
 
-        builder.AddTorus(82.0f, 3.0f, 7, 68, 16);
+        builder.AddTorus(82.0f, 3.0f, MaterialId.ChromeMirror, 68, 16);
         int outerRingMesh = builder.CommitMesh();
 
-        builder.AddTorus(69.0f, 2.6f, 8, 64, 14);
+        builder.AddTorus(69.0f, 2.6f, MaterialId.PolishedCopper, 64, 14);
         int middleRingMesh = builder.CommitMesh();
 
-        builder.AddTorus(56.0f, 2.4f, 9, 60, 14);
+        builder.AddTorus(56.0f, 2.4f, MaterialId.CobaltMetal, 60, 14);
         int innerRingMesh = builder.CommitMesh();
 
-        builder.AddSphere(Vector3.Zero, 32.0f, 7, 44, 22);
+        builder.AddSphere(Vector3.Zero, 32.0f, MaterialId.ChromeMirror, 44, 22);
         int mirrorOrbMesh = builder.CommitMesh();
 
-        builder.AddSphere(Vector3.Zero, 6.8f, 6, 20, 12);
-        builder.AddCylinderY(new(0.0f, -165.0f, 0.0f), 1.8f, 159.0f, 4, 16);
-        builder.AddSphere(new(0.0f, -180.0f, 0.0f), 16.5f, 6, 36, 18);
+        builder.AddSphere(Vector3.Zero, 6.8f, MaterialId.BrushedGold, 20, 12);
+        builder.AddCylinderY(new(0.0f, -165.0f, 0.0f), 1.8f, 159.0f, MaterialId.DarkBronze, 16);
+        builder.AddSphere(new(0.0f, -180.0f, 0.0f), 16.5f, MaterialId.BrushedGold, 36, 18);
         int pendulumMesh = builder.CommitMesh();
 
-        builder.AddTorusKnot(2, 3, 26.0f, 11.0f, 6.2f, 10, 128, 18);
+        builder.AddTorusKnot(2, 3, 26.0f, 11.0f, 6.2f, MaterialId.RubyLacquer, 128, 18);
         int rubyKnotMesh = builder.CommitMesh();
 
         BuildSanctuaryShell(builder);
@@ -108,119 +114,130 @@ internal static class CornellBoxGeometry
         BuildLeftGalleryBase(builder);
         int leftGalleryMesh = builder.CommitMesh();
 
-        (vertices, indices, meshes) = builder.ToArrays();
+        (SceneVertex[] vertices, uint[] indices, (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes) = builder.ToArrays();
 
-        List<(int MeshIndex, Matrix4x4 Transform, bool IsDynamic, uint MaterialOverride, byte VisibilityMask)> placementList = [with(100)];
+        List<(int MeshIndex, Matrix4x4 Transform, bool IsDynamic, MaterialId MaterialOverride, byte VisibilityMask)> placementList = [with(100)];
 
-        placementList.Add((sanctuaryMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((courtyardGroundMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((northPerimeterMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((westPerimeterMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((eastPerimeterMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((southPerimeterMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((rightColonnadeRoofMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((leftColonnadeRoofMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((rightGalleryMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
-        placementList.Add((leftGalleryMesh, Matrix4x4.Identity, false, uint.MaxValue, 0x01));
+        placementList.Add((sanctuaryMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((courtyardGroundMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((northPerimeterMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((westPerimeterMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((eastPerimeterMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((southPerimeterMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((rightColonnadeRoofMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((leftColonnadeRoofMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((rightGalleryMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((leftGalleryMesh, Matrix4x4.Identity, false, NoMaterialOverride, OpaqueRayMask));
 
-        placementList.Add((glassSphereMesh, Matrix4x4.CreateTranslation(-168.0f, 190.0f, 195.0f), false, uint.MaxValue, 0x02));
+        placementList.Add((glassSphereMesh, Matrix4x4.CreateTranslation(-168.0f, 190.0f, 195.0f), false, NoMaterialOverride, RefractiveRayMask));
 
-        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.10f) * Matrix4x4.CreateTranslation(-548.0f, 87.2f, 425.0f), false, 13u, 0x02));
-        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.04f) * Matrix4x4.CreateTranslation(965.0f, 69.0f, -950.0f), false, 8u, 0x01));
-        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.04f) * Matrix4x4.CreateTranslation(-965.0f, 69.0f, -950.0f), false, 11u, 0x01));
-        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.10f) * Matrix4x4.CreateTranslation(548.0f, 87.0f, -55.0f), false, 11u, 0x01));
-        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.02f) * Matrix4x4.CreateTranslation(548.0f, 83.0f, 425.0f), false, 8u, 0x01));
+        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.10f) * Matrix4x4.CreateTranslation(-548.0f, 87.2f, 425.0f), false, MaterialId.EmeraldGlass, RefractiveRayMask));
+        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.04f) * Matrix4x4.CreateTranslation(965.0f, 69.0f, -950.0f), false, MaterialId.PolishedCopper, OpaqueRayMask));
+        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.04f) * Matrix4x4.CreateTranslation(-965.0f, 69.0f, -950.0f), false, MaterialId.SapphireLacquer, OpaqueRayMask));
+        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.10f) * Matrix4x4.CreateTranslation(548.0f, 87.0f, -55.0f), false, MaterialId.SapphireLacquer, OpaqueRayMask));
+        placementList.Add((sculptedUrnMesh, Matrix4x4.CreateScale(1.02f) * Matrix4x4.CreateTranslation(548.0f, 83.0f, 425.0f), false, MaterialId.PolishedCopper, OpaqueRayMask));
 
         foreach (float cx in (ReadOnlySpan<float>)[-390.0f, -155.0f, 155.0f, 390.0f])
         {
-            placementList.Add((classicalColumnMesh, Matrix4x4.CreateTranslation(cx, -27.0f, -1190.0f), false, uint.MaxValue, 0x01));
+            placementList.Add((classicalColumnMesh, Matrix4x4.CreateTranslation(cx, -27.0f, -1190.0f), false, NoMaterialOverride, OpaqueRayMask));
         }
 
         for (int i = 0; i < 4; i++)
         {
             float z = -16.0f + (i * 200.0f);
-            placementList.Add((classicalColumnMesh, Matrix4x4.CreateTranslation(720.0f, -27.0f, z), false, uint.MaxValue, 0x01));
-            placementList.Add((classicalColumnMesh, Matrix4x4.CreateTranslation(-720.0f, -27.0f, z), false, uint.MaxValue, 0x01));
+            placementList.Add((classicalColumnMesh, Matrix4x4.CreateTranslation(720.0f, -27.0f, z), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((classicalColumnMesh, Matrix4x4.CreateTranslation(-720.0f, -27.0f, z), false, NoMaterialOverride, OpaqueRayMask));
         }
 
         foreach (float px in (ReadOnlySpan<float>)[-1180.0f, -710.0f, -240.0f, 240.0f, 710.0f, 1180.0f])
         {
-            placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(px, -27.0f, 1040.0f), false, uint.MaxValue, 0x01));
+            placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(px, -27.0f, 1040.0f), false, NoMaterialOverride, OpaqueRayMask));
         }
 
         foreach (float sign in (ReadOnlySpan<float>)[1.0f, -1.0f])
         {
             float xWall = sign * 1180.0f;
+
             foreach (float pz in (ReadOnlySpan<float>)[-1190.0f, -750.0f, -310.0f, 130.0f, 570.0f])
             {
-                placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(xWall, -27.0f, pz), false, uint.MaxValue, 0x01));
+                placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(xWall, -27.0f, pz), false, NoMaterialOverride, OpaqueRayMask));
             }
 
-            placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(sign * 475.0f, -27.0f, -1190.0f), false, uint.MaxValue, 0x01));
-            placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(sign * 825.0f, -27.0f, -1190.0f), false, uint.MaxValue, 0x01));
+            placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(sign * 475.0f, -27.0f, -1190.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((balustradePierMesh, Matrix4x4.CreateTranslation(sign * 825.0f, -27.0f, -1190.0f), false, NoMaterialOverride, OpaqueRayMask));
         }
 
         foreach (float sign in (ReadOnlySpan<float>)[1.0f, -1.0f])
         {
             float x = sign * 548.0f;
-            placementList.Add((terracottaPlanterMesh, Matrix4x4.CreateTranslation(x, -27.0f, -965.0f), false, uint.MaxValue, 0x01));
-            placementList.Add((courtyardBenchMesh, Matrix4x4.CreateTranslation(x, -27.0f, -340.0f), false, uint.MaxValue, 0x01));
-            placementList.Add((poolPedestalMesh, Matrix4x4.CreateTranslation(x, -27.0f, -690.0f), false, uint.MaxValue, 0x01));
+            placementList.Add((terracottaPlanterMesh, Matrix4x4.CreateTranslation(x, -27.0f, -965.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((courtyardBenchMesh, Matrix4x4.CreateTranslation(x, -27.0f, -340.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((poolPedestalMesh, Matrix4x4.CreateTranslation(x, -27.0f, -690.0f), false, NoMaterialOverride, OpaqueRayMask));
 
             float px = sign * 965.0f;
+
             foreach (float pz in (ReadOnlySpan<float>)[-680.0f, -240.0f, 200.0f, 640.0f])
             {
-                placementList.Add((terracottaPlanterMesh, Matrix4x4.CreateTranslation(px, -27.0f, pz), false, uint.MaxValue, 0x01));
+                placementList.Add((terracottaPlanterMesh, Matrix4x4.CreateTranslation(px, -27.0f, pz), false, NoMaterialOverride, OpaqueRayMask));
             }
 
             foreach (float bz in (ReadOnlySpan<float>)[-460.0f, -20.0f, 420.0f])
             {
-                placementList.Add((courtyardBenchMesh, Matrix4x4.CreateTranslation(px, -27.0f, bz), false, uint.MaxValue, 0x01));
+                placementList.Add((courtyardBenchMesh, Matrix4x4.CreateTranslation(px, -27.0f, bz), false, NoMaterialOverride, OpaqueRayMask));
             }
 
-            placementList.Add((courtyardPedestalMesh, Matrix4x4.CreateTranslation(px, -27.0f, -950.0f), false, uint.MaxValue, 0x01));
-            placementList.Add((courtyardPedestalMesh, Matrix4x4.CreateTranslation(px, -27.0f, 845.0f), false, uint.MaxValue, 0x01));
+            placementList.Add((courtyardPedestalMesh, Matrix4x4.CreateTranslation(px, -27.0f, -950.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((courtyardPedestalMesh, Matrix4x4.CreateTranslation(px, -27.0f, 845.0f), false, NoMaterialOverride, OpaqueRayMask));
         }
 
         foreach (float cx in (ReadOnlySpan<float>)[-680.0f, -250.0f, 250.0f, 680.0f])
         {
-            placementList.Add((terracottaPlanterMesh, Matrix4x4.CreateTranslation(cx, -27.0f, 910.0f), false, uint.MaxValue, 0x01));
+            placementList.Add((terracottaPlanterMesh, Matrix4x4.CreateTranslation(cx, -27.0f, 910.0f), false, NoMaterialOverride, OpaqueRayMask));
         }
 
-        placementList.Add((galleryPedestalMesh, Matrix4x4.CreateTranslation(548.0f, -15.0f, -55.0f), false, uint.MaxValue, 0x01));
-        placementList.Add((galleryPedestalMesh, Matrix4x4.CreateTranslation(-548.0f, -15.0f, 425.0f), false, uint.MaxValue, 0x01));
-        placementList.Add((northCenterPedestalMesh, Matrix4x4.CreateTranslation(0.0f, -27.0f, 815.0f), false, uint.MaxValue, 0x01));
+        placementList.Add((galleryPedestalMesh, Matrix4x4.CreateTranslation(548.0f, -15.0f, -55.0f), false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((galleryPedestalMesh, Matrix4x4.CreateTranslation(-548.0f, -15.0f, 425.0f), false, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((northCenterPedestalMesh, Matrix4x4.CreateTranslation(0.0f, -27.0f, 815.0f), false, NoMaterialOverride, OpaqueRayMask));
 
-        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(18.0f / 32.0f) * Matrix4x4.CreateTranslation(548.0f, 33.0f, -690.0f), false, 6u, 0x01));
-        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(18.0f / 32.0f) * Matrix4x4.CreateTranslation(-548.0f, 33.0f, -690.0f), false, 8u, 0x01));
-        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(29.0f / 32.0f) * Matrix4x4.CreateTranslation(965.0f, 98.0f, 845.0f), false, 6u, 0x01));
-        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(29.0f / 32.0f) * Matrix4x4.CreateTranslation(-965.0f, 98.0f, 845.0f), false, 7u, 0x01));
-        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateTranslation(0.0f, 101.0f, 815.0f), false, 8u, 0x01));
+        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(18.0f / 32.0f) * Matrix4x4.CreateTranslation(548.0f, 33.0f, -690.0f), false, MaterialId.BrushedGold, OpaqueRayMask));
+        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(18.0f / 32.0f) * Matrix4x4.CreateTranslation(-548.0f, 33.0f, -690.0f), false, MaterialId.PolishedCopper, OpaqueRayMask));
+        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(29.0f / 32.0f) * Matrix4x4.CreateTranslation(965.0f, 98.0f, 845.0f), false, MaterialId.BrushedGold, OpaqueRayMask));
+        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateScale(29.0f / 32.0f) * Matrix4x4.CreateTranslation(-965.0f, 98.0f, 845.0f), false, MaterialId.ChromeMirror, OpaqueRayMask));
+        placementList.Add((mirrorOrbMesh, Matrix4x4.CreateTranslation(0.0f, 101.0f, 815.0f), false, MaterialId.PolishedCopper, OpaqueRayMask));
 
-        firstDynamicSlot = placementList.Count;
+        foreach (float sign in (ReadOnlySpan<float>)[1.0f, -1.0f])
+        {
+            placementList.Add((classicalLanternMesh, Matrix4x4.CreateTranslation(sign * 310.0f, -27.0f, -152.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((classicalLanternMesh, Matrix4x4.CreateTranslation(sign * 445.0f, -27.0f, -690.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((classicalLanternMesh, Matrix4x4.CreateTranslation(sign * 648.0f, -27.0f, 84.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((classicalLanternMesh, Matrix4x4.CreateTranslation(sign * 648.0f, -27.0f, 484.0f), false, NoMaterialOverride, OpaqueRayMask));
+            placementList.Add((classicalLanternMesh, Matrix4x4.CreateTranslation(sign * 320.0f, -27.0f, 740.0f), false, NoMaterialOverride, OpaqueRayMask));
+        }
 
-        placementList.Add((trefoilKnotMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((outerRingMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((middleRingMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((innerRingMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((mirrorOrbMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, 7u, 0x01));
-        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, 7u, 0x01));
-        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
-        placementList.Add((rubyKnotMesh, Matrix4x4.Identity, true, uint.MaxValue, 0x01));
+        placementList.Sort(static (a, b) => a.MeshIndex.CompareTo(b.MeshIndex));
 
-        placements = [.. placementList];
+        int firstDynamicSlot = placementList.Count;
 
-        materials =
+        placementList.Add((trefoilKnotMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((outerRingMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((middleRingMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((innerRingMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((mirrorOrbMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, MaterialId.ChromeMirror, OpaqueRayMask));
+        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, MaterialId.ChromeMirror, OpaqueRayMask));
+        placementList.Add((pendulumMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+        placementList.Add((rubyKnotMesh, Matrix4x4.Identity, true, NoMaterialOverride, OpaqueRayMask));
+
+        SceneMaterial[] materials =
         [
-            SceneMaterial.Coated(new(0.82f, 0.79f, 0.73f), 0.20f, 0.70f, 0.055f, SceneMaterial.Pattern.Checker, 58.0f),
+            SceneMaterial.Coated(new(0.82f, 0.79f, 0.73f), 0.20f, 0.70f, 0.055f, MaterialPattern.Checker, 58.0f),
             SceneMaterial.Matte(new(0.82f, 0.78f, 0.72f), 0.78f),
             SceneMaterial.Matte(new(0.66f, 0.062f, 0.055f), 0.86f),
             SceneMaterial.Matte(new(0.10f, 0.44f, 0.12f), 0.86f),
             SceneMaterial.Metal(new(0.15f, 0.14f, 0.13f), 0.24f),
-            SceneMaterial.Coated(new(0.40f, 0.22f, 0.10f), 0.44f, 0.35f, 0.14f, SceneMaterial.Pattern.Stripes, 38.0f),
+            SceneMaterial.Coated(new(0.40f, 0.22f, 0.10f), 0.44f, 0.35f, 0.14f, MaterialPattern.Stripes, 38.0f),
             SceneMaterial.Metal(new(0.98f, 0.78f, 0.35f), 0.12f),
             SceneMaterial.Metal(new(0.96f, 0.97f, 0.98f), 0.035f),
             SceneMaterial.Metal(new(0.96f, 0.56f, 0.40f), 0.11f),
@@ -230,14 +247,19 @@ internal static class CornellBoxGeometry
             SceneMaterial.Glass(new(0.96f, 0.99f, 1.00f), 1.52f, 0.02f),
             SceneMaterial.Glass(new(0.38f, 0.92f, 0.66f), 1.50f, 0.025f),
             SceneMaterial.Emissive(new(1.00f, 0.89f, 0.70f), 22.0f),
-            SceneMaterial.Coated(new(0.055f, 0.058f, 0.065f), 0.18f, 0.85f, 0.04f, SceneMaterial.Pattern.Marble, 68.0f),
-            SceneMaterial.Coated(new(0.84f, 0.80f, 0.73f), 0.22f, 0.88f, 0.045f, SceneMaterial.Pattern.Marble, 92.0f),
-            SceneMaterial.Matte(new(0.60f, 0.56f, 0.49f), 0.60f, SceneMaterial.Pattern.Grid, 128.0f),
+            SceneMaterial.Coated(new(0.055f, 0.058f, 0.065f), 0.18f, 0.85f, 0.04f, MaterialPattern.Marble, 68.0f),
+            SceneMaterial.Coated(new(0.84f, 0.80f, 0.73f), 0.22f, 0.88f, 0.045f, MaterialPattern.Marble, 92.0f),
+            SceneMaterial.Matte(new(0.60f, 0.56f, 0.49f), 0.60f, MaterialPattern.Grid, 128.0f),
             SceneMaterial.Matte(new(0.77f, 0.72f, 0.63f), 0.66f),
             SceneMaterial.Matte(new(0.56f, 0.25f, 0.14f), 0.74f),
             SceneMaterial.Matte(new(0.12f, 0.28f, 0.11f), 0.88f),
-            SceneMaterial.Coated(new(0.025f, 0.072f, 0.082f), 0.06f, 1.0f, 0.035f)
+            SceneMaterial.Coated(new(0.025f, 0.072f, 0.082f), 0.06f, 1.0f, 0.035f),
+            SceneMaterial.Coated(new(0.94f, 0.88f, 0.76f), 0.22f, 0.85f, 0.05f) with { Emission = 16.0f },
+            SceneMaterial.Coated(new(0.14f, 0.13f, 0.12f), 0.24f, 0.75f, 0.06f) with { Emission = 11.0f },
+            SceneMaterial.Matte(new(0.77f, 0.72f, 0.63f), 0.64f, MaterialPattern.Fluted, 20.0f)
         ];
+
+        return (vertices, indices, meshes, [.. placementList], firstDynamicSlot, materials);
     }
 
     public static void WriteTransforms(float elapsedSeconds, Span<Matrix4x4> dynamicTransforms)
@@ -271,57 +293,75 @@ internal static class CornellBoxGeometry
 
     private static void BuildSanctuaryShell(MeshBuilder builder)
     {
-        builder.AddQuad(new(290.0f, 0.0f, 1.0f), new(-290.0f, 0.0f, 1.0f), new(-290.0f, 0.0f, 560.0f), new(290.0f, 0.0f, 560.0f), 0);
-        builder.AddRoundedBox(new(0.0f, 0.55f, -0.5f), new(288.5f, 0.55f, 2.0f), 0.25f, 0.0f, 6);
+        builder.AddQuad(new(290.0f, 0.0f, 1.0f), new(-290.0f, 0.0f, 1.0f), new(-290.0f, 0.0f, 560.0f), new(290.0f, 0.0f, 560.0f), MaterialId.CheckerFloor);
+        builder.AddRoundedBox(new(0.0f, 0.55f, -0.5f), new(288.5f, 0.55f, 2.0f), 0.25f, 0.0f, MaterialId.BrushedGold);
 
-        builder.AddQuad(new(290.0f, 0.0f, 1.0f), new(290.0f, 0.0f, 560.0f), new(290.0f, 560.0f, 560.0f), new(290.0f, 560.0f, 1.0f), 2);
-        builder.AddBox(new(290.2f, 0.0f, 4.0f), new(324.0f, 560.0f, 588.0f), 18);
+        builder.AddQuad(new(290.0f, 0.0f, 1.0f), new(290.0f, 0.0f, 560.0f), new(290.0f, 560.0f, 560.0f), new(290.0f, 560.0f, 1.0f), MaterialId.CrimsonWall);
+        builder.AddBox(new(293.5f, 0.0f, 4.0f), new(324.0f, 563.5f, 588.0f), MaterialId.TravertineStone);
 
-        builder.AddQuad(new(-290.0f, 0.0f, 560.0f), new(-290.0f, 0.0f, 1.0f), new(-290.0f, 560.0f, 1.0f), new(-290.0f, 560.0f, 560.0f), 3);
-        builder.AddBox(new(-324.0f, 0.0f, 4.0f), new(-290.2f, 560.0f, 588.0f), 18);
+        builder.AddQuad(new(-290.0f, 0.0f, 560.0f), new(-290.0f, 0.0f, 1.0f), new(-290.0f, 560.0f, 1.0f), new(-290.0f, 560.0f, 560.0f), MaterialId.JadeWall);
+        builder.AddBox(new(-324.0f, 0.0f, 4.0f), new(-293.5f, 563.5f, 588.0f), MaterialId.TravertineStone);
 
-        builder.AddQuad(new(290.0f, 0.0f, 560.0f), new(130.0f, 0.0f, 560.0f), new(130.0f, 560.0f, 560.0f), new(290.0f, 560.0f, 560.0f), 1);
-        builder.AddQuad(new(-130.0f, 0.0f, 560.0f), new(-290.0f, 0.0f, 560.0f), new(-290.0f, 560.0f, 560.0f), new(-130.0f, 560.0f, 560.0f), 1);
-        builder.AddQuad(new(130.0f, 0.0f, 560.0f), new(-130.0f, 0.0f, 560.0f), new(-130.0f, 64.0f, 560.0f), new(130.0f, 64.0f, 560.0f), 1);
-        builder.AddQuad(new(130.0f, 456.0f, 560.0f), new(-130.0f, 456.0f, 560.0f), new(-130.0f, 560.0f, 560.0f), new(130.0f, 560.0f, 560.0f), 1);
+        builder.AddQuad(new(290.0f, 0.0f, 560.0f), new(130.0f, 0.0f, 560.0f), new(130.0f, 560.0f, 560.0f), new(290.0f, 560.0f, 560.0f), MaterialId.SanctuaryPlaster);
+        builder.AddQuad(new(-130.0f, 0.0f, 560.0f), new(-290.0f, 0.0f, 560.0f), new(-290.0f, 560.0f, 560.0f), new(-130.0f, 560.0f, 560.0f), MaterialId.SanctuaryPlaster);
+        builder.AddQuad(new(130.0f, 0.0f, 560.0f), new(-130.0f, 0.0f, 560.0f), new(-130.0f, 64.0f, 560.0f), new(130.0f, 64.0f, 560.0f), MaterialId.SanctuaryPlaster);
+        builder.AddQuad(new(130.0f, 456.0f, 560.0f), new(-130.0f, 456.0f, 560.0f), new(-130.0f, 560.0f, 560.0f), new(130.0f, 560.0f, 560.0f), MaterialId.SanctuaryPlaster);
 
-        builder.AddBox(new(130.0f, 0.0f, 560.2f), new(290.2f, 560.0f, 588.0f), 18);
-        builder.AddBox(new(-290.2f, 0.0f, 560.2f), new(-130.0f, 560.0f, 588.0f), 18);
-        builder.AddBox(new(-130.0f, 0.0f, 560.2f), new(130.0f, 64.0f, 588.0f), 18);
-        builder.AddBox(new(-130.0f, 456.0f, 560.2f), new(130.0f, 560.0f, 588.0f), 18);
+        builder.AddBox(new(130.0f, 0.0f, 563.5f), new(293.5f, 563.5f, 588.0f), MaterialId.TravertineStone);
+        builder.AddBox(new(-293.5f, 0.0f, 563.5f), new(-130.0f, 563.5f, 588.0f), MaterialId.TravertineStone);
+        builder.AddBox(new(-130.0f, 0.0f, 563.5f), new(130.0f, 64.0f, 588.0f), MaterialId.TravertineStone);
+        builder.AddBox(new(-130.0f, 456.0f, 563.5f), new(130.0f, 563.5f, 588.0f), MaterialId.TravertineStone);
 
-        builder.AddRoundedBox(new(0.0f, 453.0f, 574.0f), new(130.0f, 3.0f, 15.5f), 1.0f, 0.0f, 6);
-        builder.AddRoundedBox(new(0.0f, 67.0f, 574.0f), new(130.0f, 3.0f, 15.5f), 1.0f, 0.0f, 6);
-        builder.AddRoundedBox(new(127.0f, 260.0f, 574.0f), new(3.0f, 190.0f, 15.5f), 1.0f, 0.0f, 6);
-        builder.AddRoundedBox(new(-127.0f, 260.0f, 574.0f), new(3.0f, 190.0f, 15.5f), 1.0f, 0.0f, 6);
+        builder.AddRoundedBox(new(0.0f, 453.0f, 574.0f), new(130.0f, 3.0f, 15.5f), 1.0f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(0.0f, 67.0f, 574.0f), new(130.0f, 3.0f, 15.5f), 1.0f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(127.0f, 260.0f, 574.0f), new(3.0f, 190.0f, 15.5f), 1.0f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(-127.0f, 260.0f, 574.0f), new(3.0f, 190.0f, 15.5f), 1.0f, 0.0f, MaterialId.BrushedGold);
 
         for (int i = -5; i <= 5; i++)
         {
-            builder.AddRoundedBox(new(i * 20.5f, 260.0f, 574.0f), new(3.4f, 190.0f, 8.5f), 1.2f, 0.34f, 5);
+            builder.AddRoundedBox(new(i * 20.5f, 260.0f, 574.0f), new(3.4f, 190.0f, 8.5f), 1.2f, 0.34f, MaterialId.WalnutWood);
         }
 
-        builder.AddRoundedBox(new(308.5f, 280.0f, -7.0f), new(20.0f, 280.0f, 11.0f), 2.5f, 0.0f, 4);
-        builder.AddRoundedBox(new(-308.5f, 280.0f, -7.0f), new(20.0f, 280.0f, 11.0f), 2.5f, 0.0f, 4);
-        builder.AddRoundedBox(new(308.5f, 280.0f, 595.0f), new(20.0f, 280.0f, 7.0f), 2.5f, 0.0f, 4);
-        builder.AddRoundedBox(new(-308.5f, 280.0f, 595.0f), new(20.0f, 280.0f, 7.0f), 2.5f, 0.0f, 4);
+        foreach (float sign in (ReadOnlySpan<float>)[1.0f, -1.0f])
+        {
+            builder.AddRoundedBox(new(sign * 308.5f, 281.75f, -7.0f), new(20.0f, 281.75f, 11.0f), 2.5f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(sign * 308.5f, 6.0f, -7.0f), new(22.5f, 6.0f, 13.5f), 1.5f, 0.0f, MaterialId.NeroMarble);
+            builder.AddRoundedBox(new(sign * 308.5f, 12.8f, -7.0f), new(21.4f, 0.8f, 12.4f), 0.35f, 0.0f, MaterialId.BrushedGold);
+            builder.AddRoundedBox(new(sign * 308.5f, 546.0f, -7.0f), new(21.2f, 1.4f, 12.2f), 0.45f, 0.0f, MaterialId.BrushedGold);
+            builder.AddRoundedBox(new(sign * 308.5f, 281.75f, 595.0f), new(20.0f, 281.75f, 7.0f), 2.5f, 0.0f, MaterialId.DarkBronze);
 
-        builder.AddQuad(new(290.0f, 560.0f, 1.0f), new(290.0f, 560.0f, 560.0f), new(-290.0f, 560.0f, 560.0f), new(-290.0f, 560.0f, 1.0f), 1);
-        builder.AddRoundedBox(new(0.0f, 576.1f, 290.0f), new(332.0f, 15.9f, 312.0f), 3.0f, 0.0f, 4);
-        builder.AddRoundedBox(new(0.0f, 601.0f, 290.0f), new(346.0f, 9.0f, 322.0f), 2.5f, 0.0f, 18);
+            builder.AddRoundedBox(new(sign * 289.1f, 2.4f, 281.1f), new(0.9f, 2.4f, 277.1f), 0.35f, 0.0f, MaterialId.NeroMarble);
+            builder.AddRoundedBox(new(sign * 289.18f, 5.15f, 281.1f), new(0.82f, 0.35f, 277.1f), 0.2f, 0.0f, MaterialId.BrushedGold);
+            builder.AddRoundedBox(new(sign * 288.4f, 558.2f, 280.4f), new(1.6f, 1.8f, 276.4f), 0.45f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(sign * 288.8f, 556.05f, 280.4f), new(1.2f, 0.35f, 276.4f), 0.2f, 0.0f, MaterialId.BrushedGold);
+        }
 
-        builder.AddRoundedBox(new(98.0f, 556.0f, 275.0f), new(5.0f, 4.0f, 93.0f), 1.2f, 0.0f, 4);
-        builder.AddRoundedBox(new(-98.0f, 556.0f, 275.0f), new(5.0f, 4.0f, 93.0f), 1.2f, 0.0f, 4);
-        builder.AddRoundedBox(new(0.0f, 556.0f, 187.0f), new(93.0f, 4.0f, 5.0f), 1.2f, 0.0f, 4);
-        builder.AddRoundedBox(new(0.0f, 556.0f, 363.0f), new(93.0f, 4.0f, 5.0f), 1.2f, 0.0f, 4);
-        builder.AddQuad(new(93.0f, 554.0f, 192.0f), new(93.0f, 554.0f, 358.0f), new(-93.0f, 554.0f, 358.0f), new(-93.0f, 554.0f, 192.0f), 14);
+        builder.AddRoundedBox(new(0.0f, 2.4f, 559.1f), new(289.9f, 2.4f, 0.9f), 0.35f, 0.0f, MaterialId.NeroMarble);
+        builder.AddRoundedBox(new(0.0f, 5.15f, 559.18f), new(289.9f, 0.35f, 0.82f), 0.2f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(0.0f, 558.2f, 558.4f), new(289.9f, 1.8f, 1.6f), 0.45f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(0.0f, 556.05f, 558.8f), new(289.9f, 0.35f, 1.2f), 0.2f, 0.0f, MaterialId.BrushedGold);
+
+        builder.AddQuad(new(290.0f, 560.0f, 1.0f), new(290.0f, 560.0f, 560.0f), new(-290.0f, 560.0f, 560.0f), new(-290.0f, 560.0f, 1.0f), MaterialId.SanctuaryPlaster);
+        builder.AddRoundedBox(new(0.0f, 577.5f, 290.0f), new(332.0f, 14.5f, 312.0f), 3.0f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(0.0f, 601.0f, 290.0f), new(346.0f, 9.0f, 322.0f), 2.5f, 0.0f, MaterialId.TravertineStone);
+
+        builder.AddRoundedBox(new(98.0f, 556.0f, 275.0f), new(5.0f, 4.0f, 93.0f), 1.2f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(-98.0f, 556.0f, 275.0f), new(5.0f, 4.0f, 93.0f), 1.2f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(0.0f, 556.0f, 187.0f), new(93.0f, 4.0f, 5.0f), 1.2f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(0.0f, 556.0f, 363.0f), new(93.0f, 4.0f, 5.0f), 1.2f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(92.4f, 552.95f, 275.0f), new(0.55f, 0.95f, 83.0f), 0.28f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(-92.4f, 552.95f, 275.0f), new(0.55f, 0.95f, 83.0f), 0.28f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(0.0f, 552.95f, 192.6f), new(91.85f, 0.95f, 0.55f), 0.28f, 0.0f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(0.0f, 552.95f, 357.4f), new(91.85f, 0.95f, 0.55f), 0.28f, 0.0f, MaterialId.BrushedGold);
+        builder.AddQuad(new(93.0f, 554.0f, 192.0f), new(93.0f, 554.0f, 358.0f), new(-93.0f, 554.0f, 358.0f), new(-93.0f, 554.0f, 192.0f), MaterialId.CeilingLight);
     }
 
     private static void BuildSanctuaryStaticExhibits(MeshBuilder builder)
     {
-        builder.AddRoundedBox(new(172.0f, 4.0f, 392.0f), new(53.0f, 4.0f, 53.0f), 1.5f, -0.30f, 6);
-        builder.AddRoundedBox(new(172.0f, 169.0f, 392.0f), new(50.0f, 161.0f, 50.0f), 6.0f, -0.30f, 16);
+        builder.AddRoundedBox(new(172.0f, 4.0f, 392.0f), new(53.0f, 4.0f, 53.0f), 1.5f, -0.30f, MaterialId.BrushedGold);
+        builder.AddRoundedBox(new(172.0f, 169.0f, 392.0f), new(50.0f, 161.0f, 50.0f), 6.0f, -0.30f, MaterialId.CreamMarble);
 
-        builder.AddRoundedBox(new(-168.0f, 68.0f, 195.0f), new(52.0f, 68.0f, 52.0f), 5.5f, 0.28f, 1);
+        builder.AddRoundedBox(new(-168.0f, 68.0f, 195.0f), new(52.0f, 68.0f, 52.0f), 5.5f, 0.28f, MaterialId.SanctuaryPlaster);
         ReadOnlySpan<Vector2> sphereCradleProfile =
         [
             new(32.0f, 0.0f),
@@ -333,7 +373,7 @@ internal static class CornellBoxGeometry
             new(7.5f, 6.3f),
             new(0.0f, 5.75f)
         ];
-        builder.AddLathe(new(-168.0f, 136.0f, 195.0f), sphereCradleProfile, 6, 44, true, false);
+        builder.AddLathe(new(-168.0f, 136.0f, 195.0f), sphereCradleProfile, MaterialId.BrushedGold, 44, true, false);
 
         ReadOnlySpan<Vector2> daisProfile =
         [
@@ -345,8 +385,8 @@ internal static class CornellBoxGeometry
             new(62.0f, 55.0f),
             new(64.0f, 60.0f)
         ];
-        builder.AddLathe(new(0.0f, 0.0f, 305.0f), daisProfile, 15, 48, true, false);
-        builder.AddLathe(new(0.0f, 60.0f, 305.0f), [new(64.0f, 0.0f), new(66.5f, 3.0f), new(60.0f, 6.0f)], 6, 48, false, true);
+        builder.AddLathe(new(0.0f, 0.0f, 305.0f), daisProfile, MaterialId.NeroMarble, 48, true, false);
+        builder.AddLathe(new(0.0f, 60.0f, 305.0f), [new(64.0f, 0.0f), new(66.5f, 3.0f), new(60.0f, 6.0f)], MaterialId.BrushedGold, 48, false, true);
 
         ReadOnlySpan<Vector2> finialProfile =
         [
@@ -359,19 +399,23 @@ internal static class CornellBoxGeometry
             new(12.0f, 72.0f),
             new(0.0f, 67.0f)
         ];
-        builder.AddLathe(new(0.0f, 66.0f, 305.0f), finialProfile, 6, 36, false, false);
+        builder.AddLathe(new(0.0f, 66.0f, 305.0f), finialProfile, MaterialId.BrushedGold, 36, false, false);
     }
 
     private static void BuildCourtyardGroundAndPools(MeshBuilder builder)
     {
-        builder.AddQuad(new(1240.0f, -27.0f, -1260.0f), new(-1240.0f, -27.0f, -1260.0f), new(-1240.0f, -27.0f, 1080.0f), new(1240.0f, -27.0f, 1080.0f), 17);
-        builder.AddBox(new(-1244.0f, -31.0f, -1264.0f), new(1244.0f, -27.02f, 1084.0f), 4);
+        builder.AddBox(new(-1240.0f, -33.0f, -1260.0f), new(1240.0f, -27.0f, 1080.0f), MaterialId.CourtyardPaver);
+        builder.AddBox(new(-1246.0f, -37.0f, -1266.0f), new(1246.0f, -33.0f, 1086.0f), MaterialId.DarkBronze);
+        builder.AddBox(new(-1246.0f, -33.0f, -1266.0f), new(-1240.0f, -27.0f, 1086.0f), MaterialId.DarkBronze);
+        builder.AddBox(new(1240.0f, -33.0f, -1266.0f), new(1246.0f, -27.0f, 1086.0f), MaterialId.DarkBronze);
+        builder.AddBox(new(-1240.0f, -33.0f, -1266.0f), new(1240.0f, -27.0f, -1260.0f), MaterialId.DarkBronze);
+        builder.AddBox(new(-1240.0f, -33.0f, 1080.0f), new(1240.0f, -27.0f, 1086.0f), MaterialId.DarkBronze);
 
-        builder.AddRoundedBox(new(0.0f, -14.5f, 292.0f), new(342.0f, 12.5f, 316.0f), 2.5f, 0.0f, 4);
-        builder.AddBox(new(-338.0f, -2.0f, -22.0f), new(338.0f, 0.0f, 2.0f), 18);
-        builder.AddBox(new(-338.0f, -2.0f, 588.0f), new(338.0f, 0.0f, 606.0f), 18);
-        builder.AddBox(new(324.0f, -2.0f, 2.0f), new(338.0f, 0.0f, 588.0f), 18);
-        builder.AddBox(new(-338.0f, -2.0f, 2.0f), new(-324.0f, 0.0f, 588.0f), 18);
+        builder.AddRoundedBox(new(0.0f, -14.5f, 292.0f), new(342.0f, 12.5f, 316.0f), 2.5f, 0.0f, MaterialId.DarkBronze);
+        builder.AddBox(new(-338.0f, -2.0f, -22.0f), new(338.0f, 0.0f, 2.0f), MaterialId.TravertineStone);
+        builder.AddBox(new(-338.0f, -2.0f, 588.0f), new(338.0f, 0.0f, 606.0f), MaterialId.TravertineStone);
+        builder.AddBox(new(324.0f, -2.0f, 2.0f), new(338.0f, 0.0f, 588.0f), MaterialId.TravertineStone);
+        builder.AddBox(new(-338.0f, -2.0f, 2.0f), new(-324.0f, 0.0f, 588.0f), MaterialId.TravertineStone);
 
         for (int i = 0; i < 3; i++)
         {
@@ -382,42 +426,47 @@ internal static class CornellBoxGeometry
             float yCenter = (-27.0f + yTop) * 0.5f;
             float yHalf = (yTop + 27.0f) * 0.5f;
 
-            builder.AddRoundedBox(new(0.0f, yCenter, (zFront + zBack) * 0.5f), new(halfWidth, yHalf, 26.0f), 1.6f, 0.0f, 18);
-            builder.AddRoundedBox(new(0.0f, yTop + 0.45f, zFront + 2.2f), new(halfWidth - 3.0f, 0.45f, 1.8f), 0.3f, 0.0f, 6);
+            builder.AddRoundedBox(new(0.0f, yCenter, (zFront + zBack) * 0.5f), new(halfWidth, yHalf, 26.0f), 1.6f, 0.0f, MaterialId.TravertineStone);
+            builder.AddRoundedBox(new(0.0f, yTop + 0.45f, zFront + 1.1f), new(halfWidth - 3.0f, 0.45f, 2.3f), 0.3f, 0.0f, MaterialId.BrushedGold);
+            builder.AddRoundedBox(new(0.0f, yTop - 0.45f, zFront - 0.40f), new(halfWidth - 9.0f, 0.42f, 0.48f), 0.18f, 0.0f, MaterialId.WarmAccentStrip);
         }
 
         foreach (float sign in (ReadOnlySpan<float>)[1.0f, -1.0f])
         {
-            builder.AddBox(new((sign * 254.0f) - 10.0f, -27.0f, -1240.0f), new((sign * 254.0f) + 10.0f, -26.3f, -182.0f), 15);
-            builder.AddBox(new((sign * 241.0f) - 2.0f, -27.0f, -1240.0f), new((sign * 241.0f) + 2.0f, -26.2f, -182.0f), 6);
+            builder.AddOpenBottomBox(new((sign * 254.0f) - 10.0f, -27.5f, -1240.0f), new((sign * 254.0f) + 10.0f, -25.6f, -182.0f), MaterialId.NeroMarble);
+            builder.AddOpenBottomBox(new((sign * 241.0f) - 2.0f, -27.5f, -1240.0f), new((sign * 241.0f) + 2.0f, -25.5f, -182.0f), MaterialId.BrushedGold);
 
             float poolX = sign * 408.0f;
-            builder.AddQuad(new(poolX + 38.0f, -22.5f, -182.0f), new(poolX - 38.0f, -22.5f, -182.0f), new(poolX - 38.0f, -22.5f, 582.0f), new(poolX + 38.0f, -22.5f, 582.0f), 21);
-            builder.AddRoundedBox(new(poolX - 42.0f, -23.5f, 200.0f), new(4.0f, 3.5f, 390.0f), 1.0f, 0.0f, 4);
-            builder.AddRoundedBox(new(poolX + 42.0f, -23.5f, 200.0f), new(4.0f, 3.5f, 390.0f), 1.0f, 0.0f, 4);
-            builder.AddRoundedBox(new(poolX, -23.5f, -186.0f), new(38.0f, 3.5f, 4.0f), 1.0f, 0.0f, 4);
-            builder.AddRoundedBox(new(poolX, -23.5f, 586.0f), new(38.0f, 3.5f, 4.0f), 1.0f, 0.0f, 4);
+            builder.AddQuad(new(poolX + 38.0f, -22.5f, -182.0f), new(poolX - 38.0f, -22.5f, -182.0f), new(poolX - 38.0f, -22.5f, 582.0f), new(poolX + 38.0f, -22.5f, 582.0f), MaterialId.ReflectingWater);
+            builder.AddRoundedBox(new(poolX - 42.0f, -23.5f, 200.0f), new(4.0f, 3.5f, 390.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(poolX + 42.0f, -23.5f, 200.0f), new(4.0f, 3.5f, 390.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(poolX, -23.5f, -186.0f), new(38.0f, 3.5f, 4.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(poolX, -23.5f, 586.0f), new(38.0f, 3.5f, 4.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(poolX - 37.65f, -21.9f, 200.0f), new(0.45f, 0.35f, 381.0f), 0.15f, 0.0f, MaterialId.WarmAccentStrip);
+            builder.AddRoundedBox(new(poolX + 37.65f, -21.9f, 200.0f), new(0.45f, 0.35f, 381.0f), 0.15f, 0.0f, MaterialId.WarmAccentStrip);
 
             float x = sign * 548.0f;
-            builder.AddQuad(new(x + 56.0f, -22.5f, -842.0f), new(x - 56.0f, -22.5f, -842.0f), new(x - 56.0f, -22.5f, -538.0f), new(x + 56.0f, -22.5f, -538.0f), 21);
-            builder.AddRoundedBox(new(x - 60.0f, -23.5f, -690.0f), new(4.0f, 3.5f, 160.0f), 1.0f, 0.0f, 4);
-            builder.AddRoundedBox(new(x + 60.0f, -23.5f, -690.0f), new(4.0f, 3.5f, 160.0f), 1.0f, 0.0f, 4);
-            builder.AddRoundedBox(new(x, -23.5f, -846.0f), new(56.0f, 3.5f, 4.0f), 1.0f, 0.0f, 4);
-            builder.AddRoundedBox(new(x, -23.5f, -534.0f), new(56.0f, 3.5f, 4.0f), 1.0f, 0.0f, 4);
+            builder.AddQuad(new(x + 56.0f, -22.5f, -842.0f), new(x - 56.0f, -22.5f, -842.0f), new(x - 56.0f, -22.5f, -538.0f), new(x + 56.0f, -22.5f, -538.0f), MaterialId.ReflectingWater);
+            builder.AddRoundedBox(new(x - 60.0f, -23.5f, -690.0f), new(4.0f, 3.5f, 160.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(x + 60.0f, -23.5f, -690.0f), new(4.0f, 3.5f, 160.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(x, -23.5f, -846.0f), new(56.0f, 3.5f, 4.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(x, -23.5f, -534.0f), new(56.0f, 3.5f, 4.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(x - 55.65f, -21.9f, -690.0f), new(0.45f, 0.35f, 151.0f), 0.15f, 0.0f, MaterialId.WarmAccentStrip);
+            builder.AddRoundedBox(new(x + 55.65f, -21.9f, -690.0f), new(0.45f, 0.35f, 151.0f), 0.15f, 0.0f, MaterialId.WarmAccentStrip);
 
             float innerX = sign * 825.0f;
             float outerX = sign * 1105.0f;
-            builder.AddBox(new(innerX - 8.0f, -27.0f, -1052.0f), new(innerX + 8.0f, -26.3f, 932.0f), 15);
-            builder.AddBox(new(outerX - 8.0f, -27.0f, -1052.0f), new(outerX + 8.0f, -26.3f, 932.0f), 15);
+            builder.AddOpenBottomBox(new(innerX - 8.0f, -27.5f, -1052.0f), new(innerX + 8.0f, -25.6f, 932.0f), MaterialId.NeroMarble);
+            builder.AddOpenBottomBox(new(outerX - 8.0f, -27.5f, -1052.0f), new(outerX + 8.0f, -25.6f, 932.0f), MaterialId.NeroMarble);
 
             float minEdgeX = MathF.Min(innerX, outerX) - 8.0f;
             float maxEdgeX = MathF.Max(innerX, outerX) + 8.0f;
-            builder.AddBox(new(minEdgeX, -27.0f, -1068.0f), new(maxEdgeX, -26.3f, -1052.0f), 15);
-            builder.AddBox(new(minEdgeX, -27.0f, 932.0f), new(maxEdgeX, -26.3f, 948.0f), 15);
+            builder.AddOpenBottomBox(new(minEdgeX, -27.5f, -1068.0f), new(maxEdgeX, -25.6f, -1052.0f), MaterialId.NeroMarble);
+            builder.AddOpenBottomBox(new(minEdgeX, -27.5f, 932.0f), new(maxEdgeX, -25.6f, 948.0f), MaterialId.NeroMarble);
         }
 
         AddFloorMedallion(builder, new(0.0f, -27.0f, -275.0f), 80.0f);
-        builder.AddLathe(new(0.0f, -27.0f, 815.0f), [new(60.0f, 0.0f), new(60.0f, 0.55f), new(82.0f, 0.55f), new(82.0f, 0.0f)], 6, 48, false, false);
+        builder.AddAnnulusRing(new(0.0f, -27.0f, 815.0f), 60.0f, 82.0f, 1.4f, MaterialId.BrushedGold, 48);
     }
 
     private static void BuildNorthPerimeterWall(MeshBuilder builder)
@@ -445,8 +494,8 @@ internal static class CornellBoxGeometry
             float spanHalf = (zEnd - zStart) * 0.5f;
             float zMid = (zStart + zEnd) * 0.5f;
 
-            builder.AddRoundedBox(new(xWall, 4.5f, zMid), new(WallHalfThickness, 31.5f, spanHalf), 2.5f, 0.0f, 18);
-            builder.AddRoundedBox(new(xWall, 39.5f, zMid), new(CopingHalfThickness, 3.5f, spanHalf), 1.5f, 0.0f, 4);
+            builder.AddRoundedBox(new(xWall, 4.5f, zMid), new(WallHalfThickness, 31.5f, spanHalf), 2.5f, 0.0f, MaterialId.TravertineStone);
+            builder.AddRoundedBox(new(xWall, 39.5f, zMid), new(CopingHalfThickness, 3.5f, spanHalf), 1.5f, 0.0f, MaterialId.DarkBronze);
         }
     }
 
@@ -460,50 +509,65 @@ internal static class CornellBoxGeometry
             AddWallSpanX(builder, -1190.0f, MathF.Min(sign * 825.0f, sign * 1180.0f) + PierHalfSize, MathF.Max(sign * 825.0f, sign * 1180.0f) - PierHalfSize);
         }
 
-        builder.AddRoundedBox(new(0.0f, 576.0f, -1190.0f), new(448.0f, 16.0f, 54.0f), 3.0f, 0.0f, 18);
-        builder.AddRoundedBox(new(0.0f, 598.0f, -1190.0f), new(458.0f, 6.0f, 62.0f), 2.0f, 0.0f, 4);
+        builder.AddRoundedBox(new(0.0f, 576.0f, -1190.0f), new(448.0f, 16.0f, 54.0f), 3.0f, 0.0f, MaterialId.TravertineStone);
+        builder.AddRoundedBox(new(0.0f, 598.0f, -1190.0f), new(458.0f, 6.0f, 62.0f), 2.0f, 0.0f, MaterialId.DarkBronze);
+
+        foreach (float coffX in (ReadOnlySpan<float>)[-272.5f, 0.0f, 272.5f])
+        {
+            builder.AddRoundedBox(new(coffX, 559.5f, -1190.0f), new(54.0f, 1.5f, 26.0f), 0.5f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(coffX, 558.2f, -1190.0f), new(22.0f, 1.0f, 10.0f), 0.4f, 0.0f, MaterialId.BrushedGold);
+        }
     }
 
     private static void BuildColonnadeRoof(MeshBuilder builder, float sideX, float beamX)
     {
-        builder.AddRoundedBox(new(sideX, 576.0f, 284.0f), new(54.0f, 16.0f, 356.0f), 3.0f, 0.0f, 18);
-        builder.AddRoundedBox(new(sideX, 598.0f, 284.0f), new(62.0f, 6.0f, 364.0f), 2.0f, 0.0f, 4);
+        builder.AddRoundedBox(new(sideX, 576.0f, 284.0f), new(54.0f, 16.0f, 356.0f), 3.0f, 0.0f, MaterialId.TravertineStone);
+        builder.AddRoundedBox(new(sideX, 598.0f, 284.0f), new(62.0f, 6.0f, 364.0f), 2.0f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(sideX - 46.0f, 560.5f, 284.0f), new(3.5f, 2.0f, 352.0f), 0.8f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(sideX + 46.0f, 560.5f, 284.0f), new(3.5f, 2.0f, 352.0f), 0.8f, 0.0f, MaterialId.DarkBronze);
+
+        foreach (float coffZ in (ReadOnlySpan<float>)[84.0f, 284.0f, 484.0f])
+        {
+            builder.AddRoundedBox(new(sideX, 559.5f, coffZ), new(26.0f, 1.5f, 52.0f), 0.5f, 0.0f, MaterialId.DarkBronze);
+            builder.AddRoundedBox(new(sideX, 558.2f, coffZ), new(10.0f, 1.0f, 20.0f), 0.4f, 0.0f, MaterialId.BrushedGold);
+        }
 
         for (int i = 0; i <= 10; i++)
         {
             float z = -16.0f + (i * 60.0f);
-            builder.AddRoundedBox(new(beamX, 578.0f, z), new(167.0f, 10.0f, 7.0f), 1.8f, 0.0f, 18);
+            builder.AddRoundedBox(new(beamX, 578.0f, z), new(167.0f, 10.0f, 7.0f), 1.8f, 0.0f, MaterialId.TravertineStone);
+            builder.AddRoundedBox(new(beamX, 569.0f, z), new(164.0f, 1.4f, 4.2f), 0.5f, 0.0f, MaterialId.DarkBronze);
         }
     }
 
     private static void BuildRightGalleryBase(MeshBuilder builder)
     {
-        builder.AddRoundedBox(new(548.0f, -21.0f, 200.0f), new(76.0f, 6.0f, 390.0f), 2.0f, 0.0f, 1);
+        builder.AddRoundedBox(new(548.0f, -21.0f, 200.0f), new(76.0f, 6.0f, 390.0f), 2.0f, 0.0f, MaterialId.SanctuaryPlaster);
 
         AddTurnedPedestal(builder, new(548.0f, -15.0f, 185.0f), 48.0f, 92.0f);
-        builder.AddLathe(new(548.0f, 77.0f, 185.0f), [new(24.0f, 0.0f), new(26.0f, 3.5f), new(18.0f, 6.0f), new(0.0f, 3.5f)], 6, 36, false, false);
+        builder.AddLathe(new(548.0f, 77.0f, 185.0f), [new(24.0f, 0.0f), new(26.0f, 3.5f), new(18.0f, 6.0f), new(0.0f, 3.5f)], MaterialId.BrushedGold, 36, false, false);
 
         AddTurnedPedestal(builder, new(548.0f, -15.0f, 425.0f), 44.0f, 98.0f);
     }
 
     private static void BuildLeftGalleryBase(MeshBuilder builder)
     {
-        builder.AddRoundedBox(new(-548.0f, -21.0f, 200.0f), new(76.0f, 6.0f, 390.0f), 2.0f, 0.0f, 1);
-        builder.AddRoundedBox(new(-548.0f, -2.0f, 80.0f), new(68.0f, 13.0f, 142.0f), 3.0f, 0.0f, 15);
+        builder.AddRoundedBox(new(-548.0f, -21.0f, 200.0f), new(76.0f, 6.0f, 390.0f), 2.0f, 0.0f, MaterialId.SanctuaryPlaster);
+        builder.AddRoundedBox(new(-548.0f, -2.0f, 80.0f), new(68.0f, 13.0f, 142.0f), 3.0f, 0.0f, MaterialId.NeroMarble);
 
         foreach (float px in (ReadOnlySpan<float>)[-600.0f, -496.0f])
         {
             foreach (float pz in (ReadOnlySpan<float>)[-44.0f, 204.0f])
             {
-                builder.AddRoundedBox(new(px, 139.0f, pz), new(8.0f, 128.0f, 8.0f), 2.0f, 0.0f, 4);
+                builder.AddRoundedBox(new(px, 139.0f, pz), new(8.0f, 128.0f, 8.0f), 2.0f, 0.0f, MaterialId.DarkBronze);
             }
         }
 
-        builder.AddRoundedBox(new(-548.0f, 274.0f, -44.0f), new(62.0f, 7.0f, 9.5f), 2.0f, 0.0f, 4);
-        builder.AddRoundedBox(new(-548.0f, 274.0f, 204.0f), new(62.0f, 7.0f, 9.5f), 2.0f, 0.0f, 4);
-        builder.AddRoundedBox(new(-600.0f, 274.0f, 80.0f), new(4.5f, 4.5f, 114.5f), 1.4f, 0.0f, 4);
-        builder.AddRoundedBox(new(-496.0f, 274.0f, 80.0f), new(4.5f, 4.5f, 114.5f), 1.4f, 0.0f, 4);
-        builder.AddRoundedBox(new(-548.0f, 274.0f, 80.0f), new(4.2f, 4.2f, 114.5f), 1.5f, 0.0f, 6);
+        builder.AddRoundedBox(new(-548.0f, 274.0f, -44.0f), new(62.0f, 7.0f, 9.5f), 2.0f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(-548.0f, 274.0f, 204.0f), new(62.0f, 7.0f, 9.5f), 2.0f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(-600.0f, 274.0f, 80.0f), new(4.5f, 4.5f, 114.5f), 1.4f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(-496.0f, 274.0f, 80.0f), new(4.5f, 4.5f, 114.5f), 1.4f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(new(-548.0f, 274.0f, 80.0f), new(4.2f, 4.2f, 114.5f), 1.5f, 0.0f, MaterialId.BrushedGold);
     }
 
     private static void AddWallSpanX(MeshBuilder builder, float zCenter, float xStart, float xEnd)
@@ -514,30 +578,30 @@ internal static class CornellBoxGeometry
         float spanHalf = (xEnd - xStart) * 0.5f;
         float xMid = (xStart + xEnd) * 0.5f;
 
-        builder.AddRoundedBox(new(xMid, 4.5f, zCenter), new(spanHalf, 31.5f, WallHalfThickness), 2.5f, 0.0f, 18);
-        builder.AddRoundedBox(new(xMid, 39.5f, zCenter), new(spanHalf, 3.5f, CopingHalfThickness), 1.5f, 0.0f, 4);
+        builder.AddRoundedBox(new(xMid, 4.5f, zCenter), new(spanHalf, 31.5f, WallHalfThickness), 2.5f, 0.0f, MaterialId.TravertineStone);
+        builder.AddRoundedBox(new(xMid, 39.5f, zCenter), new(spanHalf, 3.5f, CopingHalfThickness), 1.5f, 0.0f, MaterialId.DarkBronze);
     }
 
     private static void AddFloorMedallion(MeshBuilder builder, Vector3 baseCenter, float outerRadius)
     {
-        builder.AddLathe(baseCenter, [new(outerRadius, 0.0f), new(outerRadius, 0.40f)], 15, 48, false, true);
-        builder.AddLathe(baseCenter + new Vector3(0.0f, 0.40f, 0.0f), [new(outerRadius * 0.85f, 0.0f), new(outerRadius * 0.85f, 0.30f)], 6, 48, false, true);
-        builder.AddLathe(baseCenter + new Vector3(0.0f, 0.70f, 0.0f), [new(outerRadius * 0.78f, 0.0f), new(outerRadius * 0.78f, 0.30f)], 18, 48, false, true);
-        builder.AddLathe(baseCenter + new Vector3(0.0f, 1.00f, 0.0f), [new(outerRadius * 0.36f, 0.0f), new(outerRadius * 0.36f, 0.30f)], 6, 48, false, true);
-        builder.AddLathe(baseCenter + new Vector3(0.0f, 1.30f, 0.0f), [new(outerRadius * 0.28f, 0.0f), new(outerRadius * 0.28f, 0.30f)], 15, 48, false, true);
+        builder.AddAnnulusRing(baseCenter, outerRadius * 0.85f, outerRadius, 1.4f, MaterialId.NeroMarble, 48);
+        builder.AddAnnulusRing(baseCenter, outerRadius * 0.78f, outerRadius * 0.85f, 1.6f, MaterialId.BrushedGold, 48);
+        builder.AddAnnulusRing(baseCenter, outerRadius * 0.36f, outerRadius * 0.78f, 1.5f, MaterialId.TravertineStone, 48);
+        builder.AddAnnulusRing(baseCenter, outerRadius * 0.28f, outerRadius * 0.36f, 1.6f, MaterialId.BrushedGold, 48);
+        builder.AddAnnulusRing(baseCenter, 0.0f, outerRadius * 0.28f, 1.7f, MaterialId.NeroMarble, 48);
     }
 
     private static void AddBalustradePier(MeshBuilder builder, Vector3 baseCenter, float halfSize)
     {
-        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 40.0f, 0.0f), new(halfSize, 40.0f, halfSize), 2.5f, 0.0f, 18);
-        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 83.0f, 0.0f), new(halfSize + 3.0f, 3.0f, halfSize + 3.0f), 1.0f, 0.0f, 4);
-        builder.AddLathe(baseCenter + new Vector3(0.0f, 86.0f, 0.0f), [new(12.0f, 0.0f), new(12.0f, 4.0f), new(7.5f, 7.0f)], 6, 24, false, false);
-        builder.AddSphere(baseCenter + new Vector3(0.0f, 105.0f, 0.0f), 13.0f, 6, 24, 14);
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 40.0f, 0.0f), new(halfSize, 40.0f, halfSize), 2.5f, 0.0f, MaterialId.TravertineStone);
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 83.0f, 0.0f), new(halfSize + 3.0f, 3.0f, halfSize + 3.0f), 1.0f, 0.0f, MaterialId.DarkBronze);
+        builder.AddLathe(baseCenter + new Vector3(0.0f, 86.0f, 0.0f), [new(12.0f, 0.0f), new(12.0f, 4.0f), new(7.5f, 7.0f)], MaterialId.BrushedGold, 24, false, false);
+        builder.AddSphere(baseCenter + new Vector3(0.0f, 105.0f, 0.0f), 13.0f, MaterialId.BrushedGold, 24, 14);
     }
 
     private static void AddClassicalColumn(MeshBuilder builder, Vector3 baseCenter)
     {
-        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 13.0f, 0.0f), new(50.0f, 13.0f, 50.0f), 3.0f, 0.0f, 4);
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 13.0f, 0.0f), new(50.0f, 13.0f, 50.0f), 3.0f, 0.0f, MaterialId.DarkBronze);
 
         ReadOnlySpan<Vector2> lowerShaft =
         [
@@ -551,10 +615,10 @@ internal static class CornellBoxGeometry
             new(32.5f, 385.0f),
             new(30.0f, 530.0f)
         ];
-        builder.AddLathe(baseCenter, lowerShaft, 18, 40, false, false);
-        builder.AddLathe(baseCenter, [new(30.0f, 530.0f), new(34.5f, 534.0f), new(30.5f, 538.0f)], 6, 40, false, false);
-        builder.AddLathe(baseCenter, [new(30.5f, 538.0f), new(32.0f, 545.0f), new(44.0f, 562.0f), new(46.0f, 569.0f)], 18, 40, false, false);
-        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 578.0f, 0.0f), new(52.0f, 9.0f, 52.0f), 2.2f, 0.0f, 18);
+        builder.AddLathe(baseCenter, lowerShaft, MaterialId.FlutedLimestone, 40, false, false);
+        builder.AddLathe(baseCenter, [new(30.0f, 530.0f), new(34.5f, 534.0f), new(30.5f, 538.0f)], MaterialId.BrushedGold, 40, false, false);
+        builder.AddLathe(baseCenter, [new(30.5f, 538.0f), new(32.0f, 545.0f), new(44.0f, 562.0f), new(46.0f, 569.0f)], MaterialId.TravertineStone, 40, false, false);
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 578.0f, 0.0f), new(52.0f, 9.0f, 52.0f), 2.2f, 0.0f, MaterialId.TravertineStone);
     }
 
     private static void AddTurnedPedestal(MeshBuilder builder, Vector3 baseCenter, float radius, float height)
@@ -569,11 +633,11 @@ internal static class CornellBoxGeometry
             new(radius * 0.96f, height - 8.0f),
             new(radius * 1.02f, height - 4.0f)
         ];
-        builder.AddLathe(baseCenter, bodyProfile, 15, 40, true, false);
-        builder.AddLathe(baseCenter + new Vector3(0.0f, height - 4.0f, 0.0f), [new(radius * 1.02f, 0.0f), new(radius * 1.05f, 2.0f), new(radius * 1.03f, 4.0f)], 6, 40, false, true);
+        builder.AddLathe(baseCenter, bodyProfile, MaterialId.NeroMarble, 40, true, false);
+        builder.AddLathe(baseCenter + new Vector3(0.0f, height - 4.0f, 0.0f), [new(radius * 1.02f, 0.0f), new(radius * 1.05f, 2.0f), new(radius * 1.03f, 4.0f)], MaterialId.BrushedGold, 40, false, true);
     }
 
-    private static void AddSculptedUrn(MeshBuilder builder, Vector3 baseCenter, float scale, uint materialId)
+    private static void AddSculptedUrn(MeshBuilder builder, Vector3 baseCenter, float scale, MaterialId materialId)
     {
         const int BodySamples = 30;
         Span<Vector2> profile = stackalloc Vector2[BodySamples + 7];
@@ -602,12 +666,12 @@ internal static class CornellBoxGeometry
 
     private static void AddCourtyardBench(MeshBuilder builder, Vector3 baseCenter)
     {
-        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 10.0f, -74.0f), new(28.0f, 10.0f, 10.0f), 2.0f, 0.0f, 4);
-        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 10.0f, 74.0f), new(28.0f, 10.0f, 10.0f), 2.0f, 0.0f, 4);
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 10.0f, -74.0f), new(28.0f, 10.0f, 10.0f), 2.0f, 0.0f, MaterialId.DarkBronze);
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 10.0f, 74.0f), new(28.0f, 10.0f, 10.0f), 2.0f, 0.0f, MaterialId.DarkBronze);
 
         for (int i = 0; i < 4; i++)
         {
-            builder.AddRoundedBox(baseCenter + new Vector3(-21.0f + (i * 14.0f), 23.5f, 0.0f), new(5.6f, 3.5f, 92.0f), 1.2f, 0.0f, 5);
+            builder.AddRoundedBox(baseCenter + new Vector3(-21.0f + (i * 14.0f), 23.5f, 0.0f), new(5.6f, 3.5f, 92.0f), 1.2f, 0.0f, MaterialId.WalnutWood);
         }
     }
 
@@ -623,11 +687,61 @@ internal static class CornellBoxGeometry
             new(46.0f, 86.0f),
             new(44.0f, 74.0f)
         ];
-        builder.AddLathe(baseCenter, potProfile, 19, 36, true, true);
+        builder.AddLathe(baseCenter, potProfile, MaterialId.Terracotta, 36, true, true);
 
-        builder.AddSphere(baseCenter + new Vector3(0.0f, 114.0f, 0.0f), 39.0f, 20, 24, 14);
-        builder.AddSphere(baseCenter + new Vector3(0.0f, 152.0f, 0.0f), 29.0f, 20, 22, 12);
-        builder.AddSphere(baseCenter + new Vector3(0.0f, 182.0f, 0.0f), 19.0f, 20, 18, 10);
+        builder.AddSphere(baseCenter + new Vector3(0.0f, 114.0f, 0.0f), 39.0f, MaterialId.TopiaryFoliage, 24, 14);
+        builder.AddSphere(baseCenter + new Vector3(0.0f, 152.0f, 0.0f), 29.0f, MaterialId.TopiaryFoliage, 22, 12);
+        builder.AddSphere(baseCenter + new Vector3(0.0f, 182.0f, 0.0f), 19.0f, MaterialId.TopiaryFoliage, 18, 10);
+    }
+
+    private static void AddClassicalLantern(MeshBuilder builder, Vector3 baseCenter)
+    {
+        builder.AddRoundedBox(baseCenter + new Vector3(0.0f, 7.0f, 0.0f), new(16.0f, 7.0f, 16.0f), 2.0f, 0.0f, MaterialId.TravertineStone);
+
+        ReadOnlySpan<Vector2> postProfile =
+        [
+            new(13.0f, 14.0f),
+            new(13.0f, 20.0f),
+            new(9.5f, 26.0f),
+            new(6.8f, 34.0f),
+            new(6.0f, 76.0f),
+            new(8.5f, 82.0f),
+            new(5.6f, 88.0f),
+            new(5.2f, 124.0f),
+            new(9.5f, 130.0f),
+            new(12.2f, 136.0f)
+        ];
+        builder.AddLathe(baseCenter, postProfile, MaterialId.DarkBronze, 28, false, false);
+        builder.AddLathe(baseCenter, [new(12.2f, 136.0f), new(14.0f, 138.5f), new(12.0f, 141.0f)], MaterialId.BrushedGold, 28, false, false);
+
+        ReadOnlySpan<Vector2> coreProfile =
+        [
+            new(0.0f, 141.0f),
+            new(8.8f, 142.5f),
+            new(10.2f, 152.0f),
+            new(8.8f, 161.5f),
+            new(0.0f, 163.0f)
+        ];
+        builder.AddLathe(baseCenter, coreProfile, MaterialId.LanternCore, 24, false, false);
+
+        foreach (float sx in (ReadOnlySpan<float>)[1.0f, -1.0f])
+        {
+            foreach (float sz in (ReadOnlySpan<float>)[1.0f, -1.0f])
+            {
+                builder.AddRoundedBox(baseCenter + new Vector3(sx * 8.8f, 152.0f, sz * 8.8f), new(0.95f, 13.5f, 0.95f), 0.35f, 0.0f, MaterialId.DarkBronze);
+            }
+        }
+
+        ReadOnlySpan<Vector2> capProfile =
+        [
+            new(13.5f, 164.0f),
+            new(14.5f, 166.0f),
+            new(8.5f, 170.5f),
+            new(3.2f, 172.5f),
+            new(0.0f, 173.0f)
+        ];
+        builder.AddLathe(baseCenter, capProfile, MaterialId.DarkBronze, 28, true, false);
+        builder.AddSphere(baseCenter + new Vector3(0.0f, 175.0f, 0.0f), 2.8f, MaterialId.BrushedGold, 16, 10);
     }
 
     private class MeshBuilder
@@ -653,34 +767,35 @@ internal static class CornellBoxGeometry
             return ([.. vertices], [.. indices], [.. meshes]);
         }
 
-        public void AddQuad(Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, uint materialId)
+        public void AddQuad(Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, MaterialId materialId)
         {
             Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
             uint start = (uint)vertices.Count;
+            uint materialIndex = (uint)materialId;
 
             vertices.Add(new()
             {
                 Position = v0,
                 Normal = normal,
-                MaterialId = materialId
+                MaterialId = materialIndex
             });
             vertices.Add(new()
             {
                 Position = v1,
                 Normal = normal,
-                MaterialId = materialId
+                MaterialId = materialIndex
             });
             vertices.Add(new()
             {
                 Position = v2,
                 Normal = normal,
-                MaterialId = materialId
+                MaterialId = materialIndex
             });
             vertices.Add(new()
             {
                 Position = v3,
                 Normal = normal,
-                MaterialId = materialId
+                MaterialId = materialIndex
             });
 
             indices.Add(start);
@@ -691,17 +806,145 @@ internal static class CornellBoxGeometry
             indices.Add(start + 3);
         }
 
-        public void AddBox(Vector3 min, Vector3 max, uint materialId)
+        public void AddBox(Vector3 min, Vector3 max, MaterialId materialId)
+        {
+            AddOpenBottomBox(min, max, materialId);
+            AddQuad(min, new(max.X, min.Y, min.Z), new(max.X, min.Y, max.Z), new(min.X, min.Y, max.Z), materialId);
+        }
+
+        public void AddOpenBottomBox(Vector3 min, Vector3 max, MaterialId materialId)
         {
             AddQuad(new(min.X, max.Y, min.Z), new(min.X, max.Y, max.Z), max, new(max.X, max.Y, min.Z), materialId);
-            AddQuad(min, new(max.X, min.Y, min.Z), new(max.X, min.Y, max.Z), new(min.X, min.Y, max.Z), materialId);
             AddQuad(min, new(min.X, max.Y, min.Z), new(max.X, max.Y, min.Z), new(max.X, min.Y, min.Z), materialId);
             AddQuad(new(min.X, min.Y, max.Z), new(max.X, min.Y, max.Z), max, new(min.X, max.Y, max.Z), materialId);
             AddQuad(min, new(min.X, min.Y, max.Z), new(min.X, max.Y, max.Z), new(min.X, max.Y, min.Z), materialId);
             AddQuad(new(max.X, min.Y, min.Z), new(max.X, max.Y, min.Z), max, new(max.X, min.Y, max.Z), materialId);
         }
 
-        public void AddRoundedBox(Vector3 center, Vector3 halfExtents, float bevel, float yawRadians, uint materialId)
+        public void AddAnnulusRing(Vector3 baseCenter, float innerRadius, float outerRadius, float height, MaterialId materialId, int segments = 48)
+        {
+            float topY = baseCenter.Y + height;
+            uint materialIndex = (uint)materialId;
+            uint outerStart = (uint)vertices.Count;
+
+            for (int i = 0; i <= segments; i++)
+            {
+                float phi = i * MathF.Tau / segments;
+                float cosPhi = MathF.Cos(phi);
+                float sinPhi = MathF.Sin(phi);
+                Vector3 radialNormal = new(cosPhi, 0.0f, sinPhi);
+
+                vertices.Add(new()
+                {
+                    Position = new(baseCenter.X + (cosPhi * outerRadius), baseCenter.Y, baseCenter.Z + (sinPhi * outerRadius)),
+                    Normal = radialNormal,
+                    MaterialId = materialIndex
+                });
+                vertices.Add(new()
+                {
+                    Position = new(baseCenter.X + (cosPhi * outerRadius), topY, baseCenter.Z + (sinPhi * outerRadius)),
+                    Normal = radialNormal,
+                    MaterialId = materialIndex
+                });
+            }
+
+            for (int i = 0; i < segments; i++)
+            {
+                uint b0 = outerStart + (uint)(i * 2);
+                uint t0 = b0 + 1;
+                uint b1 = b0 + 2;
+                uint t1 = b0 + 3;
+
+                indices.Add(b0);
+                indices.Add(t0);
+                indices.Add(t1);
+                indices.Add(b0);
+                indices.Add(t1);
+                indices.Add(b1);
+            }
+
+            if (innerRadius <= 0.001f)
+            {
+                AddDiscCap(new(baseCenter.X, topY, baseCenter.Z), outerRadius, Vector3.UnitY, segments, materialId);
+
+                return;
+            }
+
+            uint topStart = (uint)vertices.Count;
+            for (int i = 0; i <= segments; i++)
+            {
+                float phi = i * MathF.Tau / segments;
+                float cosPhi = MathF.Cos(phi);
+                float sinPhi = MathF.Sin(phi);
+
+                vertices.Add(new()
+                {
+                    Position = new(baseCenter.X + (cosPhi * outerRadius), topY, baseCenter.Z + (sinPhi * outerRadius)),
+                    Normal = Vector3.UnitY,
+                    MaterialId = materialIndex
+                });
+                vertices.Add(new()
+                {
+                    Position = new(baseCenter.X + (cosPhi * innerRadius), topY, baseCenter.Z + (sinPhi * innerRadius)),
+                    Normal = Vector3.UnitY,
+                    MaterialId = materialIndex
+                });
+            }
+
+            for (int i = 0; i < segments; i++)
+            {
+                uint o0 = topStart + (uint)(i * 2);
+                uint n0 = o0 + 1;
+                uint o1 = o0 + 2;
+                uint n1 = o0 + 3;
+
+                indices.Add(o0);
+                indices.Add(n0);
+                indices.Add(n1);
+                indices.Add(o0);
+                indices.Add(n1);
+                indices.Add(o1);
+            }
+
+            uint innerStart = (uint)vertices.Count;
+            for (int i = 0; i <= segments; i++)
+            {
+                float phi = i * MathF.Tau / segments;
+                float cosPhi = MathF.Cos(phi);
+                float sinPhi = MathF.Sin(phi);
+                Vector3 innerNormal = new(-cosPhi, 0.0f, -sinPhi);
+
+                vertices.Add(new()
+                {
+                    Position = new(baseCenter.X + (cosPhi * innerRadius), baseCenter.Y, baseCenter.Z + (sinPhi * innerRadius)),
+                    Normal = innerNormal,
+                    MaterialId = materialIndex
+                });
+                vertices.Add(new()
+                {
+                    Position = new(baseCenter.X + (cosPhi * innerRadius), topY, baseCenter.Z + (sinPhi * innerRadius)),
+                    Normal = innerNormal,
+                    MaterialId = materialIndex
+                });
+            }
+
+            for (int i = 0; i < segments; i++)
+            {
+                uint b0 = innerStart + (uint)(i * 2);
+                uint t0 = b0 + 1;
+                uint b1 = b0 + 2;
+                uint t1 = b0 + 3;
+
+                indices.Add(b0);
+                indices.Add(t1);
+                indices.Add(t0);
+                indices.Add(b0);
+                indices.Add(b1);
+                indices.Add(t1);
+            }
+        }
+
+        public void AddRoundedBox(Vector3 center, Vector3 halfExtents, float bevel, float yawRadians, MaterialId materialId)
         {
             float maxBevel = MathF.Min(halfExtents.X, MathF.Min(halfExtents.Y, halfExtents.Z)) * 0.48f;
             float bevelRadius = Math.Clamp(bevel, 0.0f, maxBevel);
@@ -733,9 +976,10 @@ internal static class CornellBoxGeometry
             }
         }
 
-        public void AddSphere(Vector3 center, float radius, uint materialId, int segments = 40, int rings = 20)
+        public void AddSphere(Vector3 center, float radius, MaterialId materialId, int segments = 40, int rings = 20)
         {
             uint startIndex = (uint)vertices.Count;
+            uint materialIndex = (uint)materialId;
 
             for (int i = 0; i <= rings; i++)
             {
@@ -752,7 +996,7 @@ internal static class CornellBoxGeometry
                     {
                         Position = center + (normal * radius),
                         Normal = normal,
-                        MaterialId = materialId
+                        MaterialId = materialIndex
                     });
                 }
             }
@@ -781,10 +1025,12 @@ internal static class CornellBoxGeometry
             }
         }
 
-        public void AddLathe(Vector3 baseCenter, ReadOnlySpan<Vector2> profile, uint materialId, int radialSegments = 44, bool capBottom = true, bool capTop = true)
+        public void AddLathe(Vector3 baseCenter, ReadOnlySpan<Vector2> profile, MaterialId materialId, int radialSegments = 44, bool capBottom = true, bool capTop = true)
         {
             int count = profile.Length;
+            uint materialIndex = (uint)materialId;
             Span<Vector2> radialNormals = stackalloc Vector2[count];
+
             for (int i = 0; i < count; i++)
             {
                 Vector2 previous = profile[Math.Max(i - 1, 0)];
@@ -828,13 +1074,13 @@ internal static class CornellBoxGeometry
                     {
                         Position = baseCenter + new Vector3(cosPhi * p0.X, p0.Y, sinPhi * p0.X),
                         Normal = Vector3.Normalize(new(cosPhi * n0.X, n0.Y, sinPhi * n0.X)),
-                        MaterialId = materialId
+                        MaterialId = materialIndex
                     });
                     vertices.Add(new()
                     {
                         Position = baseCenter + new Vector3(cosPhi * p1.X, p1.Y, sinPhi * p1.X),
                         Normal = Vector3.Normalize(new(cosPhi * n1.X, n1.Y, sinPhi * n1.X)),
-                        MaterialId = materialId
+                        MaterialId = materialIndex
                     });
                 }
 
@@ -865,14 +1111,15 @@ internal static class CornellBoxGeometry
             }
         }
 
-        public void AddCylinderY(Vector3 baseCenter, float radius, float height, uint materialId, int segments = 36)
+        public void AddCylinderY(Vector3 baseCenter, float radius, float height, MaterialId materialId, int segments = 36)
         {
             AddLathe(baseCenter, [new(radius, 0.0f), new(radius, height)], materialId, segments);
         }
 
-        public void AddTorus(float majorRadius, float minorRadius, uint materialId, int majorSegments = 64, int minorSegments = 16)
+        public void AddTorus(float majorRadius, float minorRadius, MaterialId materialId, int majorSegments = 64, int minorSegments = 16)
         {
             uint startIndex = (uint)vertices.Count;
+            uint materialIndex = (uint)materialId;
 
             for (int i = 0; i <= majorSegments; i++)
             {
@@ -889,7 +1136,7 @@ internal static class CornellBoxGeometry
                     {
                         Position = ringCenter + (normal * minorRadius),
                         Normal = normal,
-                        MaterialId = materialId
+                        MaterialId = materialIndex
                     });
                 }
             }
@@ -911,15 +1158,16 @@ internal static class CornellBoxGeometry
             }
         }
 
-        public void AddTorusKnot(int p, int q, float majorRadius, float minorRadius, float tubeRadius, uint materialId, int pathSegments = 144, int tubeSegments = 20)
+        public void AddTorusKnot(int p, int q, float majorRadius, float minorRadius, float tubeRadius, MaterialId materialId, int pathSegments = 144, int tubeSegments = 20)
         {
             const float Epsilon = 0.002f;
 
             uint startIndex = (uint)vertices.Count;
+            uint materialIndex = (uint)materialId;
 
             for (int i = 0; i <= pathSegments; i++)
             {
-                float t = i % pathSegments * MathF.Tau / pathSegments;
+                float t = ((i % pathSegments) * MathF.Tau) / pathSegments;
                 Vector3 center = EvaluateCurve(p, q, majorRadius, minorRadius, t);
                 Vector3 previous = EvaluateCurve(p, q, majorRadius, minorRadius, t - Epsilon);
                 Vector3 next = EvaluateCurve(p, q, majorRadius, minorRadius, t + Epsilon);
@@ -931,14 +1179,14 @@ internal static class CornellBoxGeometry
 
                 for (int j = 0; j <= tubeSegments; j++)
                 {
-                    float phi = j % tubeSegments * MathF.Tau / tubeSegments;
+                    float phi = ((j % tubeSegments) * MathF.Tau) / tubeSegments;
                     Vector3 ringNormal = (normal * MathF.Cos(phi)) + (binormal * MathF.Sin(phi));
 
                     vertices.Add(new()
                     {
                         Position = center + (ringNormal * tubeRadius),
                         Normal = ringNormal,
-                        MaterialId = materialId
+                        MaterialId = materialIndex
                     });
                 }
             }
@@ -977,9 +1225,10 @@ internal static class CornellBoxGeometry
                                      Vector3 fallbackNormal,
                                      int axisMode,
                                      bool flipWinding,
-                                     uint materialId)
+                                     MaterialId materialId)
         {
             uint baseVertex = (uint)vertices.Count;
+            uint materialIndex = (uint)materialId;
             int uCount = uStops.Length;
             int vCount = vStops.Length;
 
@@ -1003,7 +1252,7 @@ internal static class CornellBoxGeometry
                     {
                         Position = Vector3.Transform(localPosition, rotation) + center,
                         Normal = Vector3.Normalize(Vector3.TransformNormal(localNormal, rotation)),
-                        MaterialId = materialId
+                        MaterialId = materialIndex
                     });
                 }
             }
@@ -1039,15 +1288,16 @@ internal static class CornellBoxGeometry
             }
         }
 
-        private void AddDiscCap(Vector3 center, float radius, Vector3 normal, int segments, uint materialId)
+        private void AddDiscCap(Vector3 center, float radius, Vector3 normal, int segments, MaterialId materialId)
         {
             uint centerIndex = (uint)vertices.Count;
+            uint materialIndex = (uint)materialId;
 
             vertices.Add(new()
             {
                 Position = center,
                 Normal = normal,
-                MaterialId = materialId
+                MaterialId = materialIndex
             });
 
             for (int i = 0; i <= segments; i++)
@@ -1058,17 +1308,18 @@ internal static class CornellBoxGeometry
                 {
                     Position = center + new Vector3(MathF.Cos(phi) * radius, 0.0f, MathF.Sin(phi) * radius),
                     Normal = normal,
-                    MaterialId = materialId
+                    MaterialId = materialIndex
                 });
             }
 
-            bool up = normal.Y > 0.0f;
+            bool isFacingUp = normal.Y > 0.0f;
+
             for (int i = 0; i < segments; i++)
             {
                 uint r0 = centerIndex + 1 + (uint)i;
                 uint r1 = r0 + 1;
 
-                if (up)
+                if (isFacingUp)
                 {
                     indices.Add(centerIndex);
                     indices.Add(r1);

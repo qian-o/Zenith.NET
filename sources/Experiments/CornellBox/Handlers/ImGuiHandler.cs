@@ -81,7 +81,7 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        if (button is >= MouseButton.Left and <= MouseButton.Button5)
+        if (button >= MouseButton.Left && button <= MouseButton.Button5)
         {
             Input?.Invoke(this, new(ImGuiInput.MouseDown) { MouseButton = (ImGuiMouseButton)button });
         }
@@ -89,7 +89,7 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        if (button is >= MouseButton.Left and <= MouseButton.Button5)
+        if (button >= MouseButton.Left && button <= MouseButton.Button5)
         {
             Input?.Invoke(this, new(ImGuiInput.MouseUp) { MouseButton = (ImGuiMouseButton)button });
         }
@@ -124,17 +124,17 @@ internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
     {
-        if (key is >= Key.Number0 and <= Key.Number9)
+        if (key >= Key.Number0 && key <= Key.Number9)
         {
             return ImGuiKey.Key0 + (key - Key.Number0);
         }
 
-        if (key is >= Key.A and <= Key.Z)
+        if (key >= Key.A && key <= Key.Z)
         {
             return ImGuiKey.A + (key - Key.A);
         }
 
-        if (key is >= Key.F1 and <= Key.F24)
+        if (key >= Key.F1 && key <= Key.F24)
         {
             return ImGuiKey.F1 + (key - Key.F1);
         }

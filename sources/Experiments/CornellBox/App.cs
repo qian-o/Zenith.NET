@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
+using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -27,10 +28,14 @@ internal static class App
     private static SwapChain? swapChain;
     private static FrameGenerationSwapChain? frameGenerationSwapChain;
     private static bool isFrameGenerationEnabled;
-    private static bool isVerticalSyncEnabled;
 
     static App()
     {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
+        {
+            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
+        }
+
         if (OperatingSystem.IsWindows())
         {
             Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
@@ -39,20 +44,17 @@ internal static class App
         {
             Context = GraphicsContext.CreateMetal(useValidationLayer: true);
         }
-        else if (OperatingSystem.IsLinux())
-        {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
-        }
         else
         {
-            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
         if (!Context.Capabilities.RayTracingSupported)
         {
+            string deviceName = Context.Capabilities.DeviceName;
             Context.Dispose();
 
-            throw new PlatformNotSupportedException($"Selected GPU '{Context.Capabilities.DeviceName}' does not support hardware ray tracing.");
+            throw new PlatformNotSupportedException($"Selected GPU '{deviceName}' does not support hardware ray tracing.");
         }
 
         Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
@@ -82,8 +84,8 @@ internal static class App
 
         camera = new(input, new(0.0f, 244.0f, -935.0f), new(0.0f, 210.0f, 255.0f))
         {
-            NearPlane = 8.0f,
-            FarPlane = 8000.0f,
+            NearPlane = 18.0f,
+            FarPlane = 16000.0f,
             Speed = 280.0f
         };
 
@@ -107,9 +109,20 @@ internal static class App
         window.Update += OnUpdate;
         window.Render += OnRender;
         window.FramebufferResize += OnFramebufferResize;
-        window.Closing += OnClosing;
 
         window.Run();
+
+        window.FramebufferResize -= OnFramebufferResize;
+        window.Render -= OnRender;
+        window.Update -= OnUpdate;
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+
+        renderer.Dispose();
+        camera.Dispose();
+        DestroySwapChain();
+        imGui.Dispose();
+        input.Dispose();
 
         window.Dispose();
         Context.Dispose();
@@ -144,7 +157,7 @@ internal static class App
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        FrameGenerationSwapChainArgs args = renderer.Render(commandBuffer, camera, deltaSeconds);
+        FrameGenerationSwapChainArgs args = renderer.Render(commandBuffer, camera, deltaSeconds, frameGenerationSwapChain is not null);
 
         Texture drawable = frameGenerationSwapChain?.Drawable ?? swapChain!.Drawable;
         commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
@@ -178,20 +191,6 @@ internal static class App
         renderer.Resize();
     }
 
-    private static void OnClosing()
-    {
-        window.Closing -= OnClosing;
-        window.FramebufferResize -= OnFramebufferResize;
-        window.Render -= OnRender;
-        window.Update -= OnUpdate;
-
-        DestroySwapChain();
-        renderer.Dispose();
-        camera.Dispose();
-        imGui.Dispose();
-        input.Dispose();
-    }
-
     private static void DrawOverlay()
     {
         float framerate = ImGui.GetIO().Framerate * (frameGenerationSwapChain is not null ? 2.0f : 1.0f);
@@ -218,7 +217,13 @@ internal static class App
             renderer.Reset();
         }
 
-        bool verticalSyncChanged = ImGui.Checkbox("VSync", ref isVerticalSyncEnabled);
+        ImGui.Separator();
+
+        int presetIndex = (int)renderer.Preset;
+        if (ImGui.Combo("Atmosphere", ref presetIndex, "Day\0Sunset\0Night\0"))
+        {
+            renderer.Preset = (AtmospherePreset)presetIndex;
+        }
 
         ImGui.Separator();
 
@@ -229,25 +234,13 @@ internal static class App
         int qualityIndex = renderer.Quality is UpscalingQuality quality ? (int)quality + 1 : 0;
         if (ImGui.Combo("Upscaling Quality", ref qualityIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
         {
-            renderer.Quality = qualityIndex is 0 ? null : (UpscalingQuality)(qualityIndex - 1);
+            UpscalingQuality? selectedQuality = qualityIndex is 0 ? null : (UpscalingQuality)(qualityIndex - 1);
 
-            if (renderer.Quality is null)
+            if (renderer.Quality != selectedQuality)
             {
-                renderer.IsRayReconstructionEnabled = false;
+                renderer.Quality = selectedQuality;
+                renderChanged = true;
             }
-
-            renderChanged = true;
-        }
-
-        ImGui.EndDisabled();
-
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.RayReconstructionSupported || renderer.Quality is null);
-
-        bool isRayReconstructionEnabled = renderer.IsRayReconstructionEnabled;
-        if (ImGui.Checkbox("Ray Reconstruction", ref isRayReconstructionEnabled))
-        {
-            renderer.IsRayReconstructionEnabled = isRayReconstructionEnabled;
-            renderChanged = true;
         }
 
         ImGui.EndDisabled();
@@ -258,7 +251,7 @@ internal static class App
 
         ImGui.EndDisabled();
 
-        if (verticalSyncChanged || frameGenerationChanged)
+        if (frameGenerationChanged)
         {
             DestroySwapChain();
             CreateSwapChain();
@@ -302,7 +295,7 @@ internal static class App
             {
                 Surface = surface,
                 Format = ColorFormat,
-                IsVerticalSyncEnabled = isVerticalSyncEnabled
+                IsVerticalSyncEnabled = false
             });
         }
         else
@@ -311,17 +304,17 @@ internal static class App
             {
                 Surface = surface,
                 Format = ColorFormat,
-                IsVerticalSyncEnabled = isVerticalSyncEnabled
+                IsVerticalSyncEnabled = false
             });
         }
     }
 
     private static void DestroySwapChain()
     {
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+
         frameGenerationSwapChain?.Dispose();
         frameGenerationSwapChain = null;
-
-        Context.GraphicsQueue.Timeline.Signal().Wait();
 
         swapChain?.Dispose();
         swapChain = null;

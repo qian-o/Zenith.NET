@@ -10,17 +10,25 @@ namespace CornellBox;
 internal class Renderer : DisposableObject
 {
     private readonly SceneResources scene;
-    private readonly PathTracingPass pathTracingPass;
+    private readonly GBufferPass gBufferPass;
+    private readonly GiProbePass giProbePass;
+    private readonly ShadowPass shadowPass;
+    private readonly LightingPass lightingPass;
     private readonly OutputPass outputPass;
 
     private UpscalingPass? upscalingPass;
     private double elapsedSeconds;
     private uint frameIndex;
+    private bool hasPendingLightingReset;
+    private Matrix4x4 previousViewProjection = Matrix4x4.Identity;
 
     public Renderer()
     {
         scene = new();
-        pathTracingPass = new();
+        gBufferPass = new();
+        giProbePass = new();
+        shadowPass = new();
+        lightingPass = new();
         outputPass = new();
 
         Resize();
@@ -28,7 +36,19 @@ internal class Renderer : DisposableObject
 
     public UpscalingQuality? Quality { get; set; } = App.Context.UpscalingCapabilities.SuperResolutionSupported ? UpscalingQuality.Quality : null;
 
-    public bool IsRayReconstructionEnabled { get; set; } = App.Context.UpscalingCapabilities.SuperResolutionSupported && App.Context.UpscalingCapabilities.RayReconstructionSupported;
+    public AtmospherePreset Preset
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+
+                hasPendingLightingReset = true;
+            }
+        }
+    } = AtmospherePreset.Day;
 
     public bool IsPaused { get; set; }
 
@@ -47,43 +67,65 @@ internal class Renderer : DisposableObject
         IsPaused = false;
         elapsedSeconds = 0.0;
         frameIndex = 0;
+        hasPendingLightingReset = false;
     }
 
-    public FrameGenerationSwapChainArgs Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
+    public FrameGenerationSwapChainArgs Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds, bool isFrameGenerationEnabled = true)
     {
         bool reset = frameIndex is 0;
-        Vector2 jitterOffset = upscalingPass is null ? Vector2.Zero : UpscalingHelper.JitterOffset(frameIndex, upscalingPass.RenderWidth, upscalingPass.RenderHeight, App.PhysicalWidth, App.PhysicalHeight);
+        bool resetLighting = reset || hasPendingLightingReset;
+        hasPendingLightingReset = false;
 
-        Matrix4x4 view = camera.View;
-        Matrix4x4 projection = camera.Projection;
-        float deltaTimeInSeconds = (float)deltaSeconds;
+        uint renderWidth = upscalingPass?.RenderWidth ?? App.PhysicalWidth;
+        uint renderHeight = upscalingPass?.RenderHeight ?? App.PhysicalHeight;
+        FrameContext frame = FrameContext.Create(camera,
+                                                 SceneEnvironment.Create(Preset, (float)elapsedSeconds, IsPaused),
+                                                 previousViewProjection,
+                                                 frameIndex,
+                                                 renderWidth,
+                                                 renderHeight,
+                                                 App.PhysicalWidth,
+                                                 App.PhysicalHeight,
+                                                 (float)deltaSeconds,
+                                                 upscalingPass is not null,
+                                                 reset,
+                                                 resetLighting);
 
-        scene.Update(commandBuffer, elapsedSeconds, IsPaused, reset);
+        scene.Update(commandBuffer, elapsedSeconds, IsPaused, frame.Reset);
 
-        pathTracingPass.Record(commandBuffer, scene, camera.Position, view, projection, jitterOffset, frameIndex, reset);
+        gBufferPass.Record(commandBuffer, scene, in frame, isFrameGenerationEnabled);
 
-        Texture color = pathTracingPass.Color;
+        giProbePass.Record(commandBuffer, scene, in frame);
+
+        shadowPass.Record(commandBuffer, scene, gBufferPass, in frame);
+
+        lightingPass.Record(commandBuffer, scene, gBufferPass, giProbePass, shadowPass, in frame);
+
+        Texture color = lightingPass.Color;
 
         if (upscalingPass is not null)
         {
-            upscalingPass.Record(commandBuffer, pathTracingPass, jitterOffset, view, projection, deltaTimeInSeconds, reset);
+            upscalingPass.Record(commandBuffer, gBufferPass, lightingPass, in frame);
             color = upscalingPass.Color;
         }
 
-        outputPass.Record(commandBuffer, color, frameIndex);
+        outputPass.Record(commandBuffer, color, in frame);
 
+        previousViewProjection = frame.ViewProjection;
         frameIndex++;
+
+        bool useOutputMotionDepth = isFrameGenerationEnabled && gBufferPass.HasOutputMotionDepth;
 
         return new()
         {
-            Depth = pathTracingPass.Depth,
-            MotionVectors = pathTracingPass.MotionVectors,
+            Depth = useOutputMotionDepth ? gBufferPass.FrameGenerationDepth : gBufferPass.Depth,
+            MotionVectors = useOutputMotionDepth ? gBufferPass.FrameGenerationMotionVectors : gBufferPass.MotionVectors,
             Hudless = outputPass.Color,
-            JitterOffset = jitterOffset,
-            View = view,
-            Projection = projection,
-            DeltaTimeInSeconds = deltaTimeInSeconds,
-            Reset = reset
+            JitterOffset = useOutputMotionDepth ? Vector2.Zero : frame.JitterOffset,
+            View = frame.View,
+            Projection = frame.Projection,
+            DeltaTimeInSeconds = frame.DeltaTimeInSeconds,
+            Reset = frame.ResetLighting
         };
     }
 
@@ -91,10 +133,10 @@ internal class Renderer : DisposableObject
     {
         if (Quality is UpscalingQuality quality)
         {
-            if (upscalingPass is null || upscalingPass.Quality != quality || upscalingPass.IsRayReconstructionEnabled != IsRayReconstructionEnabled)
+            if (upscalingPass is null || upscalingPass.Quality != quality)
             {
                 upscalingPass?.Dispose();
-                upscalingPass = new(quality, IsRayReconstructionEnabled);
+                upscalingPass = new(quality);
             }
             else
             {
@@ -107,7 +149,12 @@ internal class Renderer : DisposableObject
             upscalingPass = null;
         }
 
-        pathTracingPass.Resize(upscalingPass?.RenderWidth ?? App.PhysicalWidth, upscalingPass?.RenderHeight ?? App.PhysicalHeight, upscalingPass is not null, upscalingPass?.IsRayReconstructionEnabled is true);
+        uint renderWidth = upscalingPass?.RenderWidth ?? App.PhysicalWidth;
+        uint renderHeight = upscalingPass?.RenderHeight ?? App.PhysicalHeight;
+
+        gBufferPass.Resize(renderWidth, renderHeight, App.PhysicalWidth, App.PhysicalHeight);
+        shadowPass.Resize(renderWidth, renderHeight);
+        lightingPass.Resize(renderWidth, renderHeight, upscalingPass is not null);
         outputPass.Resize();
 
         frameIndex = 0;
@@ -116,8 +163,12 @@ internal class Renderer : DisposableObject
     protected override void Destroy()
     {
         upscalingPass?.Dispose();
+        upscalingPass = null;
         outputPass?.Dispose();
-        pathTracingPass?.Dispose();
+        lightingPass?.Dispose();
+        shadowPass?.Dispose();
+        giProbePass?.Dispose();
+        gBufferPass?.Dispose();
         scene?.Dispose();
     }
 }

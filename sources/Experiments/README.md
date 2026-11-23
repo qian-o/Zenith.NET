@@ -8,7 +8,7 @@ For guided examples, see the [samples](https://qian-o.github.io/Zenith.NET/learn
 
 | Project | Purpose |
 | --- | --- |
-| [CornellBox](CornellBox) | Interactive path-traced Cornell box scene with animated geometry and PBR materials, with upscaling through the upscaling extension. Requires a ray-tracing-capable GPU. |
+| [CornellBox](CornellBox) | Interactive hybrid ray-traced Cornell box scene with dual-cascade DDGI, reflections, refraction, Day/Sunset/Night atmosphere, night architectural lighting, HDR bloom, and upscaling. Requires a ray-tracing-capable GPU. |
 | [FluidTank](FluidTank) | Interactive fluid simulation with water surface rendering. |
 | [InkCanvas](InkCanvas) | Interactive drawing canvas. |
 | [PlatformDetection](PlatformDetection) | Console utility for inspecting graphics devices and backend capabilities. |
