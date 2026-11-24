@@ -31,40 +31,35 @@ struct GIProbeConstants
 
     property uint FrameIndex
     {
-        get
-        {
+        get {
             return Config.x;
         }
     }
 
     property float Hysteresis
     {
-        get
-        {
+        get {
             return asfloat(Config.y);
         }
     }
 
     property uint ProbeStride
     {
-        get
-        {
+        get {
             return Config.z;
         }
     }
 
     property uint ProbePhase
     {
-        get
-        {
+        get {
             return Config.w >> 1u;
         }
     }
 
     property uint Reset
     {
-        get
-        {
+        get {
             return Config.w & 1u;
         }
     }
@@ -101,7 +96,8 @@ float3 GetProbeWorldPosition(uint probeIndex)
     return DDGICascade1Origin + float3(x, y, z) * DDGICascade1Spacing;
 }
 
-void ComputeProbeRotationBasis(uint frameIndex, uint probeIndex, out float3 tangent, out float3 bitangent, out float3 axis)
+void ComputeProbeRotationBasis(uint frameIndex, uint probeIndex, out float3 tangent, out float3 bitangent,
+                               out float3 axis)
 {
     uint seed = PCGHash(probeIndex * 1973u + frameIndex * 9277u + 26699u);
     float u1 = float(seed & 0xFFFFu) * (1.0 / 65535.0);
@@ -158,7 +154,8 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
 
     float3 probePos = GetProbeWorldPosition(probeIndex);
     float3 baseDir = SphericalFibonacciDirection(tid, RayCountPerProbe);
-    float3 rayDir = normalize(sharedBasisTangent * baseDir.x + sharedBasisBitangent * baseDir.y + sharedBasisAxis * baseDir.z);
+    float3 rayDir =
+        normalize(sharedBasisTangent * baseDir.x + sharedBasisBitangent * baseDir.y + sharedBasisAxis * baseDir.z);
     float maxDistance = (probeIndex < DDGICascade0Probes) ? 140.0 : 340.0;
 
     uint instanceIndex;
@@ -169,14 +166,15 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     float3 rayRadiance = 0.0;
     float effectiveDistance = maxDistance;
 
-    if (!TraceClosestHit(giProbe.Scene, probePos, rayDir, RayMaskOpaque, instanceIndex, primitiveIndex, barycentrics, hitDistance))
+    if (!TraceClosestHit(giProbe.Scene, probePos, rayDir, RayMaskOpaque, instanceIndex, primitiveIndex, barycentrics,
+                         hitDistance))
     {
         rayRadiance = EvaluateSkyAmbient(rayDir, giProbe.Environment);
     }
     else
     {
-        GeometryHit hit = ReconstructGeometryHit(instanceIndex, primitiveIndex, barycentrics,
-                                                 giProbe.Vertices, giProbe.Indices, giProbe.Instances);
+        GeometryHit hit = ReconstructGeometryHit(instanceIndex, primitiveIndex, barycentrics, giProbe.Vertices,
+                                                 giProbe.Indices, giProbe.Instances);
         if (dot(hit.GeometricNormal, rayDir) > 0.0)
         {
             InterlockedAdd(sharedBackfaceCount, 1u);
@@ -199,7 +197,8 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
             float sunNdotL = saturate(dot(hitNormal, keyDir));
             if (sunNdotL > 0.0 && TraceVisibilityRay(giProbe.Scene, shadowOrigin, keyDir, RayMaxDistance))
             {
-                directSun = albedo * (1.0 - saturate(material.Metallic)) * InvPI * sunNdotL * giProbe.Environment.KeyLightIrradiance;
+                directSun = albedo * (1.0 - saturate(material.Metallic)) * InvPI * sunNdotL *
+                            giProbe.Environment.KeyLightIrradiance;
             }
 
             float3 directCeiling = 0.0;
@@ -231,10 +230,11 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
                 bounceGI = albedo * (1.0 - saturate(material.Metallic)) * indirect;
             }
 
-            bool isAnalyticalLight = hit.MaterialId == CeilingLightMaterialId
-                                  || hit.MaterialId == LanternCoreMaterialId
-                                  || hit.MaterialId == RecessedStripMaterialId;
-            float3 emission = isAnalyticalLight ? 0.0 : EvaluateMaterialEmission(hit.MaterialId, material, giProbe.Environment);
+            bool isAnalyticalLight = hit.MaterialId == CeilingLightMaterialId ||
+                                     hit.MaterialId == LanternCoreMaterialId ||
+                                     hit.MaterialId == RecessedStripMaterialId;
+            float3 emission =
+                isAnalyticalLight ? 0.0 : EvaluateMaterialEmission(hit.MaterialId, material, giProbe.Environment);
             rayRadiance = min(directSun + directCeiling + directNight + bounceGI + emission, float3(24.0));
         }
     }
@@ -308,7 +308,8 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
                 }
             }
         }
-        sharedDistTile[innerDist.y][innerDist.x] = wSum > 1e-5 ? (distSum / wSum) : float2(maxDistance, maxDistance * maxDistance);
+        sharedDistTile[innerDist.y][innerDist.x] =
+            wSum > 1e-5 ? (distSum / wSum) : float2(maxDistance, maxDistance * maxDistance);
     }
     GroupMemoryBarrierWithGroupSync();
 

@@ -55,24 +55,21 @@ struct LightingConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndFlags.xyz;
         }
     }
 
     property uint Flags
     {
-        get
-        {
+        get {
             return asuint(CameraPositionAndFlags.w);
         }
     }
 
     property float2 RenderSize
     {
-        get
-        {
+        get {
             return RenderConfig.xy;
         }
     }
@@ -111,10 +108,8 @@ float ValueNoise3D(float3 p)
 
 float FbmNoise3D(float3 p)
 {
-    static const float3x3 OctaveTransform = float3x3(
-        1.3533, -1.3533,  0.6767,
-        0.6767,  1.3533,  1.3533,
-        1.3533,  0.6767, -1.3533);
+    static const float3x3 OctaveTransform =
+        float3x3(1.3533, -1.3533, 0.6767, 0.6767, 1.3533, 1.3533, 1.3533, 0.6767, -1.3533);
 
     float sum = 0.0;
     float amp = 0.5;
@@ -129,7 +124,8 @@ float FbmNoise3D(float3 p)
     return sum;
 }
 
-float3 EvaluateStarLayer(float3 dir, float gridScale, float densityThreshold, float intensityScale, float elapsedSeconds)
+float3 EvaluateStarLayer(float3 dir, float gridScale, float densityThreshold, float intensityScale,
+                         float elapsedSeconds)
 {
     float3 absD = abs(dir);
     uint faceId = 0u;
@@ -197,12 +193,14 @@ float3 EvaluateSkyFull(float3 direction, SceneEnvironment env)
             float3 galDir = float3(dot(direction, galU), dot(direction, galV), galacticY);
             float band = exp(-galacticY * galacticY * 14.0);
             float neb = FbmNoise3D(galDir * float3(3.6, 3.6, 7.5) + float3(1.7, -2.3, 0.9)) / 0.875;
-            float rift = smoothstep(0.42, 0.72, FbmNoise3D(galDir * float3(7.4, 7.4, 14.0) + float3(-4.1, 3.3, 2.6)) / 0.875);
-            gradient += band * neb * (1.0 - 0.55 * rift) * float3(0.034, 0.048, 0.092) * (env.StarIntensity * horizonVis);
+            float rift =
+                smoothstep(0.42, 0.72, FbmNoise3D(galDir * float3(7.4, 7.4, 14.0) + float3(-4.1, 3.3, 2.6)) / 0.875);
+            gradient +=
+                band * neb * (1.0 - 0.55 * rift) * float3(0.034, 0.048, 0.092) * (env.StarIntensity * horizonVis);
         }
 
-        float3 stars = EvaluateStarLayer(direction, 138.0, 0.945, 1.35, env.ElapsedSeconds)
-                     + EvaluateStarLayer(direction, 275.0, 0.920, 0.65, env.ElapsedSeconds + 13.7);
+        float3 stars = EvaluateStarLayer(direction, 138.0, 0.945, 1.35, env.ElapsedSeconds) +
+                       EvaluateStarLayer(direction, 275.0, 0.920, 0.65, env.ElapsedSeconds + 13.7);
         gradient += stars * (env.StarIntensity * horizonVis);
     }
 
@@ -245,7 +243,8 @@ float3 EvaluateSkyFull(float3 direction, SceneEnvironment env)
         float cloudField = n1 * 0.68 + n2 * 0.32;
         float threshold = lerp(0.58, 0.30, env.CloudCoverage);
         float cumulus = smoothstep(threshold, threshold + 0.24, cloudField);
-        float cirrus = smoothstep(0.56, 0.84, FbmNoise2D(float2(cloudUV.x * 0.26 + env.ElapsedSeconds * 0.004, cloudUV.y * 0.95)) / 0.875);
+        float cirrus = smoothstep(
+            0.56, 0.84, FbmNoise2D(float2(cloudUV.x * 0.26 + env.ElapsedSeconds * 0.004, cloudUV.y * 0.95)) / 0.875);
         float horizFade = smoothstep(0.018, 0.085, direction.y);
         float cloudAlpha = saturate((cumulus * 0.86 + cirrus * 0.28) * horizFade * (env.IsLunarDisk ? 0.42 : 0.92));
 
@@ -256,8 +255,8 @@ float3 EvaluateSkyFull(float3 direction, SceneEnvironment env)
             float3 cloudLit;
             if (env.IsLunarDisk)
             {
-                cloudLit = lerp(float3(0.016, 0.025, 0.048), float3(0.075, 0.108, 0.175), cloudTop)
-                         + float3(0.18, 0.26, 0.42) * silver;
+                cloudLit = lerp(float3(0.016, 0.025, 0.048), float3(0.075, 0.108, 0.175), cloudTop) +
+                           float3(0.18, 0.26, 0.42) * silver;
             }
             else if (env.SunAtmosphereFactor > 0.7)
             {
@@ -267,8 +266,10 @@ float3 EvaluateSkyFull(float3 direction, SceneEnvironment env)
             }
             else
             {
-                float3 cloudBase = lerp(env.SkyHorizonColor * 0.75, float3(1.18, 1.16, 1.14), env.SunAtmosphereFactor * 0.72 + 0.24);
-                float3 cloudShadow = lerp(env.SkyZenithColor * 0.72 + float3(0.10, 0.15, 0.24), env.SkyHorizonColor * 0.52, 0.40);
+                float3 cloudBase =
+                    lerp(env.SkyHorizonColor * 0.75, float3(1.18, 1.16, 1.14), env.SunAtmosphereFactor * 0.72 + 0.24);
+                float3 cloudShadow =
+                    lerp(env.SkyZenithColor * 0.72 + float3(0.10, 0.15, 0.24), env.SkyHorizonColor * 0.52, 0.40);
                 cloudLit = lerp(cloudShadow, cloudBase + env.KeyLightIrradiance * (0.14 + 0.22 * silver), cloudTop);
             }
             gradient = lerp(gradient, cloudLit, cloudAlpha);
@@ -288,10 +289,14 @@ float3 EvaluateSkyFull(float3 direction, SceneEnvironment env)
             float nearMask = smoothstep(nearRidge + 0.0025, nearRidge - 0.0025, direction.y);
             float midMask = smoothstep(farRidge + 0.0025, farRidge - 0.0025, direction.y);
 
-            float3 dayRidge = lerp(lerp(float3(0.32, 0.44, 0.60), float3(0.22, 0.33, 0.49), midMask), float3(0.13, 0.22, 0.37), nearMask);
-            float3 duskRidge = lerp(lerp(float3(0.36, 0.21, 0.27), float3(0.25, 0.15, 0.23), midMask), float3(0.15, 0.085, 0.16), nearMask);
-            float3 nightRidge = lerp(lerp(float3(0.019, 0.030, 0.058), float3(0.014, 0.022, 0.044), midMask), float3(0.008, 0.013, 0.028), nearMask);
-            float3 ridgeAlbedo = env.IsLunarDisk ? nightRidge : lerp(duskRidge, dayRidge, saturate(env.SunAtmosphereFactor * 1.15));
+            float3 dayRidge = lerp(lerp(float3(0.32, 0.44, 0.60), float3(0.22, 0.33, 0.49), midMask),
+                                   float3(0.13, 0.22, 0.37), nearMask);
+            float3 duskRidge = lerp(lerp(float3(0.36, 0.21, 0.27), float3(0.25, 0.15, 0.23), midMask),
+                                    float3(0.15, 0.085, 0.16), nearMask);
+            float3 nightRidge = lerp(lerp(float3(0.019, 0.030, 0.058), float3(0.014, 0.022, 0.044), midMask),
+                                     float3(0.008, 0.013, 0.028), nearMask);
+            float3 ridgeAlbedo =
+                env.IsLunarDisk ? nightRidge : lerp(duskRidge, dayRidge, saturate(env.SunAtmosphereFactor * 1.15));
 
             float mistBlend = lerp(lerp(0.72, 0.50, midMask), 0.28, nearMask);
             mistBlend = saturate(mistBlend + smoothstep(0.020, -0.015, direction.y) * 0.22);
@@ -393,8 +398,8 @@ float EvaluateOrenNayar(float NdotL, float NdotV, float LdotV, float roughness)
 }
 
 float3 EvaluateDirectLightBrdf(float3 L, float NdotL, float NdotV, float3 normal, float3 viewDir, float3 F0,
-                              float3 albedo, float diffuseRoughness, float specRoughness, float metallic,
-                              float clearcoat, float clearcoatRoughness)
+                               float3 albedo, float diffuseRoughness, float specRoughness, float metallic,
+                               float clearcoat, float clearcoatRoughness)
 {
     float3 H = normalize(viewDir + L);
     float NdotH = max(dot(normal, H), 0.0);
@@ -421,8 +426,8 @@ float3 EvaluateDirectLightBrdf(float3 L, float NdotL, float NdotV, float3 normal
     return diffuse + specular + coatSpec;
 }
 
-float3 EvaluateDirectSunPBR(SceneEnvironment env, float3 albedo, float3 F0, float roughness, float metallic, float clearcoat, float clearcoatRoughness,
-                            float3 normal, float3 viewDir)
+float3 EvaluateDirectSunPBR(SceneEnvironment env, float3 albedo, float3 F0, float roughness, float metallic,
+                            float clearcoat, float clearcoatRoughness, float3 normal, float3 viewDir)
 {
     float NdotL = saturate(dot(normal, env.KeyLightDirection));
     if (NdotL <= 0.0)
@@ -431,8 +436,8 @@ float3 EvaluateDirectSunPBR(SceneEnvironment env, float3 albedo, float3 F0, floa
     }
 
     float NdotV = max(dot(normal, viewDir), 1e-3);
-    float3 brdf = EvaluateDirectLightBrdf(env.KeyLightDirection, NdotL, NdotV, normal, viewDir, F0,
-                                          albedo, roughness, roughness, metallic, clearcoat, clearcoatRoughness);
+    float3 brdf = EvaluateDirectLightBrdf(env.KeyLightDirection, NdotL, NdotV, normal, viewDir, F0, albedo, roughness,
+                                          roughness, metallic, clearcoat, clearcoatRoughness);
 
     return brdf * NdotL * env.KeyLightIrradiance;
 }
@@ -446,7 +451,8 @@ float SoftClampSymmetric(float x, float halfExtent, float softness)
     return 0.5 * (sqrt(dPos * dPos + s2) - sqrt(dNeg * dNeg + s2));
 }
 
-float3 EvaluateAreaLightSpecular(SceneEnvironment env, float3 worldPos, float3 normal, float3 viewDir, float roughness, float3 F0)
+float3 EvaluateAreaLightSpecular(SceneEnvironment env, float3 worldPos, float3 normal, float3 viewDir, float roughness,
+                                 float3 F0)
 {
     float deltaY = CeilingLightCenter.y - worldPos.y;
     if (deltaY <= 0.05)
@@ -471,8 +477,10 @@ float3 EvaluateAreaLightSpecular(SceneEnvironment env, float3 worldPos, float3 n
     float3 rawHit = worldPos + R * t;
     float edgeSoftness = roughness * roughness * 24.0 + 0.25;
     float3 hitPoint;
-    hitPoint.x = CeilingLightCenter.x + SoftClampSymmetric(rawHit.x - CeilingLightCenter.x, CeilingLightHalfSize.x, edgeSoftness);
-    hitPoint.z = CeilingLightCenter.z + SoftClampSymmetric(rawHit.z - CeilingLightCenter.z, CeilingLightHalfSize.y, edgeSoftness);
+    hitPoint.x = CeilingLightCenter.x +
+                 SoftClampSymmetric(rawHit.x - CeilingLightCenter.x, CeilingLightHalfSize.x, edgeSoftness);
+    hitPoint.z = CeilingLightCenter.z +
+                 SoftClampSymmetric(rawHit.z - CeilingLightCenter.z, CeilingLightHalfSize.y, edgeSoftness);
     hitPoint.y = CeilingLightCenter.y;
 
     float3 toLight = hitPoint - worldPos;
@@ -503,23 +511,23 @@ float3 EvaluateAreaLightSpecular(SceneEnvironment env, float3 worldPos, float3 n
     return specWeight * F * env.CeilingLightRadiance;
 }
 
-float3 EvaluateSingleLanternBrdf(float3 L, float NdotL, float atten, float dist,
-                                   float3 shadingNormal, float3 viewDir, float NdotV, float3 F0,
-                                   float3 albedo, float roughness, float metallic, float clearcoat, float clearcoatRoughness)
+float3 EvaluateSingleLanternBrdf(float3 L, float NdotL, float atten, float dist, float3 shadingNormal, float3 viewDir,
+                                 float NdotV, float3 F0, float3 albedo, float roughness, float metallic,
+                                 float clearcoat, float clearcoatRoughness)
 {
     float lightSinTheta = saturate(11.5 / dist);
     float effRough = clamp(sqrt(roughness * roughness + 0.5 * lightSinTheta), MinimumRoughness, 1.0);
-    float effCoatRough = clamp(sqrt(clearcoatRoughness * clearcoatRoughness + 0.5 * lightSinTheta), MinimumRoughness, 1.0);
-    float3 brdf = EvaluateDirectLightBrdf(L, NdotL, NdotV, shadingNormal, viewDir, F0,
-                                          albedo, roughness, effRough, metallic, clearcoat, effCoatRough);
+    float effCoatRough =
+        clamp(sqrt(clearcoatRoughness * clearcoatRoughness + 0.5 * lightSinTheta), MinimumRoughness, 1.0);
+    float3 brdf = EvaluateDirectLightBrdf(L, NdotL, NdotV, shadingNormal, viewDir, F0, albedo, roughness, effRough,
+                                          metallic, clearcoat, effCoatRough);
 
     return brdf * (NdotL * atten);
 }
 
-float3 EvaluateNightLightsPBR(SceneEnvironment env,
-                              float3 worldPos, float3 shadingNormal, float3 viewDir,
-                              float3 albedo, float3 F0, float roughness, float metallic, float clearcoat, float clearcoatRoughness,
-                              float nightVis)
+float3 EvaluateNightLightsPBR(SceneEnvironment env, float3 worldPos, float3 shadingNormal, float3 viewDir,
+                              float3 albedo, float3 F0, float roughness, float metallic, float clearcoat,
+                              float clearcoatRoughness, float nightVis)
 {
     if (env.NightLightIntensity <= 0.001)
     {
@@ -549,9 +557,8 @@ float3 EvaluateNightLightsPBR(SceneEnvironment env,
                 continue;
             }
 
-            lanternSum += EvaluateSingleLanternBrdf(L, NdotL, atten, dist,
-                                                    shadingNormal, viewDir, NdotV, F0,
-                                                    albedo, roughness, metallic, clearcoat, clearcoatRoughness);
+            lanternSum += EvaluateSingleLanternBrdf(L, NdotL, atten, dist, shadingNormal, viewDir, NdotV, F0, albedo,
+                                                    roughness, metallic, clearcoat, clearcoatRoughness);
         }
 
         accumLight = lanternSum * (nightVis * lanternColor);
@@ -566,10 +573,8 @@ float3 EvaluateNightLightsPBR(SceneEnvironment env,
     return accumLight;
 }
 
-float3 EvaluateSphereLensCaustic(float3 lightDir, float3 worldPos, float3 normal,
-                                 float3 lensCenter, float lensRadius,
-                                 float3 causticTint, float3 lightIrradiance,
-                                 float focusGain, float rimShadowDepth,
+float3 EvaluateSphereLensCaustic(float3 lightDir, float3 worldPos, float3 normal, float3 lensCenter, float lensRadius,
+                                 float3 causticTint, float3 lightIrradiance, float focusGain, float rimShadowDepth,
                                  float minProj, float fadeInEnd, float maxProjStart, float maxProjEnd)
 {
     float NdotL = saturate(dot(normal, lightDir));
@@ -600,8 +605,8 @@ float3 EvaluateSphereLensCaustic(float3 lightDir, float3 worldPos, float3 normal
     return (causticTint * focus - rimShadow) * (axialWeight * radialFade * NdotL) * lightIrradiance;
 }
 
-float3 EvaluateGlassCaustics(SceneEnvironment env, float3 worldPos, float3 normal,
-                             float sunVis, float areaVis, float3 diffuseReflectance)
+float3 EvaluateGlassCaustics(SceneEnvironment env, float3 worldPos, float3 normal, float sunVis, float areaVis,
+                             float3 diffuseReflectance)
 {
     float3 causticIrradiance = 0.0;
 
@@ -612,28 +617,28 @@ float3 EvaluateGlassCaustics(SceneEnvironment env, float3 worldPos, float3 norma
         float dist = sqrt(distSq);
         float3 L = toLight / dist;
         float3 ceilIrr = env.CeilingLightRadiance * (CeilingLightArea * saturate(L.y) / max(PI * distSq, 1.0));
-        causticIrradiance += EvaluateSphereLensCaustic(L, worldPos, normal, GlassSphereCenter, GlassSphereRadius,
-                                                       float3(1.00, 0.97, 0.92), ceilIrr * areaVis,
-                                                       3.20, 0.62, 8.0, 26.0, 72.0, 155.0);
+        causticIrradiance +=
+            EvaluateSphereLensCaustic(L, worldPos, normal, GlassSphereCenter, GlassSphereRadius,
+                                      float3(1.00, 0.97, 0.92), ceilIrr * areaVis, 3.20, 0.62, 8.0, 26.0, 72.0, 155.0);
     }
 
     if (sunVis > 0.001)
     {
         float3 keyDir = env.KeyLightDirection;
         float3 sunIrr = env.KeyLightIrradiance * (sunVis * InvPI);
-        causticIrradiance += EvaluateSphereLensCaustic(keyDir, worldPos, normal, GlassSphereCenter, GlassSphereRadius,
-                                                       float3(0.98, 0.99, 1.02), sunIrr,
-                                                       2.40, 0.48, 8.0, 24.0, 140.0, 360.0);
-        causticIrradiance += EvaluateSphereLensCaustic(keyDir, worldPos, normal, EmeraldUrnCenter, EmeraldUrnRadius,
-                                                       float3(0.36, 0.94, 0.64), sunIrr,
-                                                       2.20, 0.42, 8.0, 24.0, 180.0, 380.0);
+        causticIrradiance +=
+            EvaluateSphereLensCaustic(keyDir, worldPos, normal, GlassSphereCenter, GlassSphereRadius,
+                                      float3(0.98, 0.99, 1.02), sunIrr, 2.40, 0.48, 8.0, 24.0, 140.0, 360.0);
+        causticIrradiance +=
+            EvaluateSphereLensCaustic(keyDir, worldPos, normal, EmeraldUrnCenter, EmeraldUrnRadius,
+                                      float3(0.36, 0.94, 0.64), sunIrr, 2.20, 0.42, 8.0, 24.0, 180.0, 380.0);
     }
 
     return diffuseReflectance * causticIrradiance;
 }
 
-float3 EvaluateWaterSubsurface(SceneEnvironment env, float3 worldPos, float3 normal, float3 viewDir,
-                               float sunVis, float ao, float nightVis, float3 ddgiIrradiance)
+float3 EvaluateWaterSubsurface(SceneEnvironment env, float3 worldPos, float3 normal, float3 viewDir, float sunVis,
+                               float ao, float nightVis, float3 ddgiIrradiance)
 {
     float3 refrDir = refract(-viewDir, normal, 0.75);
     float tFloor = 4.5 / max(-refrDir.y, 0.25);
@@ -647,11 +652,11 @@ float3 EvaluateWaterSubsurface(SceneEnvironment env, float3 worldPos, float3 nor
     float stripDist = ax > 470.0 ? min(abs(ax - 492.5), abs(ax - 603.5)) : min(abs(ax - 370.5), abs(ax - 445.5));
     float stripGlow = exp(-stripDist * 0.11) * env.NightLightIntensity;
 
-    float3 lanternFloor = EvaluateNightLightsSecondary(env, floorPos, float3(0.0, 1.0, 0.0), float3(1.0)) * lerp(0.35, 1.0, nightVis);
-    float3 lightIrr = ddgiIrradiance * lerp(1.0, ao, 0.65)
-                    + env.KeyLightIrradiance * (sunVis * saturate(env.KeyLightDirection.y) * InvPI)
-                    + lanternFloor
-                    + float3(1.00, 0.68, 0.32) * (stripGlow * 0.52);
+    float3 lanternFloor =
+        EvaluateNightLightsSecondary(env, floorPos, float3(0.0, 1.0, 0.0), float3(1.0)) * lerp(0.35, 1.0, nightVis);
+    float3 lightIrr = ddgiIrradiance * lerp(1.0, ao, 0.65) +
+                      env.KeyLightIrradiance * (sunVis * saturate(env.KeyLightDirection.y) * InvPI) + lanternFloor +
+                      float3(1.00, 0.68, 0.32) * (stripGlow * 0.52);
     float3 transmittance = exp(-float3(0.115, 0.032, 0.026) * (4.5 + tFloor));
 
     return basinAlbedo * lightIrr * transmittance;
@@ -671,9 +676,9 @@ float3 ApplyAerialPerspective(float3 color, float distanceValue, SceneEnvironmen
     return lerp(color, hazeColor, fogAmount);
 }
 
-float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal, float3 viewDir,
-                          float3 albedo, float roughness, SceneMaterial material,
-                          float sunVis, float areaVis, float ao, float nightVis, bool isPrimary, out float3 outDdgiIrradiance)
+float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal, float3 viewDir, float3 albedo,
+                          float roughness, SceneMaterial material, float sunVis, float areaVis, float ao,
+                          float nightVis, bool isPrimary, out float3 outDdgiIrradiance)
 {
     float metallic = saturate(material.Metallic);
     float clearcoat = saturate(material.Clearcoat);
@@ -682,9 +687,10 @@ float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal
     bool isPrimaryWater = isPrimary && materialId == WaterMaterialId;
     float3 surfaceAlbedo = isPrimaryWater ? 0.0 : albedo;
 
-    float3 sunDirect = sunVis > 0.0
-        ? EvaluateDirectSunPBR(lighting.Environment, surfaceAlbedo, F0, roughness, metallic, clearcoat, clearcoatRoughness, shadingNormal, viewDir) * sunVis
-        : 0.0;
+    float3 sunDirect = sunVis > 0.0 ? EvaluateDirectSunPBR(lighting.Environment, surfaceAlbedo, F0, roughness, metallic,
+                                                           clearcoat, clearcoatRoughness, shadingNormal, viewDir) *
+                                          sunVis
+                                    : 0.0;
 
     float NdotV = saturate(dot(shadingNormal, viewDir));
     float3 F = FresnelSchlick(NdotV, F0);
@@ -693,27 +699,31 @@ float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal
     bool hasDiffuse = any(kd * surfaceAlbedo > 1e-4);
 
     float3 ceilingDiffuse = (hasDiffuse && areaVis > 0.0)
-        ? kd * surfaceAlbedo * EvaluateClippedQuadIrradiance(lighting.Environment, position, shadingNormal) * areaVis
-        : 0.0;
+                                ? kd * surfaceAlbedo *
+                                      EvaluateClippedQuadIrradiance(lighting.Environment, position, shadingNormal) *
+                                      areaVis
+                                : 0.0;
 
-    float3 nightDirect = isPrimary
-        ? EvaluateNightLightsPBR(lighting.Environment, position, shadingNormal, viewDir,
-                                 surfaceAlbedo, F0, roughness, metallic, clearcoat, clearcoatRoughness, nightVis)
-        : (metallic < 0.999 ? EvaluateNightLightsSecondary(lighting.Environment, position, shadingNormal, albedo * (1.0 - metallic)) : 0.0);
+    float3 nightDirect =
+        isPrimary ? EvaluateNightLightsPBR(lighting.Environment, position, shadingNormal, viewDir, surfaceAlbedo, F0,
+                                           roughness, metallic, clearcoat, clearcoatRoughness, nightVis)
+                  : (metallic < 0.999 ? EvaluateNightLightsSecondary(lighting.Environment, position, shadingNormal,
+                                                                     albedo * (1.0 - metallic))
+                                      : 0.0);
 
-    outDdgiIrradiance = (isPrimary || hasDiffuse)
-        ? SampleDDGIIrradiance(position, shadingNormal, viewDir, lighting.Environment,
-                               lighting.IrradianceAtlas, lighting.DistanceAtlas,
-                               lighting.LinearSampler)
-        : 0.0;
+    outDdgiIrradiance = (isPrimary || hasDiffuse) ? SampleDDGIIrradiance(position, shadingNormal, viewDir,
+                                                                         lighting.Environment, lighting.IrradianceAtlas,
+                                                                         lighting.DistanceAtlas, lighting.LinearSampler)
+                                                  : 0.0;
     float3 indirectDiffuse = hasDiffuse ? kd * surfaceAlbedo * outDdgiIrradiance * lerp(1.0, ao, 0.75) : 0.0;
     float3 emission = EvaluateMaterialEmission(materialId, material, lighting.Environment);
-    float3 caustics = isPrimary
-        ? EvaluateGlassCaustics(lighting.Environment, position, shadingNormal, sunVis, areaVis, kd * surfaceAlbedo)
-        : 0.0;
+    float3 caustics = isPrimary ? EvaluateGlassCaustics(lighting.Environment, position, shadingNormal, sunVis, areaVis,
+                                                        kd * surfaceAlbedo)
+                                : 0.0;
     float3 subsurface = isPrimaryWater
-        ? (1.0 - F) * EvaluateWaterSubsurface(lighting.Environment, position, shadingNormal, viewDir, sunVis, ao, nightVis, outDdgiIrradiance)
-        : 0.0;
+                            ? (1.0 - F) * EvaluateWaterSubsurface(lighting.Environment, position, shadingNormal,
+                                                                  viewDir, sunVis, ao, nightVis, outDdgiIrradiance)
+                            : 0.0;
 
     return max(sunDirect + ceilingDiffuse + indirectDiffuse + caustics, 0.0) + nightDirect + subsurface + emission;
 }
@@ -730,8 +740,8 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
     if (hit.MaterialId == WaterMaterialId)
     {
         float detailFade = saturate(1.0 - hitDistance * 0.0008);
-        normal = EvaluateProceduralNormal(hit.MaterialId, material, hit.Position, hit.ObjectPosition,
-                                          normal, hit.LocalNormal, lighting.Environment.ElapsedSeconds, detailFade);
+        normal = EvaluateProceduralNormal(hit.MaterialId, material, hit.Position, hit.ObjectPosition, normal,
+                                          hit.LocalNormal, lighting.Environment.ElapsedSeconds, detailFade);
     }
 
     float3 viewDir = -rayDir;
@@ -739,8 +749,8 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
     float3 keyDir = lighting.Environment.KeyLightDirection;
     float3 shadowOrigin = OffsetRayOrigin(hit.Position, geoNormal, keyDir);
     float sunVis = dot(normal, keyDir) > 0.0
-        ? (TraceVisibilityRay(lighting.Scene, shadowOrigin, keyDir, RayMaxDistance) ? 1.0 : 0.0)
-        : 0.0;
+                       ? (TraceVisibilityRay(lighting.Scene, shadowOrigin, keyDir, RayMaxDistance) ? 1.0 : 0.0)
+                       : 0.0;
 
     float areaVis = 0.0;
     if (IsCeilingLightPotentiallyVisible(hit.Position))
@@ -756,7 +766,8 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
     }
 
     float3 dummyDdgi;
-    float3 color = ShadeOpaqueSurface(hit.MaterialId, hit.Position, normal, viewDir, albedo, roughness, material, sunVis, areaVis, 1.0, 1.0, false, dummyDdgi);
+    float3 color = ShadeOpaqueSurface(hit.MaterialId, hit.Position, normal, viewDir, albedo, roughness, material,
+                                      sunVis, areaVis, 1.0, 1.0, false, dummyDdgi);
 
     float metallic = saturate(material.Metallic);
     float clearcoat = saturate(material.Clearcoat);
@@ -765,11 +776,10 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
         float3 reflDir = reflect(rayDir, normal);
         float3 envDir = normalize(lerp(normal, reflDir, 0.75));
         float3 envIrr = SampleDDGIIrradiance(hit.Position, envDir, viewDir, lighting.Environment,
-                                             lighting.IrradianceAtlas, lighting.DistanceAtlas,
-                                             lighting.LinearSampler);
+                                             lighting.IrradianceAtlas, lighting.DistanceAtlas, lighting.LinearSampler);
         float3 envSky = envDir.y > 0.05 && !IsInsideSanctuaryShell(hit.Position)
-            ? EvaluateSkyAmbient(reflDir, lighting.Environment)
-            : 0.0;
+                            ? EvaluateSkyAmbient(reflDir, lighting.Environment)
+                            : 0.0;
         float3 envRadiance = max(envIrr, envSky * 0.65);
 
         float3 F0 = lerp(ComputeDielectricF0(material.Ior), albedo, metallic);
@@ -830,7 +840,8 @@ float EvaluateReactivity(uint2 pixel, float2 motionVector, float linearDepth, bo
     return reactivity;
 }
 
-float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneMaterial material, float baseF0, float pixelSpeed, out float reflectionReactivity)
+float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneMaterial material, float baseF0,
+                       float pixelSpeed, out float reflectionReactivity)
 {
     float3 rayDir = -viewDir;
     float ior = max(material.Ior, 1.0);
@@ -850,7 +861,8 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
     float rDist;
     if (TraceClosestHit(lighting.Scene, reflOrigin, reflDir, RayMaskOpaque, rInst, rPrim, rBary, rDist))
     {
-        GeometryHit rHit = ReconstructGeometryHit(rInst, rPrim, rBary, lighting.Vertices, lighting.Indices, lighting.Instances);
+        GeometryHit rHit =
+            ReconstructGeometryHit(rInst, rPrim, rBary, lighting.Vertices, lighting.Indices, lighting.Instances);
         hitCeilingLight = rHit.MaterialId == CeilingLightMaterialId;
         hitLanternCore = rHit.MaterialId == LanternCoreMaterialId;
         reflectedRadiance = ShadeSecondaryHit(rHit, reflDir, rDist, true);
@@ -872,7 +884,8 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
     float3 keyDir = lighting.Environment.KeyLightDirection;
     if (dot(frontNormal, keyDir) > 0.0 && TraceVisibilityRay(lighting.Scene, reflOrigin, keyDir, RayMaxDistance))
     {
-        keyHighlight += EvaluateDielectricSpecular(keyDir, frontNormal, viewDir, glassRough, glassF0) * lighting.Environment.KeyLightIrradiance;
+        keyHighlight += EvaluateDielectricSpecular(keyDir, frontNormal, viewDir, glassRough, glassF0) *
+                        lighting.Environment.KeyLightIrradiance;
     }
 
     if (!hitCeilingLight && glassAreaScale > 1e-4 && IsCeilingLightPotentiallyVisible(hitPos))
@@ -880,9 +893,12 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
         float3 toCeiling = CeilingLightCenter - hitPos;
         float ceilingDist = length(toCeiling);
         float3 dirToCeiling = toCeiling / max(ceilingDist, 1e-4);
-        if (dot(frontNormal, dirToCeiling) > 0.0 && TraceVisibilityRay(lighting.Scene, reflOrigin, dirToCeiling, ceilingDist - 1.5))
+        if (dot(frontNormal, dirToCeiling) > 0.0 &&
+            TraceVisibilityRay(lighting.Scene, reflOrigin, dirToCeiling, ceilingDist - 1.5))
         {
-            keyHighlight += EvaluateAreaLightSpecular(lighting.Environment, hitPos, frontNormal, viewDir, glassRough, glassF0) * glassAreaScale;
+            keyHighlight +=
+                EvaluateAreaLightSpecular(lighting.Environment, hitPos, frontNormal, viewDir, glassRough, glassF0) *
+                glassAreaScale;
         }
     }
 
@@ -905,7 +921,8 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
             {
                 float lightSinTheta = saturate(11.5 / dist);
                 float effRough = clamp(sqrt(glassRough * glassRough + 0.5 * lightSinTheta), MinimumRoughness, 1.0);
-                keyHighlight += EvaluateDielectricSpecular(L, frontNormal, viewDir, effRough, glassF0) * (atten * lanternColor);
+                keyHighlight +=
+                    EvaluateDielectricSpecular(L, frontNormal, viewDir, effRough, glassF0) * (atten * lanternColor);
             }
         }
     }
@@ -953,7 +970,8 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
             transmittance *= exp(-absorbCoeff * hDist);
         }
 
-        GeometryHit hit = ReconstructGeometryHit(hInst, hPrim, hBary, lighting.Vertices, lighting.Indices, lighting.Instances);
+        GeometryHit hit =
+            ReconstructGeometryHit(hInst, hPrim, hBary, lighting.Vertices, lighting.Indices, lighting.Instances);
         SceneMaterial hitMat = lighting.Materials[hit.MaterialId];
 
         if (hitMat.Transmission <= 0.5)
@@ -1063,7 +1081,8 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float3 viewDir = toCamera / max(linearDepth, 1e-4);
 
     bool computeReactive = (lighting.Flags & FlagHasReactiveMask) != 0u;
-    float2 motionVector = (computeReactive || material.Transmission > 0.5) ? lighting.MotionVectors.Load(int3(pixel, 0)) : 0.0;
+    float2 motionVector =
+        (computeReactive || material.Transmission > 0.5) ? lighting.MotionVectors.Load(int3(pixel, 0)) : 0.0;
     float pixelSpeed = length(motionVector * lighting.RenderSize);
     float reactivity = computeReactive ? EvaluateReactivity(pixel, motionVector, linearDepth, isDynamic) : 0.0;
 
@@ -1096,23 +1115,25 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float baseRoughness = effectiveRoughness;
     if (clearcoat > 0.0)
     {
-        float baseMatRough = max(material.Roughness, MinimumRoughness) + (material.PatternType == PatternStripes ? 0.06 : 0.0);
+        float baseMatRough =
+            max(material.Roughness, MinimumRoughness) + (material.PatternType == PatternStripes ? 0.06 : 0.0);
         float geoVar = (material.PatternType == PatternChecker || material.PatternType == PatternGrid)
-            ? 0.0
-            : max(0.0, effectiveRoughness * effectiveRoughness - baseMatRough * baseMatRough);
+                           ? 0.0
+                           : max(0.0, effectiveRoughness * effectiveRoughness - baseMatRough * baseMatRough);
         clearcoatRoughness = clamp(sqrt(clearcoatRoughness * clearcoatRoughness + geoVar), MinimumRoughness, 1.0);
     }
 
     float3 ddgiIrradiance;
-    float3 directAndDiffuse = ShadeOpaqueSurface(materialId, worldPos, normal, viewDir, albedo, baseRoughness, material, sunVis, areaVis, ao, nightVis, true, ddgiIrradiance);
+    float3 directAndDiffuse = ShadeOpaqueSurface(materialId, worldPos, normal, viewDir, albedo, baseRoughness, material,
+                                                 sunVis, areaVis, ao, nightVis, true, ddgiIrradiance);
 
     float NdotV = saturate(dot(normal, viewDir));
     float3 F0 = lerp(ComputeDielectricF0(material.Ior), albedo, metallic);
     float3 envBaseSpec = EstimateEnvSpecularAlbedo(F0, baseRoughness, NdotV);
     envBaseSpec *= 1.0 + F0 * saturate(1.0 / max(envBaseSpec, 0.04) - 1.0) * (metallic * 0.35);
-    float3 envCoatSpec = clearcoat > 0.0
-        ? EstimateEnvSpecularAlbedo(float3(0.04, 0.04, 0.04), clearcoatRoughness, NdotV) * clearcoat
-        : 0.0;
+    float3 envCoatSpec =
+        clearcoat > 0.0 ? EstimateEnvSpecularAlbedo(float3(0.04, 0.04, 0.04), clearcoatRoughness, NdotV) * clearcoat
+                        : 0.0;
     float3 totalSpecAlbedo = envBaseSpec * (1.0 - envCoatSpec.r) + envCoatSpec;
 
     float lobeRoughness = clearcoat > 0.2 ? clearcoatRoughness : baseRoughness;
@@ -1137,7 +1158,8 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         {
             reflDistance = rDist;
             reflParallax = saturate(rDist / max(linearDepth + rDist, 1.0));
-            GeometryHit rHit = ReconstructGeometryHit(rInst, rPrim, rBary, lighting.Vertices, lighting.Indices, lighting.Instances);
+            GeometryHit rHit =
+                ReconstructGeometryHit(rInst, rPrim, rBary, lighting.Vertices, lighting.Indices, lighting.Instances);
             SceneMaterial rMat = lighting.Materials[rHit.MaterialId];
 
             if (rMat.Transmission > 0.5)
@@ -1152,13 +1174,19 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
                 uint tPrim;
                 float2 tBary;
                 float tDist;
-                float3 refractedGlass = TraceClosestHit(lighting.Scene, rHit.Position + tDir * 0.25, tDir, RayMaskOpaque, tInst, tPrim, tBary, tDist)
-                    ? ShadeSecondaryHit(ReconstructGeometryHit(tInst, tPrim, tBary, lighting.Vertices, lighting.Indices, lighting.Instances), tDir, tDist, false)
-                    : EvaluateSkyFull(tDir, lighting.Environment);
+                float3 refractedGlass =
+                    TraceClosestHit(lighting.Scene, rHit.Position + tDir * 0.25, tDir, RayMaskOpaque, tInst, tPrim,
+                                    tBary, tDist)
+                        ? ShadeSecondaryHit(ReconstructGeometryHit(tInst, tPrim, tBary, lighting.Vertices,
+                                                                   lighting.Indices, lighting.Instances),
+                                            tDir, tDist, false)
+                        : EvaluateSkyFull(tDir, lighting.Environment);
                 refractedGlass *= lerp(float3(1.0), rMat.Albedo, 0.85);
 
                 float3 secondaryRefl = reflect(reflDir, rNormal);
-                float3 reflectedGlass = SampleDDGIIrradiance(rHit.Position, rNormal, -reflDir, lighting.Environment, lighting.IrradianceAtlas, lighting.DistanceAtlas, lighting.LinearSampler);
+                float3 reflectedGlass =
+                    SampleDDGIIrradiance(rHit.Position, rNormal, -reflDir, lighting.Environment,
+                                         lighting.IrradianceAtlas, lighting.DistanceAtlas, lighting.LinearSampler);
                 if (!IsInsideSanctuary(rHit.Position))
                 {
                     reflectedGlass = max(reflectedGlass, EvaluateSkyAmbient(secondaryRefl, lighting.Environment));
@@ -1183,14 +1211,14 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         }
         else
         {
-            tracedEnv = mirrorWeight > 0.55
-                ? EvaluateSkyFull(reflDir, lighting.Environment)
-                : EvaluateSkyAmbient(reflDir, lighting.Environment);
+            tracedEnv = mirrorWeight > 0.55 ? EvaluateSkyFull(reflDir, lighting.Environment)
+                                            : EvaluateSkyAmbient(reflDir, lighting.Environment);
         }
 
         if (computeReactive && pixelSpeed > 0.15)
         {
-            float reflWeight = mirrorWeight * saturate(max(totalSpecAlbedo.r, max(totalSpecAlbedo.g, totalSpecAlbedo.b)) * 4.0);
+            float reflWeight =
+                mirrorWeight * saturate(max(totalSpecAlbedo.r, max(totalSpecAlbedo.g, totalSpecAlbedo.b)) * 4.0);
             reactivity = max(reactivity, saturate(pixelSpeed * 0.55) * reflParallax * reflWeight);
         }
 
@@ -1199,18 +1227,21 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         float coneSpread = min(reflDistance, 1200.0) * lobeRoughness * lobeRoughness;
         float effectiveMirrorWeight = mirrorWeight / (1.0 + coneSpread * 0.045);
         envColor = (effectiveMirrorWeight >= 0.98 || (hitCeilingLight && mirrorWeight > 0.5))
-            ? tracedEnv
-            : lerp(ddgiIrradiance, tracedEnv, effectiveMirrorWeight);
+                       ? tracedEnv
+                       : lerp(ddgiIrradiance, tracedEnv, effectiveMirrorWeight);
     }
 
     float areaSpecScale = areaVis * (1.0 - mirrorWeight);
     float3 analyticAreaSpec = 0.0;
     if (areaSpecScale > 1e-4)
     {
-        float3 baseAreaSpec = EvaluateAreaLightSpecular(lighting.Environment, worldPos, normal, viewDir, baseRoughness, F0) * (1.0 - envCoatSpec.r);
-        float3 coatAreaSpec = clearcoat > 0.0
-            ? EvaluateAreaLightSpecular(lighting.Environment, worldPos, normal, viewDir, clearcoatRoughness, float3(0.04)) * clearcoat
-            : 0.0;
+        float3 baseAreaSpec =
+            EvaluateAreaLightSpecular(lighting.Environment, worldPos, normal, viewDir, baseRoughness, F0) *
+            (1.0 - envCoatSpec.r);
+        float3 coatAreaSpec = clearcoat > 0.0 ? EvaluateAreaLightSpecular(lighting.Environment, worldPos, normal,
+                                                                          viewDir, clearcoatRoughness, float3(0.04)) *
+                                                    clearcoat
+                                              : 0.0;
         analyticAreaSpec = (baseAreaSpec + coatAreaSpec) * areaSpecScale;
     }
 

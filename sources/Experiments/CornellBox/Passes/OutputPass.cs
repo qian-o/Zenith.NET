@@ -109,7 +109,8 @@ internal unsafe class OutputPass : DisposableObject
             upsampleSrc = dst;
         }
 
-        int toneMappingSlot = (BloomLevelCount * 2) - 1;
+        const int toneMappingSlot = (BloomLevelCount * 2) - 1;
+
         Texture toneMappingTarget = toneMappedColor ?? Color;
         slots[toneMappingSlot] = new()
         {
@@ -184,11 +185,11 @@ internal unsafe class OutputPass : DisposableObject
             }
         }
 
-        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMappingTarget, (uint)(toneMappingSlot * strideInBytes));
+        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMappingTarget, toneMappingSlot * strideInBytes);
 
         if (toneMappedColor is not null)
         {
-            DrawFullscreen(commandBuffer, antialiasingPipeline, Color, (uint)((ConstantSlotCount - 1) * strideInBytes));
+            DrawFullscreen(commandBuffer, antialiasingPipeline, Color, (ConstantSlotCount - 1) * strideInBytes);
         }
     }
 

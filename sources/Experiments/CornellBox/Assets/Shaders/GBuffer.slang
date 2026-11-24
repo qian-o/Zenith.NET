@@ -26,24 +26,21 @@ struct GBufferConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndBaseInstance.xyz;
         }
     }
 
     property uint BaseInstance
     {
-        get
-        {
+        get {
             return asuint(CameraPositionAndBaseInstance.w);
         }
     }
 
     property float ElapsedSeconds
     {
-        get
-        {
+        get {
             return Timing.x;
         }
     }
@@ -151,7 +148,8 @@ MeshVSOutput VSMain(MeshVSInput input, uint instanceId: SV_InstanceID)
     output.ObjectNormal = localNormal;
     output.CurrentClip = mul(worldPos, gBuffer.ViewProjection);
     output.PreviousClip = mul(previousWorldPos, gBuffer.PreviousViewProjection);
-    output.MaterialId = instance.MaterialOverride != InvalidIndex ? instance.MaterialOverride : asuint(input.NormalAndMaterial.w);
+    output.MaterialId =
+        instance.MaterialOverride != InvalidIndex ? instance.MaterialOverride : asuint(input.NormalAndMaterial.w);
     output.IsDynamic = (instance.IsDynamic != 0u && dot(worldDelta, worldDelta) > 1e-7) ? 1u : 0u;
 
     return output;
@@ -174,9 +172,8 @@ GBufferFSOutput FSMain(MeshVSOutput input)
     float roughness = max(material.Roughness, MinimumRoughness);
     float3 dpObj = fwidth(input.ObjectPosition);
     float3 dpWorld = fwidth(input.WorldPosition);
-    float detailFade = input.MaterialId == WaterMaterialId
-        ? saturate(1.0 - max(dpWorld.x, dpWorld.z) * 0.055)
-        : saturate(1.0 - max(dpObj.x, max(dpObj.y, dpObj.z)) * 0.25);
+    float detailFade = input.MaterialId == WaterMaterialId ? saturate(1.0 - max(dpWorld.x, dpWorld.z) * 0.055)
+                                                           : saturate(1.0 - max(dpObj.x, max(dpObj.y, dpObj.z)) * 0.25);
 
     if (material.PatternType != PatternSolid)
     {
@@ -186,11 +183,12 @@ GBufferFSOutput FSMain(MeshVSOutput input)
     }
     else
     {
-        EvaluateSolidMaterialDetail(input.MaterialId, input.ObjectPosition, objectNormal, detailFade, albedo, roughness);
+        EvaluateSolidMaterialDetail(input.MaterialId, input.ObjectPosition, objectNormal, detailFade, albedo,
+                                    roughness);
     }
 
-    normal = EvaluateProceduralNormal(input.MaterialId, material, input.WorldPosition, input.ObjectPosition,
-                                      normal, objectNormal, gBuffer.ElapsedSeconds, detailFade);
+    normal = EvaluateProceduralNormal(input.MaterialId, material, input.WorldPosition, input.ObjectPosition, normal,
+                                      objectNormal, gBuffer.ElapsedSeconds, detailFade);
 
     float3 dndu = ddx(normal);
     float3 dndv = ddy(normal);

@@ -19,56 +19,49 @@ struct OutputConstants
 
     property uint Width
     {
-        get
-        {
+        get {
             return Config0.x;
         }
     }
 
     property uint Height
     {
-        get
-        {
+        get {
             return Config0.y;
         }
     }
 
     property uint FrameIndex
     {
-        get
-        {
+        get {
             return Config0.z;
         }
     }
 
     property uint Flags
     {
-        get
-        {
+        get {
             return Config0.w;
         }
     }
 
     property float2 TexelSize
     {
-        get
-        {
+        get {
             return Config1.xy;
         }
     }
 
     property float ParameterA
     {
-        get
-        {
+        get {
             return Config1.z;
         }
     }
 
     property float ParameterB
     {
-        get
-        {
+        get {
             return Config1.w;
         }
     }
@@ -204,15 +197,11 @@ void BloomUpsampleCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 
 float3 AcesFilm(float3 color)
 {
-    static const float3x3 AcesInput = float3x3(
-        0.59719, 0.35458, 0.04823,
-        0.07600, 0.90834, 0.01566,
-        0.02840, 0.13383, 0.83777);
+    static const float3x3 AcesInput =
+        float3x3(0.59719, 0.35458, 0.04823, 0.07600, 0.90834, 0.01566, 0.02840, 0.13383, 0.83777);
 
-    static const float3x3 AcesOutput = float3x3(
-         1.60475, -0.53108, -0.07367,
-        -0.10208,  1.10813, -0.00605,
-        -0.00327, -0.07276,  1.07602);
+    static const float3x3 AcesOutput =
+        float3x3(1.60475, -0.53108, -0.07367, -0.10208, 1.10813, -0.00605, -0.00327, -0.07276, 1.07602);
 
     float3 v = mul(AcesInput, max(color, 0.0) * 1.9);
     float3 a = v * (v + 0.0245786) - 0.000090537;
@@ -268,9 +257,12 @@ float4 AntialiasingFS(FullscreenVSOutput input) : SV_TARGET
 {
     float2 texel = output.TexelSize;
     float4 center = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV, 0);
-    float northwest = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, -1.0), 0).a;
-    float northeast = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(1.0, -1.0), 0).a;
-    float southwest = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, 1.0), 0).a;
+    float northwest =
+        output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, -1.0), 0).a;
+    float northeast =
+        output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(1.0, -1.0), 0).a;
+    float southwest =
+        output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, 1.0), 0).a;
     float southeast = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(1.0, 1.0), 0).a;
     float minimum = min(center.a, min(min(northwest, northeast), min(southwest, southeast)));
     float maximum = max(center.a, max(max(northwest, northeast), max(southwest, southeast)));
@@ -280,14 +272,18 @@ float4 AntialiasingFS(FullscreenVSOutput input) : SV_TARGET
         return float4(center.rgb, 1.0);
     }
 
-    float2 direction = float2(-(northwest + northeast - southwest - southeast), northwest + southwest - northeast - southeast);
+    float2 direction =
+        float2(-(northwest + northeast - southwest - southeast), northwest + southwest - northeast - southeast);
     float reduction = max((northwest + northeast + southwest + southeast) * 0.03125, 0.0078125);
     direction = clamp(direction / (min(abs(direction.x), abs(direction.y)) + reduction), -8.0, 8.0) * texel;
 
     float3 inner = (output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - direction / 6.0, 0).rgb +
-                    output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + direction / 6.0, 0).rgb) * 0.5;
-    float3 outer = inner * 0.5 + (output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - direction * 0.5, 0).rgb +
-                                  output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + direction * 0.5, 0).rgb) * 0.25;
+                    output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + direction / 6.0, 0).rgb) *
+                   0.5;
+    float3 outer =
+        inner * 0.5 + (output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - direction * 0.5, 0).rgb +
+                       output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + direction * 0.5, 0).rgb) *
+                          0.25;
     float luminance = PerceptualLuminance(outer);
 
     return float4(luminance < minimum || luminance > maximum ? inner : outer, 1.0);

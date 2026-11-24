@@ -42,80 +42,70 @@ struct ShadowConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndFrame.xyz;
         }
     }
 
     property uint FrameIndex
     {
-        get
-        {
+        get {
             return asuint(CameraPositionAndFrame.w);
         }
     }
 
     property uint Width
     {
-        get
-        {
+        get {
             return RenderConfig.x;
         }
     }
 
     property uint Height
     {
-        get
-        {
+        get {
             return RenderConfig.y;
         }
     }
 
     property uint Reset
     {
-        get
-        {
+        get {
             return RenderConfig.z;
         }
     }
 
     property uint StepSize
     {
-        get
-        {
+        get {
             return RenderConfig.w;
         }
     }
 
     property float2 JitterDelta
     {
-        get
-        {
+        get {
             return JitterDeltaAndNight.xy;
         }
     }
 
     property float NightLightIntensity
     {
-        get
-        {
+        get {
             return JitterDeltaAndNight.z;
         }
     }
 
     property float3 KeyLightDirection
     {
-        get
-        {
+        get {
             return KeyLightDirectionAndSoftCos.xyz;
         }
     }
 
     property float SoftKeyCosRadius
     {
-        get
-        {
+        get {
             return KeyLightDirectionAndSoftCos.w;
         }
     }
@@ -140,7 +130,8 @@ float TraceAO(float3 origin, float3 normal, float u1, float u2, float uRange)
     ray.TMin = RayMinDistance;
     ray.TMax = AoRadius * lerp(0.08, 1.0, uRange * uRange);
 
-    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>
+        query;
     query.TraceRayInline(shadow.Scene, RAY_FLAG_NONE, RayMaskAll, ray);
     query.Proceed();
 
@@ -160,7 +151,9 @@ float TraceLanternSoftVis(uint lanternIdx, float3 shadowOrigin, float u, float v
     float sampleDist = length(toSample);
     float3 sampleDir = toSample / max(sampleDist, 1e-4);
 
-    return TraceVisibilityRay(shadow.Scene, shadowOrigin, sampleDir, sampleDist - GetLanternShadowTrim(sampleDir)) ? 1.0 : 0.0;
+    return TraceVisibilityRay(shadow.Scene, shadowOrigin, sampleDir, sampleDist - GetLanternShadowTrim(sampleDir))
+               ? 1.0
+               : 0.0;
 }
 
 [shader("compute")]
@@ -213,13 +206,15 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
         float phi = TwoPI * v;
         float3 sunDir = normalize(keyDir * cosTheta + (sunT * cos(phi) + sunB * sin(phi)) * sinTheta);
-        sunVis = TraceVisibilityRay(shadow.Scene, shadowOrigin + keyDir * (bias * 0.35), sunDir, RayMaxDistance) ? 1.0 : 0.0;
+        sunVis =
+            TraceVisibilityRay(shadow.Scene, shadowOrigin + keyDir * (bias * 0.35), sunDir, RayMaxDistance) ? 1.0 : 0.0;
     }
 
     float areaVis = 0.0;
     if (IsCeilingLightPotentiallyVisible(worldPos))
     {
-        float3 lightSample = CeilingLightCenter + float3((u * 2.0 - 1.0) * CeilingLightHalfSize.x, 0.0, (v * 2.0 - 1.0) * CeilingLightHalfSize.y);
+        float3 lightSample = CeilingLightCenter + float3((u * 2.0 - 1.0) * CeilingLightHalfSize.x, 0.0,
+                                                         (v * 2.0 - 1.0) * CeilingLightHalfSize.y);
         float3 toLight = lightSample - worldPos;
         float dist = length(toLight);
         float3 dirToLight = toLight / max(dist, 1e-4);
@@ -322,7 +317,8 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
                     bool prevDyn = rawPrevD < 0.0;
                     if (prevD < 60000.0 && prevDyn == movingDynamic && abs(prevD - linearDepth) < depthThreshold)
                     {
-                        float bilinear = (dx == 0 ? 1.0 - fracCoord.x : fracCoord.x) * (dy == 0 ? 1.0 - fracCoord.y : fracCoord.y);
+                        float bilinear =
+                            (dx == 0 ? 1.0 - fracCoord.x : fracCoord.x) * (dy == 0 ? 1.0 - fracCoord.y : fracCoord.y);
                         sumHist += shadow.PreviousHistory.Load(int3(p, 0)) * bilinear;
                         sumHistLen += shadow.PreviousHistoryLength.Load(int3(p, 0)) * bilinear;
                         weightSum += bilinear;
@@ -377,7 +373,8 @@ void FilterShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float lightHist = histLens.y;
 
     float2 uv = (float2(pixel) + 0.5) / float2(shadow.Width, shadow.Height);
-    float3 rayDir = normalize(ReconstructWorldPosition(uv, 0.5, shadow.InverseJitteredViewProjection) - shadow.CameraPosition);
+    float3 rayDir =
+        normalize(ReconstructWorldPosition(uv, 0.5, shadow.InverseJitteredViewProjection) - shadow.CameraPosition);
     float slopeFactor = clamp(1.0 / max(abs(dot(centerNormal, rayDir)), 0.16), 1.0, 5.0);
 
     int step = int(shadow.StepSize);
@@ -419,7 +416,8 @@ void FilterShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
             float4 sampleValue = shadow.FilterInput.Load(int3(samplePixel, 0));
 
             float wNormalGeo = geoHist < 6.0 ? (nd8 * nd4) : (nd16 * nd16);
-            float wGeo = (step == 4 && geoHist >= 12.0) ? 0.0 : (wKernel * exp(-depthDiff / geoDepthScale) * wNormalGeo);
+            float wGeo =
+                (step == 4 && geoHist >= 12.0) ? 0.0 : (wKernel * exp(-depthDiff / geoDepthScale) * wNormalGeo);
             if (wGeo > 1e-4)
             {
                 sumGeo += sampleValue.gb * wGeo;
