@@ -24,21 +24,21 @@ struct ShadowConstants
 
     DescriptorHandle<Texture2D<float2>> MotionVectors;
 
-    DescriptorHandle<Texture2D<float>> PrevLinearDepth;
+    DescriptorHandle<Texture2D<float>> PreviousLinearDepth;
 
-    DescriptorHandle<WTexture2D<float>> CurrLinearDepth;
+    DescriptorHandle<WTexture2D<float>> CurrentLinearDepth;
 
-    DescriptorHandle<Texture2D<float4>> PrevHistory;
+    DescriptorHandle<Texture2D<float4>> PreviousHistory;
 
-    DescriptorHandle<WTexture2D<float4>> CurrHistory;
+    DescriptorHandle<WTexture2D<float4>> CurrentHistory;
 
     DescriptorHandle<Texture2D<float4>> FilterInput;
 
     DescriptorHandle<WTexture2D<float4>> FilterOutput;
 
-    DescriptorHandle<Texture2D<float2>> PrevHistoryLength;
+    DescriptorHandle<Texture2D<float2>> PreviousHistoryLength;
 
-    DescriptorHandle<WTexture2D<float2>> CurrHistoryLength;
+    DescriptorHandle<WTexture2D<float2>> CurrentHistoryLength;
 
     property float3 CameraPosition
     {
@@ -158,8 +158,9 @@ float TraceLanternSoftVis(uint lanternIdx, float3 shadowOrigin, float u, float v
     float3 sampleTarget = NightLanternPositions[lanternIdx] + (lightT * cos(a) + lightB * sin(a)) * r;
     float3 toSample = sampleTarget - shadowOrigin;
     float sampleDist = length(toSample);
+    float3 sampleDir = toSample / max(sampleDist, 1e-4);
 
-    return TraceVisibilityRay(shadow.Scene, shadowOrigin, toSample / max(sampleDist, 1e-4), sampleDist - 26.0) ? 1.0 : 0.0;
+    return TraceVisibilityRay(shadow.Scene, shadowOrigin, sampleDir, sampleDist - GetLanternShadowTrim(sampleDir)) ? 1.0 : 0.0;
 }
 
 [shader("compute")]
@@ -175,9 +176,9 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float deviceDepth = shadow.Depth.Load(int3(pixel, 0));
     if (deviceDepth >= 0.999999)
     {
-        shadow.CurrLinearDepth.Store(pixel, 65504.0);
-        shadow.CurrHistory.Store(pixel, float4(1.0, 1.0, 1.0, 1.0));
-        shadow.CurrHistoryLength.Store(pixel, float2(0.0, 0.0));
+        shadow.CurrentLinearDepth.Store(pixel, 65504.0);
+        shadow.CurrentHistory.Store(pixel, float4(1.0, 1.0, 1.0, 1.0));
+        shadow.CurrentHistoryLength.Store(pixel, float2(0.0, 0.0));
 
         return;
     }
@@ -212,7 +213,7 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
         float phi = TwoPI * v;
         float3 sunDir = normalize(keyDir * cosTheta + (sunT * cos(phi) + sunB * sin(phi)) * sinTheta);
-        sunVis = TraceVisibilityRay(shadow.Scene, shadowOrigin, sunDir, RayMaxDistance) ? 1.0 : 0.0;
+        sunVis = TraceVisibilityRay(shadow.Scene, shadowOrigin + keyDir * (bias * 0.35), sunDir, RayMaxDistance) ? 1.0 : 0.0;
     }
 
     float areaVis = 0.0;
@@ -241,7 +242,7 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         {
             float3 L;
             float dist;
-            float att = ComputeLanternAttenuation(NightLanternPositions[i] - worldPos, L, dist);
+            float att = ComputeLanternAttenuation(worldPos, NightLanternPositions[i], L, dist);
             float s = att > 0.0 ? att * saturate(dot(normal, L)) : 0.0;
             scores[i] = s;
             totalScore += s;
@@ -316,14 +317,14 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
                 for (int dx = 0; dx <= 1; dx++)
                 {
                     int2 p = clamp(basePixel + int2(dx, dy), int2(0, 0), maxPixel);
-                    float rawPrevD = shadow.PrevLinearDepth.Load(int3(p, 0));
+                    float rawPrevD = shadow.PreviousLinearDepth.Load(int3(p, 0));
                     float prevD = abs(rawPrevD);
                     bool prevDyn = rawPrevD < 0.0;
                     if (prevD < 60000.0 && prevDyn == movingDynamic && abs(prevD - linearDepth) < depthThreshold)
                     {
                         float bilinear = (dx == 0 ? 1.0 - fracCoord.x : fracCoord.x) * (dy == 0 ? 1.0 - fracCoord.y : fracCoord.y);
-                        sumHist += shadow.PrevHistory.Load(int3(p, 0)) * bilinear;
-                        sumHistLen += shadow.PrevHistoryLength.Load(int3(p, 0)) * bilinear;
+                        sumHist += shadow.PreviousHistory.Load(int3(p, 0)) * bilinear;
+                        sumHistLen += shadow.PreviousHistoryLength.Load(int3(p, 0)) * bilinear;
                         weightSum += bilinear;
                     }
                 }
@@ -346,9 +347,9 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         }
     }
 
-    shadow.CurrLinearDepth.Store(pixel, movingDynamic ? -linearDepth : linearDepth);
-    shadow.CurrHistory.Store(pixel, accumSignal);
-    shadow.CurrHistoryLength.Store(pixel, float2(geoHistoryLen, lightHistoryLen));
+    shadow.CurrentLinearDepth.Store(pixel, movingDynamic ? -linearDepth : linearDepth);
+    shadow.CurrentHistory.Store(pixel, accumSignal);
+    shadow.CurrentHistoryLength.Store(pixel, float2(geoHistoryLen, lightHistoryLen));
 }
 
 [shader("compute")]
@@ -361,7 +362,7 @@ void FilterShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         return;
     }
 
-    float centerDepth = abs(shadow.PrevLinearDepth.Load(int3(pixel, 0)));
+    float centerDepth = abs(shadow.PreviousLinearDepth.Load(int3(pixel, 0)));
     if (centerDepth >= 60000.0)
     {
         shadow.FilterOutput.Store(pixel, float4(1.0, 1.0, 1.0, 1.0));
@@ -371,14 +372,19 @@ void FilterShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 
     float3 centerNormal = normalize(shadow.NormalAndRoughness.Load(int3(pixel, 0)).xyz);
     float4 centerValue = shadow.FilterInput.Load(int3(pixel, 0));
-    float2 histLens = shadow.PrevHistoryLength.Load(int3(pixel, 0));
+    float2 histLens = shadow.PreviousHistoryLength.Load(int3(pixel, 0));
     float geoHist = histLens.x;
     float lightHist = histLens.y;
 
+    float2 uv = (float2(pixel) + 0.5) / float2(shadow.Width, shadow.Height);
+    float3 rayDir = normalize(ReconstructWorldPosition(uv, 0.5, shadow.InverseJitteredViewProjection) - shadow.CameraPosition);
+    float slopeFactor = clamp(1.0 / max(abs(dot(centerNormal, rayDir)), 0.16), 1.0, 5.0);
+
     int step = int(shadow.StepSize);
     int2 maxPixel = int2(shadow.Width - 1u, shadow.Height - 1u);
-    float geoDepthScale = max(centerDepth * 0.025 * float(step) * (geoHist < 6.0 ? 2.2 : 1.0), 0.75);
-    float lightDepthScale = max(centerDepth * 0.025 * float(step) * (lightHist < 6.0 ? 2.5 : 1.0), 0.75);
+    float baseDepthScale = centerDepth * 0.010 * slopeFactor * float(step);
+    float geoDepthScale = max(baseDepthScale * (geoHist < 6.0 ? 2.2 : 1.0), 0.75);
+    float lightDepthScale = max(baseDepthScale * (lightHist < 6.0 ? 2.5 : 1.0), 0.75);
 
     float2 sumGeo = centerValue.gb;
     float sumWeightGeo = 1.0;
@@ -396,7 +402,7 @@ void FilterShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
             }
 
             int2 samplePixel = clamp(int2(pixel) + int2(dx, dy) * step, int2(0, 0), maxPixel);
-            float sampleDepth = abs(shadow.PrevLinearDepth.Load(int3(samplePixel, 0)));
+            float sampleDepth = abs(shadow.PreviousLinearDepth.Load(int3(samplePixel, 0)));
             if (sampleDepth >= 60000.0)
             {
                 continue;

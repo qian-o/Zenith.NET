@@ -105,7 +105,7 @@ ConstantBuffer<GBufferConstants> gBuffer;
 [shader("vertex")]
 SkyVSOutput SkyVS(uint vertexId: SV_VertexID)
 {
-    float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
+    float2 uv = float2((vertexId << 1u) & 2u, vertexId & 2u);
 
     SkyVSOutput output;
     output.Position = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 1.0, 1.0);
@@ -141,6 +141,8 @@ MeshVSOutput VSMain(MeshVSInput input, uint instanceId: SV_InstanceID)
     float4 previousWorldPos = mul(float4(localPos, 1.0), instance.PreviousObjectToWorld);
     float3 worldNormal = normalize(mul(float4(localNormal, 0.0), instance.ObjectToWorld).xyz);
 
+    float3 worldDelta = worldPos.xyz - previousWorldPos.xyz;
+
     MeshVSOutput output;
     output.Position = mul(worldPos, gBuffer.JitteredViewProjection);
     output.WorldPosition = worldPos.xyz;
@@ -150,7 +152,7 @@ MeshVSOutput VSMain(MeshVSInput input, uint instanceId: SV_InstanceID)
     output.CurrentClip = mul(worldPos, gBuffer.ViewProjection);
     output.PreviousClip = mul(previousWorldPos, gBuffer.PreviousViewProjection);
     output.MaterialId = instance.MaterialOverride != InvalidIndex ? instance.MaterialOverride : asuint(input.NormalAndMaterial.w);
-    output.IsDynamic = instance.IsDynamic;
+    output.IsDynamic = (instance.IsDynamic != 0u && dot(worldDelta, worldDelta) > 1e-7) ? 1u : 0u;
 
     return output;
 }

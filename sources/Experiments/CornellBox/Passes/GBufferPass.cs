@@ -9,8 +9,7 @@ namespace CornellBox.Passes;
 
 internal unsafe class GBufferPass : DisposableObject
 {
-    private const int ConstantSlotStride = 512;
-    private const uint MaxBatches = 64;
+    private const uint MaxBatchCount = 64;
 
     private readonly Buffer constantBuffer;
     private readonly GraphicsPipeline skyMotionPipeline;
@@ -33,7 +32,7 @@ internal unsafe class GBufferPass : DisposableObject
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = ConstantSlotStride * MaxBatches,
+            SizeInBytes = (uint)(sizeof(GBufferConstants) * MaxBatchCount),
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
@@ -121,9 +120,10 @@ internal unsafe class GBufferPass : DisposableObject
 
     public Texture FrameGenerationMotionVectors => outputMotionVectors ?? MotionVectors;
 
-    public void Record(CommandBuffer commandBuffer, SceneResources scene, in FrameContext frame, bool recordOutputMotionDepth)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, in FrameContext frame)
     {
-        ReadOnlySpan<SceneResources.DrawBatch> batches = scene.DrawBatches;
+        ReadOnlySpan<DrawBatch> batches = scene.DrawBatches;
+        uint strideInBytes = (uint)sizeof(GBufferConstants);
         GBufferConstants* slots = stackalloc GBufferConstants[batches.Length];
 
         GBufferConstants baseConstants = new()
@@ -149,7 +149,7 @@ internal unsafe class GBufferPass : DisposableObject
         constantBuffer.Upload(0, new()
         {
             Pointer = (nint)slots,
-            SizeInBytes = (uint)(batches.Length * ConstantSlotStride)
+            SizeInBytes = (uint)(batches.Length * strideInBytes)
         });
 
         commandBuffer.Transition(AlbedoAndMaterial, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
@@ -160,7 +160,7 @@ internal unsafe class GBufferPass : DisposableObject
 
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(AlbedoAndMaterial), ColorAttachment.DontCare(NormalAndRoughness), ColorAttachment.DontCare(Depth), ColorAttachment.DontCare(MotionVectors)], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
-        DrawMeshBatches(commandBuffer, scene, batches, meshPipeline, staticOnly: null);
+        DrawMeshBatches(commandBuffer, scene, batches, meshPipeline, isStatic: null);
         commandBuffer.SetPipeline(skyMotionPipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
         commandBuffer.Draw(3, 1, 0, 0);
@@ -172,7 +172,7 @@ internal unsafe class GBufferPass : DisposableObject
         commandBuffer.Transition(Depth, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
         commandBuffer.Transition(MotionVectors, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 
-        if (recordOutputMotionDepth && staticOutputDepth is not null && outputDepth is not null && outputMotionVectors is not null && outputDepthStencil is not null)
+        if (staticOutputDepth is not null && outputDepth is not null && outputMotionVectors is not null && outputDepthStencil is not null)
         {
             if (frame.Reset || frame.ViewProjection != frame.PreviousViewProjection)
             {
@@ -181,7 +181,7 @@ internal unsafe class GBufferPass : DisposableObject
 
             if (frame.ViewProjection == frame.PreviousViewProjection)
             {
-                bool renderedStaticDepth = false;
+                bool hasRenderedStaticDepth = false;
 
                 if (!hasValidStaticDepth)
                 {
@@ -189,12 +189,12 @@ internal unsafe class GBufferPass : DisposableObject
                     commandBuffer.Transition(outputDepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
                     commandBuffer.BeginRenderPass([ColorAttachment.Clear(staticOutputDepth, Vector4.One)], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
-                    DrawMeshBatches(commandBuffer, scene, batches, staticDepthPipeline, staticOnly: true);
+                    DrawMeshBatches(commandBuffer, scene, batches, staticDepthPipeline, isStatic: true);
                     commandBuffer.EndRenderPass();
 
                     commandBuffer.Transition(staticOutputDepth, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
                     hasValidStaticDepth = true;
-                    renderedStaticDepth = true;
+                    hasRenderedStaticDepth = true;
                 }
 
                 commandBuffer.Transition(staticOutputDepth, default, TextureLayout.Sampled, TextureLayout.CopySrc);
@@ -209,7 +209,7 @@ internal unsafe class GBufferPass : DisposableObject
                 commandBuffer.Transition(outputDepth, default, TextureLayout.CopyDst, TextureLayout.ColorAttachment);
                 commandBuffer.Transition(outputMotionVectors, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
-                if (renderedStaticDepth)
+                if (hasRenderedStaticDepth)
                 {
                     commandBuffer.Barrier(BarrierStages.DepthStencilAttachment, BarrierStages.DepthStencilAttachment);
                 }
@@ -220,7 +220,7 @@ internal unsafe class GBufferPass : DisposableObject
 
                 commandBuffer.BeginRenderPass([ColorAttachment.Load(outputDepth), ColorAttachment.Clear(outputMotionVectors, Vector4.Zero)], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
 
-                DrawMeshBatches(commandBuffer, scene, batches, dynamicMotionDepthPipeline, staticOnly: false);
+                DrawMeshBatches(commandBuffer, scene, batches, dynamicMotionDepthPipeline, isStatic: false);
 
                 commandBuffer.EndRenderPass();
             }
@@ -232,7 +232,7 @@ internal unsafe class GBufferPass : DisposableObject
 
                 commandBuffer.BeginRenderPass([ColorAttachment.Clear(outputDepth, Vector4.One), ColorAttachment.Clear(outputMotionVectors, Vector4.Zero)], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
 
-                DrawMeshBatches(commandBuffer, scene, batches, meshMotionDepthPipeline, staticOnly: null);
+                DrawMeshBatches(commandBuffer, scene, batches, meshMotionDepthPipeline, isStatic: null);
 
                 commandBuffer.SetPipeline(skyMotionDepthPipeline);
                 commandBuffer.SetConstantBuffer(constantBuffer, 0);
@@ -250,15 +250,16 @@ internal unsafe class GBufferPass : DisposableObject
         }
     }
 
-    public void Resize(uint width, uint height, uint targetOutputWidth, uint targetOutputHeight)
+    public void Resize(uint width, uint height, uint targetOutputWidth, uint targetOutputHeight, bool hasOutputMotionDepth)
     {
-        if (Width == width && Height == height && outputWidth == targetOutputWidth && outputHeight == targetOutputHeight)
+        bool useOutputMotionDepth = hasOutputMotionDepth && (width != targetOutputWidth || height != targetOutputHeight) && App.Context.UpscalingCapabilities.FrameGenerationSupported;
+        if (Width == width && Height == height && outputWidth == targetOutputWidth && outputHeight == targetOutputHeight && HasOutputMotionDepth == useOutputMotionDepth)
         {
             return;
         }
 
         DestroyResources();
-        CreateResources(width, height, targetOutputWidth, targetOutputHeight);
+        CreateResources(width, height, targetOutputWidth, targetOutputHeight, useOutputMotionDepth);
     }
 
     protected override void Destroy()
@@ -276,11 +277,12 @@ internal unsafe class GBufferPass : DisposableObject
 
     private void DrawMeshBatches(CommandBuffer commandBuffer,
                                  SceneResources scene,
-                                 ReadOnlySpan<SceneResources.DrawBatch> batches,
+                                 ReadOnlySpan<DrawBatch> batches,
                                  GraphicsPipeline pipeline,
-                                 bool? staticOnly)
+                                 bool? isStatic)
     {
         uint firstDynamic = scene.FirstDynamicInstance;
+        uint strideInBytes = (uint)sizeof(GBufferConstants);
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetVertexBuffer(scene.VertexBuffer, 0, 0);
@@ -288,18 +290,18 @@ internal unsafe class GBufferPass : DisposableObject
 
         for (int i = 0; i < batches.Length; i++)
         {
-            SceneResources.DrawBatch batch = batches[i];
-            if (staticOnly is bool isStatic && (batch.BaseInstance < firstDynamic) != isStatic)
+            DrawBatch batch = batches[i];
+            if (isStatic is bool targetStatic && (batch.BaseInstance < firstDynamic) != targetStatic)
             {
                 continue;
             }
 
-            commandBuffer.SetConstantBuffer(constantBuffer, (uint)(i * ConstantSlotStride));
+            commandBuffer.SetConstantBuffer(constantBuffer, (uint)(i * strideInBytes));
             commandBuffer.DrawIndexed(batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, 0);
         }
     }
 
-    private void CreateResources(uint width, uint height, uint targetOutputWidth, uint targetOutputHeight)
+    private void CreateResources(uint width, uint height, uint targetOutputWidth, uint targetOutputHeight, bool useOutputMotionDepth)
     {
         Width = width;
         Height = height;
@@ -313,7 +315,7 @@ internal unsafe class GBufferPass : DisposableObject
         MotionVectors = CreateTarget(PixelFormat.R16G16Float, width, height, TextureUsages.UpscalingInput);
         depthStencil = CreateDepthStencil(width, height);
 
-        if ((width != targetOutputWidth || height != targetOutputHeight) && App.Context.UpscalingCapabilities.FrameGenerationSupported)
+        if (useOutputMotionDepth)
         {
             staticOutputDepth = CreateTarget(PixelFormat.R32Float, targetOutputWidth, targetOutputHeight, TextureUsages.TransferSrc);
             outputDepth = CreateTarget(PixelFormat.R32Float, targetOutputWidth, targetOutputHeight, TextureUsages.TransferDst | TextureUsages.UpscalingInput);

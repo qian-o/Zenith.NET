@@ -89,7 +89,7 @@ internal static class App
             Speed = 280.0f
         };
 
-        renderer = new();
+        renderer = new(frameGenerationSwapChain is not null);
     }
 
     public static GraphicsContext Context { get; }
@@ -123,8 +123,8 @@ internal static class App
         DestroySwapChain();
         imGui.Dispose();
         input.Dispose();
-
         window.Dispose();
+
         Context.Dispose();
     }
 
@@ -157,7 +157,7 @@ internal static class App
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        FrameGenerationSwapChainArgs args = renderer.Render(commandBuffer, camera, deltaSeconds, frameGenerationSwapChain is not null);
+        FrameGenerationSwapChainArgs args = renderer.Render(commandBuffer, camera, deltaSeconds);
 
         Texture drawable = frameGenerationSwapChain?.Drawable ?? swapChain!.Drawable;
         commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
@@ -188,7 +188,7 @@ internal static class App
         Context.GraphicsQueue.Timeline.Signal().Wait();
 
         swapChain?.Resize(PhysicalWidth, PhysicalHeight);
-        renderer.Resize();
+        renderer.Resize(frameGenerationSwapChain is not null);
     }
 
     private static void DrawOverlay()
@@ -227,7 +227,7 @@ internal static class App
 
         ImGui.Separator();
 
-        bool renderChanged = false;
+        bool hasRenderChanged = false;
 
         ImGui.BeginDisabled(!Context.UpscalingCapabilities.SuperResolutionSupported);
 
@@ -235,11 +235,10 @@ internal static class App
         if (ImGui.Combo("Upscaling Quality", ref qualityIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
         {
             UpscalingQuality? selectedQuality = qualityIndex is 0 ? null : (UpscalingQuality)(qualityIndex - 1);
-
             if (renderer.Quality != selectedQuality)
             {
                 renderer.Quality = selectedQuality;
-                renderChanged = true;
+                hasRenderChanged = true;
             }
         }
 
@@ -247,21 +246,22 @@ internal static class App
 
         ImGui.BeginDisabled(!Context.UpscalingCapabilities.FrameGenerationSupported);
 
-        bool frameGenerationChanged = ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled);
+        bool hasFrameGenerationChanged = ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled);
 
         ImGui.EndDisabled();
 
-        if (frameGenerationChanged)
+        if (hasFrameGenerationChanged)
         {
             DestroySwapChain();
             CreateSwapChain();
+            hasRenderChanged = true;
         }
 
-        if (renderChanged)
+        if (hasRenderChanged)
         {
             Context.GraphicsQueue.Timeline.Signal().Wait();
 
-            renderer.Resize();
+            renderer.Resize(frameGenerationSwapChain is not null);
         }
     }
 

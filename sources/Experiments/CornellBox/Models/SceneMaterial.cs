@@ -61,13 +61,12 @@ internal struct SceneMaterial
         };
     }
 
-    public static SceneMaterial Coated(Vector3 albedo, float baseRoughness, float clearcoat = 1.0f, float coatRoughness = 0.05f, MaterialPattern pattern = MaterialPattern.Solid, float patternScale = 50.0f, float metallic = 0.0f)
+    public static SceneMaterial Coated(Vector3 albedo, float baseRoughness, float clearcoat = 1.0f, float coatRoughness = 0.05f, MaterialPattern pattern = MaterialPattern.Solid, float patternScale = 50.0f)
     {
         return new()
         {
             Albedo = albedo,
             Roughness = baseRoughness,
-            Metallic = metallic,
             Ior = 1.5f,
             Clearcoat = clearcoat,
             ClearcoatRoughness = coatRoughness,

@@ -39,7 +39,7 @@ struct LightingConstants
 
     DescriptorHandle<Texture2D<float2>> MotionVectors;
 
-    DescriptorHandle<Texture2D<float4>> ShadowAo;
+    DescriptorHandle<Texture2D<float4>> ShadowAO;
 
     DescriptorHandle<Texture2D<float4>> IrradianceAtlas;
 
@@ -47,7 +47,7 @@ struct LightingConstants
 
     DescriptorHandle<SamplerState> LinearSampler;
 
-    DescriptorHandle<Texture2D<float>> PrevLinearDepth;
+    DescriptorHandle<Texture2D<float>> PreviousLinearDepth;
 
     DescriptorHandle<WTexture2D<float4>> Color;
 
@@ -361,26 +361,24 @@ float3 EstimateEnvSpecularAlbedo(float3 specularColor, float roughness, float Nd
     return specularColor * max(0.0, scale) + max(0.0, bias);
 }
 
-float3 EvaluateDirectSunSpecular(SceneEnvironment env, float roughness, float metallic, float3 albedo, float3 normal, float3 viewDir, float ior = 1.5, bool useDielectricIor = false)
+float3 EvaluateDielectricSpecular(float3 L, float3 normal, float3 viewDir, float roughness, float3 F0)
 {
-    float NdotL = saturate(dot(normal, env.KeyLightDirection));
+    float NdotL = saturate(dot(normal, L));
     if (NdotL <= 0.0)
     {
         return 0.0;
     }
 
     float NdotV = max(dot(normal, viewDir), 1e-3);
-    float3 H = normalize(viewDir + env.KeyLightDirection);
+    float3 H = normalize(viewDir + L);
     float NdotH = max(dot(normal, H), 0.0);
     float HdotV = max(dot(H, viewDir), 1e-4);
 
-    float r0 = (1.0 - ior) / (1.0 + ior);
-    float3 F0 = useDielectricIor ? float3(r0 * r0) : lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
     float D = DistributionGGX(NdotH, roughness);
     float Vis = VisibilitySmithGGX(NdotV, NdotL, roughness);
     float3 F = FresnelSchlick(HdotV, F0);
 
-    return (D * Vis * F) * NdotL * env.KeyLightIrradiance;
+    return (D * Vis * F) * NdotL;
 }
 
 float EvaluateOrenNayar(float NdotL, float NdotV, float LdotV, float roughness)
@@ -539,7 +537,7 @@ float3 EvaluateNightLightsPBR(SceneEnvironment env,
         {
             float3 L;
             float dist;
-            float atten = ComputeLanternAttenuation(NightLanternPositions[i] - worldPos, L, dist);
+            float atten = ComputeLanternAttenuation(worldPos, NightLanternPositions[i], L, dist);
             if (atten <= 0.0)
             {
                 continue;
@@ -701,7 +699,7 @@ float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal
     float3 nightDirect = isPrimary
         ? EvaluateNightLightsPBR(lighting.Environment, position, shadingNormal, viewDir,
                                  surfaceAlbedo, F0, roughness, metallic, clearcoat, clearcoatRoughness, nightVis)
-        : (metallic < 0.999 ? EvaluateNightLightsSecondary(lighting.Environment, position, shadingNormal, albedo * (1.0 - metallic) * InvPI) : 0.0);
+        : (metallic < 0.999 ? EvaluateNightLightsSecondary(lighting.Environment, position, shadingNormal, albedo * (1.0 - metallic)) : 0.0);
 
     outDdgiIrradiance = (isPrimary || hasDiffuse)
         ? SampleDDGIIrradiance(position, shadingNormal, viewDir, lighting.Environment,
@@ -769,7 +767,7 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
         float3 envIrr = SampleDDGIIrradiance(hit.Position, envDir, viewDir, lighting.Environment,
                                              lighting.IrradianceAtlas, lighting.DistanceAtlas,
                                              lighting.LinearSampler);
-        float3 envSky = envDir.y > 0.05 && !(abs(hit.Position.x) < 324.0 && hit.Position.y < 560.0 && hit.Position.z > 0.0 && hit.Position.z < 588.0)
+        float3 envSky = envDir.y > 0.05 && !IsInsideSanctuaryShell(hit.Position)
             ? EvaluateSkyAmbient(reflDir, lighting.Environment)
             : 0.0;
         float3 envRadiance = max(envIrr, envSky * 0.65);
@@ -805,7 +803,7 @@ float EvaluateReactivity(uint2 pixel, float2 motionVector, float linearDepth, bo
     for (int i = 0; i < 5; i++)
     {
         int2 p = clamp(prevCenter + Offsets[i], int2(0, 0), maxPixel);
-        float rawPrev = lighting.PrevLinearDepth.Load(int3(p, 0));
+        float rawPrev = lighting.PreviousLinearDepth.Load(int3(p, 0));
         maxPrevDepth = max(maxPrevDepth, abs(rawPrev));
         if (rawPrev < 0.0)
         {
@@ -818,11 +816,11 @@ float EvaluateReactivity(uint2 pixel, float2 motionVector, float linearDepth, bo
 
     if (isDynamicNow)
     {
-        reactivity = saturate(pixelSpeed * 1.4);
+        reactivity = 0.22 * saturate(pixelSpeed * 0.8);
     }
     else if (wasDynamicNearby)
     {
-        reactivity = 0.80;
+        reactivity = 0.65;
     }
     else if (pixelSpeed > 0.15 && maxPrevDepth > 0.0 && (linearDepth - maxPrevDepth) > max(16.0, linearDepth * 0.06))
     {
@@ -839,6 +837,8 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
     float cosTheta = abs(dot(frontNormal, viewDir));
     float fresnel = DielectricFresnelSchlick(cosTheta, ior);
     bool hitDynamic = false;
+    bool hitCeilingLight = false;
+    bool hitLanternCore = false;
 
     float3 reflectedRadiance = 0.0;
     float3 reflDir = reflect(rayDir, frontNormal);
@@ -851,14 +851,12 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
     if (TraceClosestHit(lighting.Scene, reflOrigin, reflDir, RayMaskOpaque, rInst, rPrim, rBary, rDist))
     {
         GeometryHit rHit = ReconstructGeometryHit(rInst, rPrim, rBary, lighting.Vertices, lighting.Indices, lighting.Instances);
+        hitCeilingLight = rHit.MaterialId == CeilingLightMaterialId;
+        hitLanternCore = rHit.MaterialId == LanternCoreMaterialId;
         reflectedRadiance = ShadeSecondaryHit(rHit, reflDir, rDist, true);
-        if (rHit.IsDynamic != 0u)
+        if (dot(rHit.Velocity, rHit.Velocity) > 1e-7)
         {
-            float3 prevPos = mul(float4(rHit.ObjectPosition, 1.0), lighting.Instances[rInst].PreviousObjectToWorld).xyz;
-            if (dot(rHit.Position - prevPos, rHit.Position - prevPos) > 1e-4)
-            {
-                hitDynamic = true;
-            }
+            hitDynamic = true;
         }
     }
     else
@@ -867,48 +865,47 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
     }
 
     float glassRough = max(material.Roughness, MinimumRoughness);
+    float glassMirrorWeight = saturate(1.0 - smoothstep(0.06, 0.42, glassRough));
+    float glassAreaScale = 1.0 - glassMirrorWeight;
     float3 glassF0 = float3(baseF0);
     float3 keyHighlight = 0.0;
     float3 keyDir = lighting.Environment.KeyLightDirection;
     if (dot(frontNormal, keyDir) > 0.0 && TraceVisibilityRay(lighting.Scene, reflOrigin, keyDir, RayMaxDistance))
     {
-        keyHighlight += EvaluateDirectSunSpecular(lighting.Environment, glassRough, 0.0, material.Albedo, frontNormal, viewDir, ior, true);
+        keyHighlight += EvaluateDielectricSpecular(keyDir, frontNormal, viewDir, glassRough, glassF0) * lighting.Environment.KeyLightIrradiance;
     }
 
-    if (IsCeilingLightPotentiallyVisible(hitPos))
+    if (!hitCeilingLight && glassAreaScale > 1e-4 && IsCeilingLightPotentiallyVisible(hitPos))
     {
         float3 toCeiling = CeilingLightCenter - hitPos;
         float ceilingDist = length(toCeiling);
         float3 dirToCeiling = toCeiling / max(ceilingDist, 1e-4);
         if (dot(frontNormal, dirToCeiling) > 0.0 && TraceVisibilityRay(lighting.Scene, reflOrigin, dirToCeiling, ceilingDist - 1.5))
         {
-            keyHighlight += EvaluateAreaLightSpecular(lighting.Environment, hitPos, frontNormal, viewDir, glassRough, glassF0);
+            keyHighlight += EvaluateAreaLightSpecular(lighting.Environment, hitPos, frontNormal, viewDir, glassRough, glassF0) * glassAreaScale;
         }
     }
 
-    if (lighting.Environment.NightLightIntensity > 0.001)
+    if (!hitLanternCore && lighting.Environment.NightLightIntensity > 0.001)
     {
-        float NdotV = max(dot(frontNormal, viewDir), 1e-3);
         float3 lanternColor = float3(1.00, 0.64, 0.28) * (38000.0 * lighting.Environment.NightLightIntensity);
 
         for (uint i = 0u; i < NightLanternCount; i++)
         {
             float3 L;
             float dist;
-            float atten = ComputeLanternAttenuation(NightLanternPositions[i] - hitPos, L, dist);
+            float atten = ComputeLanternAttenuation(hitPos, NightLanternPositions[i], L, dist);
             if (atten <= 0.0)
             {
                 continue;
             }
 
             float ndl = saturate(dot(frontNormal, L));
-            if (atten * ndl > 5e-8 && TraceVisibilityRay(lighting.Scene, reflOrigin, L, dist - 26.0))
+            if (atten * ndl > 5e-8 && TraceVisibilityRay(lighting.Scene, reflOrigin, L, dist - GetLanternShadowTrim(L)))
             {
                 float lightSinTheta = saturate(11.5 / dist);
                 float effRough = clamp(sqrt(glassRough * glassRough + 0.5 * lightSinTheta), MinimumRoughness, 1.0);
-                float3 specBrdf = EvaluateDirectLightBrdf(L, ndl, NdotV, frontNormal, viewDir, glassF0,
-                                                          0.0, 1.0, effRough, 0.0, 0.0, MinimumRoughness);
-                keyHighlight += specBrdf * (ndl * atten) * lanternColor;
+                keyHighlight += EvaluateDielectricSpecular(L, frontNormal, viewDir, effRough, glassF0) * (atten * lanternColor);
             }
         }
     }
@@ -933,9 +930,8 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
     }
 
     currDir = refrDir;
-    float3 stepOrigin = hitPos - frontNormal * 0.12;
+    float3 stepOrigin = hitPos - frontNormal * RayOffset;
     bool hitOpaque = false;
-    uint opaqueInst = 0u;
     float opaqueDist = RayMaxDistance;
     float3 opaqueDir = currDir;
     GeometryHit opaqueHit = {};
@@ -963,14 +959,13 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
         if (hitMat.Transmission <= 0.5)
         {
             hitOpaque = true;
-            opaqueInst = hInst;
             opaqueDist = hDist;
             opaqueDir = currDir;
             opaqueHit = hit;
             break;
         }
 
-        if (hit.IsDynamic != 0u)
+        if (dot(hit.Velocity, hit.Velocity) > 1e-7)
         {
             hitDynamic = true;
         }
@@ -989,19 +984,15 @@ float3 ShadeGlassPixel(float3 hitPos, float3 frontNormal, float3 viewDir, SceneM
         {
             currDir = normalize(nextDir);
             insideGlass = !insideGlass;
-            stepOrigin = hit.Position - exitGeo * 0.12;
+            stepOrigin = hit.Position - exitGeo * RayOffset;
         }
     }
 
     if (hitOpaque)
     {
-        if (opaqueHit.IsDynamic != 0u)
+        if (dot(opaqueHit.Velocity, opaqueHit.Velocity) > 1e-7)
         {
-            float3 prevPos = mul(float4(opaqueHit.ObjectPosition, 1.0), lighting.Instances[opaqueInst].PreviousObjectToWorld).xyz;
-            if (dot(opaqueHit.Position - prevPos, opaqueHit.Position - prevPos) > 1e-4)
-            {
-                hitDynamic = true;
-            }
+            hitDynamic = true;
         }
 
         refractedRadiance = transmittance * ShadeSecondaryHit(opaqueHit, opaqueDir, opaqueDist, true);
@@ -1082,6 +1073,7 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         float r0 = (1.0 - ior) / (1.0 + ior);
         float glassReactivity;
         float3 glassColor = ShadeGlassPixel(worldPos, normal, viewDir, material, r0 * r0, pixelSpeed, glassReactivity);
+        glassColor = ApplyAerialPerspective(glassColor, linearDepth, lighting.Environment);
         lighting.Color.Store(pixel, float4(glassColor, 1.0));
 
         if (computeReactive)
@@ -1092,11 +1084,11 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         return;
     }
 
-    float4 shadowAo = lighting.ShadowAo.Load(int3(pixel, 0));
-    float sunVis = shadowAo.r;
-    float areaVis = shadowAo.g;
-    float ao = shadowAo.b;
-    float nightVis = shadowAo.a;
+    float4 shadowAO = lighting.ShadowAO.Load(int3(pixel, 0));
+    float sunVis = shadowAO.r;
+    float areaVis = shadowAO.g;
+    float ao = shadowAO.b;
+    float nightVis = shadowAO.a;
 
     float metallic = saturate(material.Metallic);
     float clearcoat = saturate(material.Clearcoat);
@@ -1167,8 +1159,7 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
 
                 float3 secondaryRefl = reflect(reflDir, rNormal);
                 float3 reflectedGlass = SampleDDGIIrradiance(rHit.Position, rNormal, -reflDir, lighting.Environment, lighting.IrradianceAtlas, lighting.DistanceAtlas, lighting.LinearSampler);
-                bool rInsideSanctuary = abs(rHit.Position.x) < 292.0 && rHit.Position.y < 560.0 && rHit.Position.z > 0.0 && rHit.Position.z < 562.0;
-                if (!rInsideSanctuary)
+                if (!IsInsideSanctuary(rHit.Position))
                 {
                     reflectedGlass = max(reflectedGlass, EvaluateSkyAmbient(secondaryRefl, lighting.Environment));
                 }
@@ -1181,12 +1172,10 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
                 tracedEnv = ShadeSecondaryHit(rHit, reflDir, rDist, true);
             }
 
-            if (computeReactive && rHit.IsDynamic != 0u)
+            if (computeReactive && dot(rHit.Velocity, rHit.Velocity) > 1e-7)
             {
-                float3 prevReflPos = mul(float4(rHit.ObjectPosition, 1.0), lighting.Instances[rInst].PreviousObjectToWorld).xyz;
-                float3 reflDelta = rHit.Position - prevReflPos;
                 float4 curClip = mul(float4(worldPos, 1.0), lighting.ViewProjection);
-                float4 prevClip = mul(float4(worldPos - reflDelta, 1.0), lighting.PreviousViewProjection);
+                float4 prevClip = mul(float4(worldPos - rHit.Velocity, 1.0), lighting.PreviousViewProjection);
                 float reflSpeed = length(ComputeMotionVector(curClip, prevClip) * lighting.RenderSize);
                 float reflWeight = mirrorWeight * max(totalSpecAlbedo.r, max(totalSpecAlbedo.g, totalSpecAlbedo.b));
                 reactivity = max(reactivity, saturate(reflSpeed * 1.6) * reflWeight);

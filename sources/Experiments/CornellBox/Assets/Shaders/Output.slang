@@ -49,7 +49,7 @@ struct OutputConstants
         }
     }
 
-    property float2 InvSourceSize
+    property float2 TexelSize
     {
         get
         {
@@ -57,7 +57,7 @@ struct OutputConstants
         }
     }
 
-    property float ParamA
+    property float ParameterA
     {
         get
         {
@@ -65,7 +65,7 @@ struct OutputConstants
         }
     }
 
-    property float ParamB
+    property float ParameterB
     {
         get
         {
@@ -114,7 +114,7 @@ float3 SampleBloomSource(float2 uv)
     float3 sampleColor = max(output.PrimaryTexture.SampleLevel(output.LinearSampler, uv, 0).rgb, 0.0);
     if ((output.Flags & FlagFirstMip) != 0u)
     {
-        return SoftThreshold(sampleColor, output.ParamA, output.ParamB);
+        return SoftThreshold(sampleColor, output.ParameterA, output.ParameterB);
     }
 
     return sampleColor;
@@ -131,7 +131,7 @@ void BloomDownsampleCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     }
 
     float2 uv = (float2(pixel) + 0.5) / float2(output.Width, output.Height);
-    float2 texel = output.InvSourceSize;
+    float2 texel = output.TexelSize;
 
     float3 tl = SampleBloomSource(uv + float2(-2.0, -2.0) * texel);
     float3 t = SampleBloomSource(uv + float2(0.0, -2.0) * texel);
@@ -184,7 +184,7 @@ void BloomUpsampleCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     }
 
     float2 uv = (float2(pixel) + 0.5) / float2(output.Width, output.Height);
-    float2 d = output.InvSourceSize * output.ParamA;
+    float2 d = output.TexelSize * output.ParameterA;
 
     float3 s0 = output.PrimaryTexture.SampleLevel(output.LinearSampler, uv + float2(-d.x, -d.y), 0).rgb;
     float3 s1 = output.PrimaryTexture.SampleLevel(output.LinearSampler, uv + float2(0.0, -d.y), 0).rgb * 2.0;
@@ -244,8 +244,8 @@ FullscreenVSOutput FullscreenVS(uint vertexId: SV_VertexID)
 float4 ToneMappingFS(FullscreenVSOutput input) : SV_TARGET
 {
     uint2 pixel = uint2(input.Position.xy);
-    float exposure = output.ParamA;
-    float bloomIntensity = output.ParamB;
+    float exposure = output.ParameterA;
+    float bloomIntensity = output.ParameterB;
     float3 hdr = max(output.PrimaryTexture.Load(int3(pixel, 0)).rgb, 0.0) * exposure;
 
     float3 bloomColor = max(output.SecondaryTexture.SampleLevel(output.LinearSampler, input.UV, 0).rgb, 0.0);
@@ -266,7 +266,7 @@ float4 ToneMappingFS(FullscreenVSOutput input) : SV_TARGET
 [shader("fragment")]
 float4 AntialiasingFS(FullscreenVSOutput input) : SV_TARGET
 {
-    float2 texel = output.InvSourceSize;
+    float2 texel = output.TexelSize;
     float4 center = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV, 0);
     float northwest = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, -1.0), 0).a;
     float northeast = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(1.0, -1.0), 0).a;

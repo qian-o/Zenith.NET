@@ -6,8 +6,8 @@ namespace CornellBox.Models;
 [StructLayout(LayoutKind.Explicit, Size = 96)]
 internal struct SceneEnvironment
 {
-    private const uint FlagIsPaused = 1u << 0;
-    private const uint FlagIsLunarDisk = 1u << 1;
+    private const uint FlagIsPaused = 1 << 0;
+    private const uint FlagIsLunarDisk = 1 << 1;
 
     [FieldOffset(0)]
     public Vector3 KeyLightDirection;
@@ -57,6 +57,24 @@ internal struct SceneEnvironment
 
         return preset switch
         {
+            AtmospherePreset.Day => new()
+            {
+                KeyLightDirection = Vector3.Normalize(new(0.44068358f, 0.52080786f, -0.73113406f)),
+                KeyLightCosRadius = 0.9996875f,
+                KeyLightIrradiance = new(5.80f, 4.42f, 3.00f),
+                SoftKeyCosRadius = 0.9992f,
+                SkyZenithColor = new(0.065f, 0.205f, 0.565f),
+                CloudCoverage = 0.56f,
+                SkyHorizonColor = new(0.46f, 0.64f, 0.84f),
+                StarIntensity = 0.0f,
+                CeilingLightRadiance = new(25.0f, 22.25f, 17.5f),
+                NightLightIntensity = 0.0f,
+                ElapsedSeconds = elapsedSeconds,
+                SunAtmosphereFactor = 1.0f,
+                Exposure = 1.00f,
+                EnvironmentFlags = flags
+            },
+
             AtmospherePreset.Sunset => new()
             {
                 KeyLightDirection = Vector3.Normalize(new(-0.398f, 0.125f, 0.909f)),
@@ -93,23 +111,7 @@ internal struct SceneEnvironment
                 EnvironmentFlags = flags | FlagIsLunarDisk
             },
 
-            _ => new()
-            {
-                KeyLightDirection = Vector3.Normalize(new(0.44068358f, 0.52080786f, -0.73113406f)),
-                KeyLightCosRadius = 0.9996875f,
-                KeyLightIrradiance = new(5.80f, 4.42f, 3.00f),
-                SoftKeyCosRadius = 0.9992f,
-                SkyZenithColor = new(0.065f, 0.205f, 0.565f),
-                CloudCoverage = 0.56f,
-                SkyHorizonColor = new(0.46f, 0.64f, 0.84f),
-                StarIntensity = 0.0f,
-                CeilingLightRadiance = new(25.0f, 22.25f, 17.5f),
-                NightLightIntensity = 0.0f,
-                ElapsedSeconds = elapsedSeconds,
-                SunAtmosphereFactor = 1.0f,
-                Exposure = 1.00f,
-                EnvironmentFlags = flags
-            }
+            _ => default
         };
     }
 }

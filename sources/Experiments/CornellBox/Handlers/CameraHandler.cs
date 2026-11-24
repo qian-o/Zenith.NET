@@ -6,7 +6,7 @@ namespace CornellBox.Handlers;
 
 internal class CameraHandler : DisposableObject
 {
-    private const float MaxPitchInRadians = (89.0f * MathF.PI) / 180.0f;
+    private const float MaxPitchInRadians = 89.0f * MathF.PI / 180.0f;
 
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
@@ -51,7 +51,7 @@ internal class CameraHandler : DisposableObject
 
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
-    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)App.LogicalWidth / App.LogicalHeight, NearPlane, FarPlane);
+    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)Math.Max(App.PhysicalWidth, 1u) / Math.Max(App.PhysicalHeight, 1u), NearPlane, FarPlane);
 
     public void Reset()
     {
@@ -98,16 +98,9 @@ internal class CameraHandler : DisposableObject
 
     protected override void Destroy()
     {
-        if (keyboard is not null)
-        {
-            keyboard.KeyUp -= OnKeyUp;
-            keyboard.KeyDown -= OnKeyDown;
-        }
-
-        if (mouse is not null)
-        {
-            mouse.MouseMove -= OnMouseMove;
-        }
+        keyboard?.KeyUp -= OnKeyUp;
+        keyboard?.KeyDown -= OnKeyDown;
+        mouse?.MouseMove -= OnMouseMove;
 
         keyDowns.Clear();
         lastMousePosition = null;
@@ -135,7 +128,7 @@ internal class CameraHandler : DisposableObject
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        if (mouse.IsButtonPressed(MouseButton.Right) && lastMousePosition is Vector2 lastPosition)
+        if (mouse.IsButtonPressed(MouseButton.Right) && lastMousePosition is Vector2 lastPosition && App.LogicalWidth > 0 && App.LogicalHeight > 0)
         {
             Vector2 delta = position - lastPosition;
 

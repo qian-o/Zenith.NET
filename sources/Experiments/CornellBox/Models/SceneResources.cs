@@ -20,14 +20,12 @@ internal unsafe class SceneResources : DisposableObject
 
     public SceneResources()
     {
-        (SceneVertex[] vertices,
-         uint[] indices,
-         (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes,
-         (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, MaterialId MaterialOverride, byte VisibilityMask)[] placements,
-         int dynamicSlotStart,
-         SceneMaterial[] materials) = CornellBoxGeometry.CreateScene();
-
-        firstDynamicSlot = dynamicSlotStart;
+        CornellBoxGeometry.CreateScene(out SceneVertex[] vertices,
+                                       out uint[] indices,
+                                       out (uint FirstIndex, uint IndexCount, uint VertexBound)[] meshes,
+                                       out (int MeshIndex, Matrix4x4 Transform, bool IsDynamic, MaterialId MaterialOverride, byte VisibilityMask)[] placements,
+                                       out firstDynamicSlot,
+                                       out SceneMaterial[] materials);
 
         instances = new SceneInstance[placements.Length];
         CornellBoxGeometry.WriteTransforms(0.0f, dynamicTransforms);
@@ -178,9 +176,9 @@ internal unsafe class SceneResources : DisposableObject
 
         if (bottomLevels is not null)
         {
-            foreach (BottomLevelAccelerationStructure bottomLevel in bottomLevels)
+            for (int i = bottomLevels.Length - 1; i >= 0; i--)
             {
-                bottomLevel?.Dispose();
+                bottomLevels[i]?.Dispose();
             }
         }
 
@@ -211,17 +209,6 @@ internal unsafe class SceneResources : DisposableObject
         }
 
         return buffer;
-    }
-
-    public readonly struct DrawBatch(uint firstIndex, uint indexCount, uint baseInstance, uint instanceCount)
-    {
-        public readonly uint FirstIndex = firstIndex;
-
-        public readonly uint IndexCount = indexCount;
-
-        public readonly uint BaseInstance = baseInstance;
-
-        public readonly uint InstanceCount = instanceCount;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 144)]

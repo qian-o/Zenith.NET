@@ -11,7 +11,7 @@ internal class Renderer : DisposableObject
 {
     private readonly SceneResources scene;
     private readonly GBufferPass gBufferPass;
-    private readonly GiProbePass giProbePass;
+    private readonly GIProbePass giProbePass;
     private readonly ShadowPass shadowPass;
     private readonly LightingPass lightingPass;
     private readonly OutputPass outputPass;
@@ -19,10 +19,11 @@ internal class Renderer : DisposableObject
     private UpscalingPass? upscalingPass;
     private double elapsedSeconds;
     private uint frameIndex;
+    private bool isFrameGenerationEnabled;
     private bool hasPendingLightingReset;
     private Matrix4x4 previousViewProjection = Matrix4x4.Identity;
 
-    public Renderer()
+    public Renderer(bool isFrameGenerationEnabled)
     {
         scene = new();
         gBufferPass = new();
@@ -31,7 +32,7 @@ internal class Renderer : DisposableObject
         lightingPass = new();
         outputPass = new();
 
-        Resize();
+        Resize(isFrameGenerationEnabled);
     }
 
     public UpscalingQuality? Quality { get; set; } = App.Context.UpscalingCapabilities.SuperResolutionSupported ? UpscalingQuality.Quality : null;
@@ -70,7 +71,7 @@ internal class Renderer : DisposableObject
         hasPendingLightingReset = false;
     }
 
-    public FrameGenerationSwapChainArgs Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds, bool isFrameGenerationEnabled = true)
+    public FrameGenerationSwapChainArgs Render(CommandBuffer commandBuffer, CameraHandler camera, double deltaSeconds)
     {
         bool reset = frameIndex is 0;
         bool resetLighting = reset || hasPendingLightingReset;
@@ -93,7 +94,7 @@ internal class Renderer : DisposableObject
 
         scene.Update(commandBuffer, elapsedSeconds, IsPaused, frame.Reset);
 
-        gBufferPass.Record(commandBuffer, scene, in frame, isFrameGenerationEnabled);
+        gBufferPass.Record(commandBuffer, scene, in frame);
 
         giProbePass.Record(commandBuffer, scene, in frame);
 
@@ -129,8 +130,10 @@ internal class Renderer : DisposableObject
         };
     }
 
-    public void Resize()
+    public void Resize(bool isFrameGenerationEnabled)
     {
+        this.isFrameGenerationEnabled = isFrameGenerationEnabled;
+
         if (Quality is UpscalingQuality quality)
         {
             if (upscalingPass is null || upscalingPass.Quality != quality)
@@ -152,7 +155,7 @@ internal class Renderer : DisposableObject
         uint renderWidth = upscalingPass?.RenderWidth ?? App.PhysicalWidth;
         uint renderHeight = upscalingPass?.RenderHeight ?? App.PhysicalHeight;
 
-        gBufferPass.Resize(renderWidth, renderHeight, App.PhysicalWidth, App.PhysicalHeight);
+        gBufferPass.Resize(renderWidth, renderHeight, App.PhysicalWidth, App.PhysicalHeight, isFrameGenerationEnabled);
         shadowPass.Resize(renderWidth, renderHeight);
         lightingPass.Resize(renderWidth, renderHeight, upscalingPass is not null);
         outputPass.Resize(App.PhysicalWidth, App.PhysicalHeight, upscalingPass is null);

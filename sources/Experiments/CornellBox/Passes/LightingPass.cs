@@ -11,8 +11,8 @@ internal unsafe class LightingPass : DisposableObject
 {
     public const PixelFormat ColorFormat = PixelFormat.R16G16B16A16Float;
 
-    private const uint FlagReset = 1u << 0;
-    private const uint FlagHasReactiveMask = 1u << 1;
+    private const uint FlagReset = 1 << 0;
+    private const uint FlagHasReactiveMask = 1 << 1;
 
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline pipeline;
@@ -38,7 +38,7 @@ internal unsafe class LightingPass : DisposableObject
 
     public Texture? ReactiveMask { get; private set; }
 
-    public void Record(CommandBuffer commandBuffer, SceneResources scene, GBufferPass gBuffer, GiProbePass giProbe, ShadowPass shadow, in FrameContext frame)
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, GBufferPass gBuffer, GIProbePass giProbe, ShadowPass shadow, in FrameContext frame)
     {
         uint flags = (frame.ResetLighting ? FlagReset : 0u) | (ReactiveMask is not null ? FlagHasReactiveMask : 0u);
 
@@ -62,11 +62,11 @@ internal unsafe class LightingPass : DisposableObject
             NormalAndRoughness = gBuffer.NormalAndRoughness.SampledHandle,
             Depth = gBuffer.Depth.SampledHandle,
             MotionVectors = gBuffer.MotionVectors.SampledHandle,
-            ShadowAo = shadow.ShadowAo.SampledHandle,
+            ShadowAO = shadow.ShadowAO.SampledHandle,
             IrradianceAtlas = giProbe.IrradianceAtlas.SampledHandle,
             DistanceAtlas = giProbe.DistanceAtlas.SampledHandle,
             LinearSampler = giProbe.LinearSampler.Handle,
-            PrevLinearDepth = frame.ResetLighting ? default : shadow.PreviousLinearDepth.SampledHandle,
+            PreviousLinearDepth = frame.ResetLighting ? default : shadow.PreviousLinearDepth.SampledHandle,
             Color = Color.StorageHandle,
             ReactiveMask = ReactiveMask?.StorageHandle ?? default
         };
@@ -210,7 +210,7 @@ file struct LightingConstants
     public ResourceHandle MotionVectors;
 
     [FieldOffset(520)]
-    public ResourceHandle ShadowAo;
+    public ResourceHandle ShadowAO;
 
     [FieldOffset(528)]
     public ResourceHandle IrradianceAtlas;
@@ -222,7 +222,7 @@ file struct LightingConstants
     public ResourceHandle LinearSampler;
 
     [FieldOffset(552)]
-    public ResourceHandle PrevLinearDepth;
+    public ResourceHandle PreviousLinearDepth;
 
     [FieldOffset(560)]
     public ResourceHandle Color;

@@ -9,22 +9,22 @@ namespace CornellBox.Passes;
 internal unsafe class ShadowPass : DisposableObject
 {
     private const uint ConstantSlotCount = 4;
-    private const uint FlagResetAll = 1u << 0;
-    private const uint FlagResetLight = 1u << 1;
+    private const uint FlagResetAll = 1 << 0;
+    private const uint FlagResetLight = 1 << 1;
 
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline tracePipeline;
     private readonly ComputePipeline filterPipeline;
 
     private Texture filterScratch = null!;
-    private Texture prevHistory = null!;
-    private Texture currHistory = null!;
-    private Texture prevHistoryLength = null!;
-    private Texture currHistoryLength = null!;
-    private Texture prevLinearDepth = null!;
-    private Texture currLinearDepth = null!;
+    private Texture previousHistory = null!;
+    private Texture currentHistory = null!;
+    private Texture previousHistoryLength = null!;
+    private Texture currentHistoryLength = null!;
+    private Texture previousLinearDepth = null!;
+    private Texture currentLinearDepth = null!;
     private Vector2 previousJitterOffset;
-    private uint filterWarmupFrames;
+    private uint filterWarmupFrameCount;
 
     public ShadowPass()
     {
@@ -48,9 +48,9 @@ internal unsafe class ShadowPass : DisposableObject
 
     public uint Height { get; private set; }
 
-    public Texture ShadowAo { get; private set; } = null!;
+    public Texture ShadowAO { get; private set; } = null!;
 
-    public Texture PreviousLinearDepth => currLinearDepth;
+    public Texture PreviousLinearDepth => currentLinearDepth;
 
     public void Record(CommandBuffer commandBuffer, SceneResources scene, GBufferPass gBuffer, in FrameContext frame)
     {
@@ -60,16 +60,16 @@ internal unsafe class ShadowPass : DisposableObject
         uint resetFlags = (frame.Reset ? FlagResetAll : 0u) | (frame.ResetLighting ? FlagResetLight : 0u);
         if (resetFlags is not 0u)
         {
-            filterWarmupFrames = 12u;
+            filterWarmupFrameCount = 12u;
         }
 
-        bool isWarmupFilter = filterWarmupFrames > 0u;
+        bool isWarmupFilter = filterWarmupFrameCount > 0u;
         if (isWarmupFilter)
         {
-            filterWarmupFrames--;
+            filterWarmupFrameCount--;
         }
 
-        uint stride = (uint)sizeof(ShadowConstants);
+        uint strideInBytes = (uint)sizeof(ShadowConstants);
         ShadowConstants* slots = stackalloc ShadowConstants[(int)ConstantSlotCount];
 
         ShadowConstants baseConstants = new()
@@ -88,116 +88,116 @@ internal unsafe class ShadowPass : DisposableObject
             Depth = gBuffer.Depth.SampledHandle,
             NormalAndRoughness = gBuffer.NormalAndRoughness.SampledHandle,
             MotionVectors = gBuffer.MotionVectors.SampledHandle,
-            PrevLinearDepth = frame.Reset ? default : prevLinearDepth.SampledHandle,
-            CurrLinearDepth = currLinearDepth.StorageHandle,
-            PrevHistory = frame.Reset ? default : prevHistory.SampledHandle,
-            CurrHistory = currHistory.StorageHandle,
-            PrevHistoryLength = frame.Reset ? default : prevHistoryLength.SampledHandle,
-            CurrHistoryLength = currHistoryLength.StorageHandle
+            PreviousLinearDepth = frame.Reset ? default : previousLinearDepth.SampledHandle,
+            CurrentLinearDepth = currentLinearDepth.StorageHandle,
+            PreviousHistory = frame.Reset ? default : previousHistory.SampledHandle,
+            CurrentHistory = currentHistory.StorageHandle,
+            PreviousHistoryLength = frame.Reset ? default : previousHistoryLength.SampledHandle,
+            CurrentHistoryLength = currentHistoryLength.StorageHandle
         };
 
-        uint activeSlots;
+        uint activeSlotCount;
         slots[0] = baseConstants with { StepSize = 0 };
 
         if (isWarmupFilter)
         {
-            activeSlots = 4u;
+            activeSlotCount = 4u;
             slots[1] = baseConstants with
             {
                 StepSize = 4,
-                PrevLinearDepth = currLinearDepth.SampledHandle,
-                FilterInput = currHistory.SampledHandle,
-                FilterOutput = ShadowAo.StorageHandle,
-                PrevHistoryLength = currHistoryLength.SampledHandle
+                PreviousLinearDepth = currentLinearDepth.SampledHandle,
+                FilterInput = currentHistory.SampledHandle,
+                FilterOutput = ShadowAO.StorageHandle,
+                PreviousHistoryLength = currentHistoryLength.SampledHandle
             };
             slots[2] = baseConstants with
             {
                 StepSize = 2,
-                PrevLinearDepth = currLinearDepth.SampledHandle,
-                FilterInput = ShadowAo.SampledHandle,
+                PreviousLinearDepth = currentLinearDepth.SampledHandle,
+                FilterInput = ShadowAO.SampledHandle,
                 FilterOutput = filterScratch.StorageHandle,
-                PrevHistoryLength = currHistoryLength.SampledHandle
+                PreviousHistoryLength = currentHistoryLength.SampledHandle
             };
             slots[3] = baseConstants with
             {
                 StepSize = 1,
-                PrevLinearDepth = currLinearDepth.SampledHandle,
+                PreviousLinearDepth = currentLinearDepth.SampledHandle,
                 FilterInput = filterScratch.SampledHandle,
-                FilterOutput = ShadowAo.StorageHandle,
-                PrevHistoryLength = currHistoryLength.SampledHandle
+                FilterOutput = ShadowAO.StorageHandle,
+                PreviousHistoryLength = currentHistoryLength.SampledHandle
             };
         }
         else
         {
-            activeSlots = 3u;
+            activeSlotCount = 3u;
             slots[1] = baseConstants with
             {
                 StepSize = 2,
-                PrevLinearDepth = currLinearDepth.SampledHandle,
-                FilterInput = currHistory.SampledHandle,
+                PreviousLinearDepth = currentLinearDepth.SampledHandle,
+                FilterInput = currentHistory.SampledHandle,
                 FilterOutput = filterScratch.StorageHandle,
-                PrevHistoryLength = currHistoryLength.SampledHandle
+                PreviousHistoryLength = currentHistoryLength.SampledHandle
             };
             slots[2] = baseConstants with
             {
                 StepSize = 1,
-                PrevLinearDepth = currLinearDepth.SampledHandle,
+                PreviousLinearDepth = currentLinearDepth.SampledHandle,
                 FilterInput = filterScratch.SampledHandle,
-                FilterOutput = ShadowAo.StorageHandle,
-                PrevHistoryLength = currHistoryLength.SampledHandle
+                FilterOutput = ShadowAO.StorageHandle,
+                PreviousHistoryLength = currentHistoryLength.SampledHandle
             };
         }
 
         constantBuffer.Upload(0, new()
         {
             Pointer = (nint)slots,
-            SizeInBytes = stride * activeSlots
+            SizeInBytes = strideInBytes * activeSlotCount
         });
 
-        commandBuffer.Transition(currLinearDepth, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(currHistory, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(currHistoryLength, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(currentHistory, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(currentHistoryLength, default, TextureLayout.Undefined, TextureLayout.Storage);
         Dispatch(commandBuffer, tracePipeline, 0);
 
-        commandBuffer.Transition(currLinearDepth, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(currHistory, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(currHistoryLength, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(currentHistory, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(currentHistoryLength, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         if (isWarmupFilter)
         {
-            commandBuffer.Transition(ShadowAo, default, TextureLayout.Undefined, TextureLayout.Storage);
+            commandBuffer.Transition(ShadowAO, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, stride);
-            commandBuffer.Transition(ShadowAo, default, TextureLayout.Storage, TextureLayout.Sampled);
+            Dispatch(commandBuffer, filterPipeline, strideInBytes);
+            commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
 
             commandBuffer.Transition(filterScratch, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, stride * 2);
+            Dispatch(commandBuffer, filterPipeline, strideInBytes * 2);
             commandBuffer.Transition(filterScratch, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-            commandBuffer.Transition(ShadowAo, default, TextureLayout.Sampled, TextureLayout.Storage);
+            commandBuffer.Transition(ShadowAO, default, TextureLayout.Sampled, TextureLayout.Storage);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, stride * 3);
-            commandBuffer.Transition(ShadowAo, default, TextureLayout.Storage, TextureLayout.Sampled);
+            Dispatch(commandBuffer, filterPipeline, strideInBytes * 3);
+            commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
         else
         {
             commandBuffer.Transition(filterScratch, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, stride);
+            Dispatch(commandBuffer, filterPipeline, strideInBytes);
             commandBuffer.Transition(filterScratch, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-            commandBuffer.Transition(ShadowAo, default, TextureLayout.Undefined, TextureLayout.Storage);
+            commandBuffer.Transition(ShadowAO, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, stride * 2);
-            commandBuffer.Transition(ShadowAo, default, TextureLayout.Storage, TextureLayout.Sampled);
+            Dispatch(commandBuffer, filterPipeline, strideInBytes * 2);
+            commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
 
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-        (prevHistory, currHistory) = (currHistory, prevHistory);
-        (prevHistoryLength, currHistoryLength) = (currHistoryLength, prevHistoryLength);
-        (prevLinearDepth, currLinearDepth) = (currLinearDepth, prevLinearDepth);
+        (previousHistory, currentHistory) = (currentHistory, previousHistory);
+        (previousHistoryLength, currentHistoryLength) = (currentHistoryLength, previousHistoryLength);
+        (previousLinearDepth, currentLinearDepth) = (currentLinearDepth, previousLinearDepth);
         previousJitterOffset = frame.JitterOffset;
     }
 
@@ -221,12 +221,12 @@ internal unsafe class ShadowPass : DisposableObject
         constantBuffer?.Dispose();
     }
 
-    private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint constantOffset)
+    private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint offsetInBytes)
     {
         ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, constantOffset);
+        commandBuffer.SetConstantBuffer(constantBuffer, offsetInBytes);
         commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
     }
 
@@ -235,39 +235,39 @@ internal unsafe class ShadowPass : DisposableObject
         Width = width;
         Height = height;
 
-        ShadowAo = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
+        ShadowAO = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
         filterScratch = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
-        prevHistory = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
-        currHistory = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
-        prevHistoryLength = CreateComputeTexture(PixelFormat.R16G16Float, width, height);
-        currHistoryLength = CreateComputeTexture(PixelFormat.R16G16Float, width, height);
-        prevLinearDepth = CreateComputeTexture(PixelFormat.R32Float, width, height);
-        currLinearDepth = CreateComputeTexture(PixelFormat.R32Float, width, height);
+        previousHistory = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
+        currentHistory = CreateComputeTexture(PixelFormat.R16G16B16A16Float, width, height);
+        previousHistoryLength = CreateComputeTexture(PixelFormat.R16G16Float, width, height);
+        currentHistoryLength = CreateComputeTexture(PixelFormat.R16G16Float, width, height);
+        previousLinearDepth = CreateComputeTexture(PixelFormat.R32Float, width, height);
+        currentLinearDepth = CreateComputeTexture(PixelFormat.R32Float, width, height);
     }
 
     private void DestroyResources()
     {
-        currLinearDepth?.Dispose();
-        currLinearDepth = null!;
-        prevLinearDepth?.Dispose();
-        prevLinearDepth = null!;
-        currHistoryLength?.Dispose();
-        currHistoryLength = null!;
-        prevHistoryLength?.Dispose();
-        prevHistoryLength = null!;
-        currHistory?.Dispose();
-        currHistory = null!;
-        prevHistory?.Dispose();
-        prevHistory = null!;
+        currentLinearDepth?.Dispose();
+        currentLinearDepth = null!;
+        previousLinearDepth?.Dispose();
+        previousLinearDepth = null!;
+        currentHistoryLength?.Dispose();
+        currentHistoryLength = null!;
+        previousHistoryLength?.Dispose();
+        previousHistoryLength = null!;
+        currentHistory?.Dispose();
+        currentHistory = null!;
+        previousHistory?.Dispose();
+        previousHistory = null!;
         filterScratch?.Dispose();
         filterScratch = null!;
-        ShadowAo?.Dispose();
-        ShadowAo = null!;
+        ShadowAO?.Dispose();
+        ShadowAO = null!;
 
         Width = 0;
         Height = 0;
         previousJitterOffset = Vector2.Zero;
-        filterWarmupFrames = 0;
+        filterWarmupFrameCount = 0;
     }
 
     private static Texture CreateComputeTexture(PixelFormat format, uint width, uint height)
@@ -328,16 +328,16 @@ file struct ShadowConstants
     public ResourceHandle MotionVectors;
 
     [FieldOffset(160)]
-    public ResourceHandle PrevLinearDepth;
+    public ResourceHandle PreviousLinearDepth;
 
     [FieldOffset(168)]
-    public ResourceHandle CurrLinearDepth;
+    public ResourceHandle CurrentLinearDepth;
 
     [FieldOffset(176)]
-    public ResourceHandle PrevHistory;
+    public ResourceHandle PreviousHistory;
 
     [FieldOffset(184)]
-    public ResourceHandle CurrHistory;
+    public ResourceHandle CurrentHistory;
 
     [FieldOffset(192)]
     public ResourceHandle FilterInput;
@@ -346,8 +346,8 @@ file struct ShadowConstants
     public ResourceHandle FilterOutput;
 
     [FieldOffset(208)]
-    public ResourceHandle PrevHistoryLength;
+    public ResourceHandle PreviousHistoryLength;
 
     [FieldOffset(216)]
-    public ResourceHandle CurrHistoryLength;
+    public ResourceHandle CurrentHistoryLength;
 }

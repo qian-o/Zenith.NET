@@ -3,7 +3,7 @@
 static const uint RayCountPerProbe = 64u;
 static const float GoldenRatio = 1.61803398875;
 
-struct GiProbeConstants
+struct GIProbeConstants
 {
     private uint4 Config;
 
@@ -19,13 +19,13 @@ struct GiProbeConstants
 
     DescriptorHandle<StructuredBuffer<SceneInstance>> Instances;
 
-    DescriptorHandle<Texture2D<float4>> PrevIrradianceAtlas;
+    DescriptorHandle<Texture2D<float4>> PreviousIrradianceAtlas;
 
-    DescriptorHandle<Texture2D<float2>> PrevDistanceAtlas;
+    DescriptorHandle<Texture2D<float2>> PreviousDistanceAtlas;
 
-    DescriptorHandle<WTexture2D<float4>> CurrIrradianceAtlas;
+    DescriptorHandle<WTexture2D<float4>> CurrentIrradianceAtlas;
 
-    DescriptorHandle<WTexture2D<float2>> CurrDistanceAtlas;
+    DescriptorHandle<WTexture2D<float2>> CurrentDistanceAtlas;
 
     DescriptorHandle<SamplerState> LinearSampler;
 
@@ -70,7 +70,7 @@ struct GiProbeConstants
     }
 };
 
-ConstantBuffer<GiProbeConstants> giProbe;
+ConstantBuffer<GIProbeConstants> giProbe;
 
 groupshared float3 sharedRayDir[RayCountPerProbe];
 groupshared float3 sharedRayRadiance[RayCountPerProbe];
@@ -226,7 +226,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
             if (giProbe.Reset == 0u)
             {
                 float3 indirect = SampleDDGIIrradiance(hit.Position, hitNormal, -rayDir, giProbe.Environment,
-                                                       giProbe.PrevIrradianceAtlas, giProbe.PrevDistanceAtlas,
+                                                       giProbe.PreviousIrradianceAtlas, giProbe.PreviousDistanceAtlas,
                                                        giProbe.LinearSampler);
                 bounceGI = albedo * (1.0 - saturate(material.Metallic)) * indirect;
             }
@@ -247,10 +247,9 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     uint2 tile = uint2(probeIndex % DDGIAtlasColumns, probeIndex / DDGIAtlasColumns);
     float currValidity = 1.0 - smoothstep(10.0, 24.0, float(sharedBackfaceCount));
 
-    int2 localIrr = int2(tid & 7u, tid >> 3u);
-    int2 innerIrr = localIrr - 1;
-    if (innerIrr.x >= 0 && innerIrr.x < 6 && innerIrr.y >= 0 && innerIrr.y < 6)
+    if (tid < 36u)
     {
+        int2 innerIrr = int2(tid % 6u, tid / 6u);
         float2 oct = ((float2(innerIrr) + 0.5) / 6.0) * 2.0 - 1.0;
         float3 texelDir = OctDecode(oct);
 
@@ -269,6 +268,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     }
     GroupMemoryBarrierWithGroupSync();
 
+    int2 localIrr = int2(tid & 7u, tid >> 3u);
     int2 wrappedIrr = OctBorderToInterior(localIrr, 6);
     float3 currIrr = sharedIrrTile[wrappedIrr.y][wrappedIrr.x];
     uint2 irrPixel = tile * 8u + uint2(localIrr);
@@ -276,11 +276,11 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     float blendedValidity = currValidity;
     if (giProbe.Hysteresis > 0.0)
     {
-        float4 prevIrr = giProbe.PrevIrradianceAtlas.Load(int3(irrPixel, 0));
+        float4 prevIrr = giProbe.PreviousIrradianceAtlas.Load(int3(irrPixel, 0));
         blendedIrr = lerp(currIrr, prevIrr.rgb, giProbe.Hysteresis);
         blendedValidity = lerp(currValidity, prevIrr.w, giProbe.Hysteresis);
     }
-    giProbe.CurrIrradianceAtlas.Store(irrPixel, float4(blendedIrr, blendedValidity));
+    giProbe.CurrentIrradianceAtlas.Store(irrPixel, float4(blendedIrr, blendedValidity));
 
     for (uint i = tid; i < 196u; i += 64u)
     {
@@ -321,9 +321,9 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
         float2 blendedDist = currDist;
         if (giProbe.Hysteresis > 0.0)
         {
-            float2 prevDist = giProbe.PrevDistanceAtlas.Load(int3(distPixel, 0)).xy;
+            float2 prevDist = giProbe.PreviousDistanceAtlas.Load(int3(distPixel, 0)).xy;
             blendedDist = lerp(currDist, prevDist, giProbe.Hysteresis);
         }
-        giProbe.CurrDistanceAtlas.Store(distPixel, blendedDist);
+        giProbe.CurrentDistanceAtlas.Store(distPixel, blendedDist);
     }
 }

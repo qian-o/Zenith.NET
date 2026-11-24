@@ -9,10 +9,10 @@ namespace CornellBox.Passes;
 
 internal unsafe class OutputPass : DisposableObject
 {
-    private const int BloomLevels = 5;
-    private const int ConstantSlotCount = (BloomLevels * 2) + 1;
-    private const uint FlagFirstMip = 1u << 0;
-    private const uint FlagOutputLuminance = 1u << 1;
+    private const int BloomLevelCount = 5;
+    private const int ConstantSlotCount = (BloomLevelCount * 2) + 1;
+    private const uint FlagFirstMip = 1 << 0;
+    private const uint FlagOutputLuminance = 1 << 1;
 
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline bloomDownsamplePipeline;
@@ -20,8 +20,8 @@ internal unsafe class OutputPass : DisposableObject
     private readonly GraphicsPipeline toneMappingPipeline;
     private readonly GraphicsPipeline antialiasingPipeline;
     private readonly Sampler linearSampler;
-    private readonly Texture[] downsampleMips = new Texture[BloomLevels];
-    private readonly Texture[] upsampleMips = new Texture[BloomLevels - 1];
+    private readonly Texture[] downsampleMips = new Texture[BloomLevelCount];
+    private readonly Texture[] upsampleMips = new Texture[BloomLevelCount - 1];
 
     private Texture? toneMappedColor;
 
@@ -58,15 +58,15 @@ internal unsafe class OutputPass : DisposableObject
 
     public void Record(CommandBuffer commandBuffer, Texture input, in FrameContext frame)
     {
-        uint stride = (uint)sizeof(OutputConstants);
+        uint strideInBytes = (uint)sizeof(OutputConstants);
         OutputConstants* slots = stackalloc OutputConstants[ConstantSlotCount];
 
-        float invExposure = 1.0f / MathF.Max(frame.Environment.Exposure, 0.1f);
-        float threshold = 1.15f * invExposure;
-        float knee = 0.65f * invExposure;
+        float inverseExposure = 1.0f / MathF.Max(frame.Environment.Exposure, 0.1f);
+        float threshold = 1.15f * inverseExposure;
+        float knee = 0.65f * inverseExposure;
 
-        Texture prevSource = input;
-        for (int i = 0; i < BloomLevels; i++)
+        Texture src = input;
+        for (int i = 0; i < BloomLevelCount; i++)
         {
             Texture dst = downsampleMips[i];
             slots[i] = new()
@@ -75,58 +75,59 @@ internal unsafe class OutputPass : DisposableObject
                 Height = dst.Desc.Height,
                 FrameIndex = frame.FrameIndex,
                 Flags = i is 0 ? FlagFirstMip : 0u,
-                InvSourceSize = new(1.0f / Math.Max(prevSource.Desc.Width, 1u), 1.0f / Math.Max(prevSource.Desc.Height, 1u)),
-                ParamA = threshold,
-                ParamB = knee,
-                PrimaryTexture = prevSource.SampledHandle,
+                TexelSize = new(1.0f / Math.Max(src.Desc.Width, 1u), 1.0f / Math.Max(src.Desc.Height, 1u)),
+                ParameterA = threshold,
+                ParameterB = knee,
+                PrimaryTexture = src.SampledHandle,
                 SecondaryTexture = default,
                 Destination = dst.StorageHandle,
                 LinearSampler = linearSampler.Handle
             };
-            prevSource = dst;
+            src = dst;
         }
 
-        Texture upSource = downsampleMips[BloomLevels - 1];
-        for (int i = BloomLevels - 2; i >= 0; i--)
+        Texture upsampleSrc = downsampleMips[BloomLevelCount - 1];
+        for (int i = BloomLevelCount - 2; i >= 0; i--)
         {
             Texture detail = downsampleMips[i];
             Texture dst = upsampleMips[i];
-            int slotIndex = BloomLevels + (BloomLevels - 2 - i);
+            int slotIndex = BloomLevelCount + (BloomLevelCount - 2 - i);
             slots[slotIndex] = new()
             {
                 Width = dst.Desc.Width,
                 Height = dst.Desc.Height,
                 FrameIndex = frame.FrameIndex,
                 Flags = 0u,
-                InvSourceSize = new(1.0f / Math.Max(upSource.Desc.Width, 1u), 1.0f / Math.Max(upSource.Desc.Height, 1u)),
-                ParamA = 1.15f,
-                ParamB = 0.0f,
-                PrimaryTexture = upSource.SampledHandle,
+                TexelSize = new(1.0f / Math.Max(upsampleSrc.Desc.Width, 1u), 1.0f / Math.Max(upsampleSrc.Desc.Height, 1u)),
+                ParameterA = 1.15f,
+                ParameterB = 0.0f,
+                PrimaryTexture = upsampleSrc.SampledHandle,
                 SecondaryTexture = detail.SampledHandle,
                 Destination = dst.StorageHandle,
                 LinearSampler = linearSampler.Handle
             };
-            upSource = dst;
+            upsampleSrc = dst;
         }
 
-        int toneMappingSlot = (BloomLevels * 2) - 1;
-        Texture toneMapTarget = toneMappedColor ?? Color;
+        int toneMappingSlot = (BloomLevelCount * 2) - 1;
+        Texture toneMappingTarget = toneMappedColor ?? Color;
         slots[toneMappingSlot] = new()
         {
-            Width = toneMapTarget.Desc.Width,
-            Height = toneMapTarget.Desc.Height,
+            Width = toneMappingTarget.Desc.Width,
+            Height = toneMappingTarget.Desc.Height,
             FrameIndex = frame.FrameIndex,
             Flags = toneMappedColor is not null ? FlagOutputLuminance : 0u,
-            InvSourceSize = Vector2.Zero,
-            ParamA = frame.Environment.Exposure,
-            ParamB = 0.045f,
+            TexelSize = Vector2.Zero,
+            ParameterA = frame.Environment.Exposure,
+            ParameterB = 0.045f,
             PrimaryTexture = input.SampledHandle,
             SecondaryTexture = upsampleMips[0].SampledHandle,
             Destination = default,
             LinearSampler = linearSampler.Handle
         };
 
-        int activeSlots = ConstantSlotCount - 1;
+        int activeSlotCount = ConstantSlotCount - 1;
+
         if (toneMappedColor is not null)
         {
             slots[ConstantSlotCount - 1] = new()
@@ -135,55 +136,59 @@ internal unsafe class OutputPass : DisposableObject
                 Height = Color.Desc.Height,
                 FrameIndex = frame.FrameIndex,
                 Flags = 0u,
-                InvSourceSize = new(1.0f / Math.Max(toneMappedColor.Desc.Width, 1u), 1.0f / Math.Max(toneMappedColor.Desc.Height, 1u)),
-                ParamA = 0.0f,
-                ParamB = 0.0f,
+                TexelSize = new(1.0f / Math.Max(toneMappedColor.Desc.Width, 1u), 1.0f / Math.Max(toneMappedColor.Desc.Height, 1u)),
+                ParameterA = 0.0f,
+                ParameterB = 0.0f,
                 PrimaryTexture = toneMappedColor.SampledHandle,
                 SecondaryTexture = default,
                 Destination = default,
                 LinearSampler = linearSampler.Handle
             };
-            activeSlots = ConstantSlotCount;
+            activeSlotCount = ConstantSlotCount;
         }
 
         constantBuffer.Upload(0, new()
         {
             Pointer = (nint)slots,
-            SizeInBytes = stride * (uint)activeSlots
+            SizeInBytes = strideInBytes * (uint)activeSlotCount
         });
 
-        ThreadGroupSize downGroup = bloomDownsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroupSize downsampleGroup = bloomDownsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
         commandBuffer.SetPipeline(bloomDownsamplePipeline);
 
-        for (int i = 0; i < BloomLevels; i++)
+        for (int i = 0; i < BloomLevelCount; i++)
         {
             Texture dst = downsampleMips[i];
             commandBuffer.Transition(dst, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.SetConstantBuffer(constantBuffer, (uint)(i * stride));
-            commandBuffer.Dispatch((dst.Desc.Width + downGroup.X - 1) / downGroup.X, (dst.Desc.Height + downGroup.Y - 1) / downGroup.Y, 1);
+            commandBuffer.SetConstantBuffer(constantBuffer, (uint)(i * strideInBytes));
+            commandBuffer.Dispatch((dst.Desc.Width + downsampleGroup.X - 1) / downsampleGroup.X, (dst.Desc.Height + downsampleGroup.Y - 1) / downsampleGroup.Y, 1);
             commandBuffer.Transition(dst, default, TextureLayout.Storage, TextureLayout.Sampled);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         }
 
-        ThreadGroupSize upGroup = bloomUpsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroupSize upsampleGroup = bloomUpsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
         commandBuffer.SetPipeline(bloomUpsamplePipeline);
 
-        for (int i = BloomLevels - 2; i >= 0; i--)
+        for (int i = BloomLevelCount - 2; i >= 0; i--)
         {
             Texture dst = upsampleMips[i];
-            uint slotIndex = (uint)(BloomLevels + (BloomLevels - 2 - i));
+            uint slotIndex = (uint)(BloomLevelCount + (BloomLevelCount - 2 - i));
             commandBuffer.Transition(dst, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.SetConstantBuffer(constantBuffer, slotIndex * stride);
-            commandBuffer.Dispatch((dst.Desc.Width + upGroup.X - 1) / upGroup.X, (dst.Desc.Height + upGroup.Y - 1) / upGroup.Y, 1);
+            commandBuffer.SetConstantBuffer(constantBuffer, slotIndex * strideInBytes);
+            commandBuffer.Dispatch((dst.Desc.Width + upsampleGroup.X - 1) / upsampleGroup.X, (dst.Desc.Height + upsampleGroup.Y - 1) / upsampleGroup.Y, 1);
             commandBuffer.Transition(dst, default, TextureLayout.Storage, TextureLayout.Sampled);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, i is 0 ? BarrierStages.FragmentShading : BarrierStages.ComputeShading);
+
+            if (i > 0)
+            {
+                commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+            }
         }
 
-        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMapTarget, (uint)(toneMappingSlot * stride));
+        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMappingTarget, (uint)(toneMappingSlot * strideInBytes));
 
         if (toneMappedColor is not null)
         {
-            DrawFullscreen(commandBuffer, antialiasingPipeline, Color, (uint)((ConstantSlotCount - 1) * stride));
+            DrawFullscreen(commandBuffer, antialiasingPipeline, Color, (uint)((ConstantSlotCount - 1) * strideInBytes));
         }
     }
 
@@ -229,14 +234,14 @@ internal unsafe class OutputPass : DisposableObject
 
         uint mipWidth = width;
         uint mipHeight = height;
-        for (int i = 0; i < BloomLevels; i++)
+        for (int i = 0; i < BloomLevelCount; i++)
         {
             mipWidth = Math.Max(1u, mipWidth / 2u);
             mipHeight = Math.Max(1u, mipHeight / 2u);
 
             downsampleMips[i] = CreateBloomTexture(mipWidth, mipHeight);
 
-            if (i < BloomLevels - 1)
+            if (i < BloomLevelCount - 1)
             {
                 upsampleMips[i] = CreateBloomTexture(mipWidth, mipHeight);
             }
@@ -245,13 +250,13 @@ internal unsafe class OutputPass : DisposableObject
 
     private void DestroyResources()
     {
-        for (int i = 0; i < upsampleMips.Length; i++)
+        for (int i = upsampleMips.Length - 1; i >= 0; i--)
         {
             upsampleMips[i]?.Dispose();
             upsampleMips[i] = null!;
         }
 
-        for (int i = 0; i < downsampleMips.Length; i++)
+        for (int i = downsampleMips.Length - 1; i >= 0; i--)
         {
             downsampleMips[i]?.Dispose();
             downsampleMips[i] = null!;
@@ -266,12 +271,12 @@ internal unsafe class OutputPass : DisposableObject
         Height = 0;
     }
 
-    private void DrawFullscreen(CommandBuffer commandBuffer, GraphicsPipeline pipeline, Texture target, uint constantOffset)
+    private void DrawFullscreen(CommandBuffer commandBuffer, GraphicsPipeline pipeline, Texture target, uint offsetInBytes)
     {
         commandBuffer.Transition(target, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(target)], null);
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, constantOffset);
+        commandBuffer.SetConstantBuffer(constantBuffer, offsetInBytes);
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
         commandBuffer.Transition(target, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
@@ -324,13 +329,13 @@ file struct OutputConstants
     public uint Flags;
 
     [FieldOffset(16)]
-    public Vector2 InvSourceSize;
+    public Vector2 TexelSize;
 
     [FieldOffset(24)]
-    public float ParamA;
+    public float ParameterA;
 
     [FieldOffset(28)]
-    public float ParamB;
+    public float ParameterB;
 
     [FieldOffset(32)]
     public ResourceHandle PrimaryTexture;
