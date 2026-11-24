@@ -53,7 +53,7 @@ internal struct SceneEnvironment
 
     public static SceneEnvironment Create(AtmospherePreset preset, float elapsedSeconds, bool isPaused)
     {
-        uint flags = isPaused ? FlagIsPaused : 0u;
+        uint flags = isPaused ? FlagIsPaused : 0;
 
         return preset switch
         {

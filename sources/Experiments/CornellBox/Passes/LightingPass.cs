@@ -40,7 +40,7 @@ internal unsafe class LightingPass : DisposableObject
 
     public void Record(CommandBuffer commandBuffer, SceneResources scene, GBufferPass gBuffer, GIProbePass giProbe, ShadowPass shadow, in FrameContext frame)
     {
-        uint flags = (frame.ResetLighting ? FlagReset : 0u) | (ReactiveMask is not null ? FlagHasReactiveMask : 0u);
+        uint flags = (frame.ResetLighting ? FlagReset : 0) | (ReactiveMask is not null ? FlagHasReactiveMask : 0);
 
         LightingConstants constants = new()
         {

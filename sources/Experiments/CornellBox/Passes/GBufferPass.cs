@@ -9,7 +9,7 @@ namespace CornellBox.Passes;
 
 internal unsafe class GBufferPass : DisposableObject
 {
-    private const uint MaxBatchCount = 64;
+    private const int MaxBatchCount = 64;
 
     private readonly Buffer constantBuffer;
     private readonly GraphicsPipeline skyMotionPipeline;

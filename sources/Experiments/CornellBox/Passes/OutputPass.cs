@@ -74,8 +74,8 @@ internal unsafe class OutputPass : DisposableObject
                 Width = dst.Desc.Width,
                 Height = dst.Desc.Height,
                 FrameIndex = frame.FrameIndex,
-                Flags = i is 0 ? FlagFirstMip : 0u,
-                TexelSize = new(1.0f / Math.Max(src.Desc.Width, 1u), 1.0f / Math.Max(src.Desc.Height, 1u)),
+                Flags = i is 0 ? FlagFirstMip : 0,
+                TexelSize = new(1.0f / src.Desc.Width, 1.0f / src.Desc.Height),
                 ParameterA = threshold,
                 ParameterB = knee,
                 PrimaryTexture = src.SampledHandle,
@@ -91,14 +91,14 @@ internal unsafe class OutputPass : DisposableObject
         {
             Texture detail = downsampleMips[i];
             Texture dst = upsampleMips[i];
-            int slotIndex = BloomLevelCount + (BloomLevelCount - 2 - i);
+            int slotIndex = (BloomLevelCount * 2) - 2 - i;
             slots[slotIndex] = new()
             {
                 Width = dst.Desc.Width,
                 Height = dst.Desc.Height,
                 FrameIndex = frame.FrameIndex,
-                Flags = 0u,
-                TexelSize = new(1.0f / Math.Max(upsampleSrc.Desc.Width, 1u), 1.0f / Math.Max(upsampleSrc.Desc.Height, 1u)),
+                Flags = 0,
+                TexelSize = new(1.0f / upsampleSrc.Desc.Width, 1.0f / upsampleSrc.Desc.Height),
                 ParameterA = 1.15f,
                 ParameterB = 0.0f,
                 PrimaryTexture = upsampleSrc.SampledHandle,
@@ -109,15 +109,15 @@ internal unsafe class OutputPass : DisposableObject
             upsampleSrc = dst;
         }
 
-        const int toneMappingSlot = (BloomLevelCount * 2) - 1;
+        const int ToneMappingSlot = (BloomLevelCount * 2) - 1;
 
         Texture toneMappingTarget = toneMappedColor ?? Color;
-        slots[toneMappingSlot] = new()
+        slots[ToneMappingSlot] = new()
         {
             Width = toneMappingTarget.Desc.Width,
             Height = toneMappingTarget.Desc.Height,
             FrameIndex = frame.FrameIndex,
-            Flags = toneMappedColor is not null ? FlagOutputLuminance : 0u,
+            Flags = toneMappedColor is not null ? FlagOutputLuminance : 0,
             TexelSize = Vector2.Zero,
             ParameterA = frame.Environment.Exposure,
             ParameterB = 0.045f,
@@ -127,7 +127,7 @@ internal unsafe class OutputPass : DisposableObject
             LinearSampler = linearSampler.Handle
         };
 
-        int activeSlotCount = ConstantSlotCount - 1;
+        uint activeSlotCount = ConstantSlotCount - 1;
 
         if (toneMappedColor is not null)
         {
@@ -136,8 +136,8 @@ internal unsafe class OutputPass : DisposableObject
                 Width = Color.Desc.Width,
                 Height = Color.Desc.Height,
                 FrameIndex = frame.FrameIndex,
-                Flags = 0u,
-                TexelSize = new(1.0f / Math.Max(toneMappedColor.Desc.Width, 1u), 1.0f / Math.Max(toneMappedColor.Desc.Height, 1u)),
+                Flags = 0,
+                TexelSize = new(1.0f / toneMappedColor.Desc.Width, 1.0f / toneMappedColor.Desc.Height),
                 ParameterA = 0.0f,
                 ParameterB = 0.0f,
                 PrimaryTexture = toneMappedColor.SampledHandle,
@@ -151,17 +151,17 @@ internal unsafe class OutputPass : DisposableObject
         constantBuffer.Upload(0, new()
         {
             Pointer = (nint)slots,
-            SizeInBytes = strideInBytes * (uint)activeSlotCount
+            SizeInBytes = strideInBytes * activeSlotCount
         });
 
         ThreadGroupSize downsampleGroup = bloomDownsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
         commandBuffer.SetPipeline(bloomDownsamplePipeline);
 
-        for (int i = 0; i < BloomLevelCount; i++)
+        for (uint i = 0; i < BloomLevelCount; i++)
         {
             Texture dst = downsampleMips[i];
             commandBuffer.Transition(dst, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.SetConstantBuffer(constantBuffer, (uint)(i * strideInBytes));
+            commandBuffer.SetConstantBuffer(constantBuffer, i * strideInBytes);
             commandBuffer.Dispatch((dst.Desc.Width + downsampleGroup.X - 1) / downsampleGroup.X, (dst.Desc.Height + downsampleGroup.Y - 1) / downsampleGroup.Y, 1);
             commandBuffer.Transition(dst, default, TextureLayout.Storage, TextureLayout.Sampled);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
@@ -173,7 +173,7 @@ internal unsafe class OutputPass : DisposableObject
         for (int i = BloomLevelCount - 2; i >= 0; i--)
         {
             Texture dst = upsampleMips[i];
-            uint slotIndex = (uint)(BloomLevelCount + (BloomLevelCount - 2 - i));
+            uint slotIndex = (uint)((BloomLevelCount * 2) - 2 - i);
             commandBuffer.Transition(dst, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.SetConstantBuffer(constantBuffer, slotIndex * strideInBytes);
             commandBuffer.Dispatch((dst.Desc.Width + upsampleGroup.X - 1) / upsampleGroup.X, (dst.Desc.Height + upsampleGroup.Y - 1) / upsampleGroup.Y, 1);
@@ -185,7 +185,7 @@ internal unsafe class OutputPass : DisposableObject
             }
         }
 
-        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMappingTarget, toneMappingSlot * strideInBytes);
+        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMappingTarget, ToneMappingSlot * strideInBytes);
 
         if (toneMappedColor is not null)
         {
@@ -237,8 +237,8 @@ internal unsafe class OutputPass : DisposableObject
         uint mipHeight = height;
         for (int i = 0; i < BloomLevelCount; i++)
         {
-            mipWidth = Math.Max(1u, mipWidth / 2u);
-            mipHeight = Math.Max(1u, mipHeight / 2u);
+            mipWidth = Math.Max(1, mipWidth / 2);
+            mipHeight = Math.Max(1, mipHeight / 2);
 
             downsampleMips[i] = CreateBloomTexture(mipWidth, mipHeight);
 

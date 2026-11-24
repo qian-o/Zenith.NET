@@ -51,7 +51,7 @@ internal class CameraHandler : DisposableObject
 
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
-    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)Math.Max(App.PhysicalWidth, 1u) / Math.Max(App.PhysicalHeight, 1u), NearPlane, FarPlane);
+    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), (float)App.PhysicalWidth / App.PhysicalHeight, NearPlane, FarPlane);
 
     public void Reset()
     {

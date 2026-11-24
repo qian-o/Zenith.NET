@@ -8,7 +8,7 @@ namespace CornellBox.Passes;
 
 internal unsafe class ShadowPass : DisposableObject
 {
-    private const uint ConstantSlotCount = 4;
+    private const int ConstantSlotCount = 4;
     private const uint FlagResetAll = 1 << 0;
     private const uint FlagResetLight = 1 << 1;
 
@@ -55,22 +55,22 @@ internal unsafe class ShadowPass : DisposableObject
     public void Record(CommandBuffer commandBuffer, SceneResources scene, GBufferPass gBuffer, in FrameContext frame)
     {
         Vector2 effectivePreviousJitter = frame.Reset ? frame.JitterOffset : previousJitterOffset;
-        Vector2 jitterDelta = (Width > 0 && Height > 0) ? (frame.JitterOffset - effectivePreviousJitter) / new Vector2(Width, Height) : Vector2.Zero;
+        Vector2 jitterDelta = (frame.JitterOffset - effectivePreviousJitter) / new Vector2(Width, Height);
 
-        uint resetFlags = (frame.Reset ? FlagResetAll : 0u) | (frame.ResetLighting ? FlagResetLight : 0u);
-        if (resetFlags is not 0u)
+        uint resetFlags = (frame.Reset ? FlagResetAll : 0) | (frame.ResetLighting ? FlagResetLight : 0);
+        if (resetFlags is not 0)
         {
-            filterWarmupFrameCount = 12u;
+            filterWarmupFrameCount = 12;
         }
 
-        bool isWarmupFilter = filterWarmupFrameCount > 0u;
+        bool isWarmupFilter = filterWarmupFrameCount > 0;
         if (isWarmupFilter)
         {
             filterWarmupFrameCount--;
         }
 
         uint strideInBytes = (uint)sizeof(ShadowConstants);
-        ShadowConstants* slots = stackalloc ShadowConstants[(int)ConstantSlotCount];
+        ShadowConstants* slots = stackalloc ShadowConstants[ConstantSlotCount];
 
         ShadowConstants baseConstants = new()
         {
@@ -101,7 +101,7 @@ internal unsafe class ShadowPass : DisposableObject
 
         if (isWarmupFilter)
         {
-            activeSlotCount = 4u;
+            activeSlotCount = 4;
             slots[1] = baseConstants with
             {
                 StepSize = 4,
@@ -129,7 +129,7 @@ internal unsafe class ShadowPass : DisposableObject
         }
         else
         {
-            activeSlotCount = 3u;
+            activeSlotCount = 3;
             slots[1] = baseConstants with
             {
                 StepSize = 2,

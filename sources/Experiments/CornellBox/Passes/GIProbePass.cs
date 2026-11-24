@@ -7,7 +7,7 @@ namespace CornellBox.Passes;
 
 internal unsafe class GIProbePass : DisposableObject
 {
-    private const uint ConstantSlotCount = 4;
+    private const int ConstantSlotCount = 4;
     private const uint ProbeCount = 2784;
     private const uint SteadyStateStride = 4;
     private const uint IrradianceAtlasWidth = 512;
@@ -54,7 +54,7 @@ internal unsafe class GIProbePass : DisposableObject
     public void Record(CommandBuffer commandBuffer, SceneResources scene, in FrameContext frame)
     {
         uint strideInBytes = (uint)sizeof(GIProbeConstants);
-        GIProbeConstants* slots = stackalloc GIProbeConstants[(int)ConstantSlotCount];
+        GIProbeConstants* slots = stackalloc GIProbeConstants[ConstantSlotCount];
 
         if (frame.ResetLighting)
         {
@@ -100,7 +100,7 @@ internal unsafe class GIProbePass : DisposableObject
                 hysteresis = 0.90f;
             }
 
-            uint phase = frame.FrameIndex & (SteadyStateStride - 1u);
+            uint phase = frame.FrameIndex & (SteadyStateStride - 1);
             slots[0] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex, hysteresis, SteadyStateStride, phase, reset: false, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas);
 
             constantBuffer.Upload(0, new()

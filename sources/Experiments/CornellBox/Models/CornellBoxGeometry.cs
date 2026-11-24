@@ -647,7 +647,7 @@ internal static class CornellBoxGeometry
 
         for (int i = 0; i < BodySampleCount; i++)
         {
-            float t = i / (float)(BodySampleCount - 1);
+            float t = (float)i / (BodySampleCount - 1);
             float y = 16.0f + (t * 126.0f);
             float belly = 26.0f * MathF.Exp(-MathF.Pow((t - 0.44f) / 0.28f, 2.0f));
             float neckPinch = -5.5f * MathF.Exp(-MathF.Pow((t - 0.86f) / 0.10f, 2.0f));
