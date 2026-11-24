@@ -9,6 +9,8 @@ namespace CornellBox.Passes;
 internal unsafe class ShadowPass : DisposableObject
 {
     private const uint ConstantSlotCount = 4;
+    private const uint FlagResetAll = 1u << 0;
+    private const uint FlagResetLight = 1u << 1;
 
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline tracePipeline;
@@ -22,8 +24,6 @@ internal unsafe class ShadowPass : DisposableObject
     private Texture prevLinearDepth = null!;
     private Texture currLinearDepth = null!;
     private Vector2 previousJitterOffset;
-    private Vector3 previousKeyLightDirection;
-    private bool hadNightLights;
     private uint filterWarmupFrames;
 
     public ShadowPass()
@@ -57,17 +57,11 @@ internal unsafe class ShadowPass : DisposableObject
         Vector2 effectivePreviousJitter = frame.Reset ? frame.JitterOffset : previousJitterOffset;
         Vector2 jitterDelta = (Width > 0 && Height > 0) ? (frame.JitterOffset - effectivePreviousJitter) / new Vector2(Width, Height) : Vector2.Zero;
 
-        bool hasNightLights = frame.Environment.NightLightIntensity > 0.001f;
-        bool hasKeyLightChanged = !frame.Reset && Vector3.DistanceSquared(frame.Environment.KeyLightDirection, previousKeyLightDirection) > 1e-6f;
-        bool hasNightLightChanged = !frame.Reset && (hasNightLights != hadNightLights);
-        uint resetFlags = (frame.Reset ? 1u : 0u) | (hasKeyLightChanged ? 2u : 0u) | (hasNightLightChanged ? 4u : 0u);
+        uint resetFlags = (frame.Reset ? FlagResetAll : 0u) | (frame.ResetLighting ? FlagResetLight : 0u);
         if (resetFlags is not 0u)
         {
             filterWarmupFrames = 12u;
         }
-
-        previousKeyLightDirection = frame.Environment.KeyLightDirection;
-        hadNightLights = hasNightLights;
 
         bool isWarmupFilter = filterWarmupFrames > 0u;
         if (isWarmupFilter)
@@ -209,9 +203,6 @@ internal unsafe class ShadowPass : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        previousJitterOffset = Vector2.Zero;
-        filterWarmupFrames = 0;
-
         if (Width == width && Height == height)
         {
             return;
@@ -275,6 +266,8 @@ internal unsafe class ShadowPass : DisposableObject
 
         Width = 0;
         Height = 0;
+        previousJitterOffset = Vector2.Zero;
+        filterWarmupFrames = 0;
     }
 
     private static Texture CreateComputeTexture(PixelFormat format, uint width, uint height)

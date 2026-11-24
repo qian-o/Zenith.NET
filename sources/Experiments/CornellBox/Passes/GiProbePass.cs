@@ -61,10 +61,10 @@ internal unsafe class GiProbePass : DisposableObject
         {
             warmupFramesRemaining = 16;
 
-            slots[0] = CreateConstants(in frame, frame.FrameIndex, hysteresis: 0.0f, probeStride: 1, probePhase: 0, resetFlag: 1, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
-            slots[1] = CreateConstants(in frame, frame.FrameIndex + 1, hysteresis: 0.0f, probeStride: 1, probePhase: 0, resetFlag: 0, currIrradianceAtlas, currDistanceAtlas, prevIrradianceAtlas, prevDistanceAtlas);
-            slots[2] = CreateConstants(in frame, frame.FrameIndex + 2, hysteresis: 0.5f, probeStride: 1, probePhase: 0, resetFlag: 0, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
-            slots[3] = CreateConstants(in frame, frame.FrameIndex + 3, hysteresis: 0.67f, probeStride: 1, probePhase: 0, resetFlag: 0, currIrradianceAtlas, currDistanceAtlas, prevIrradianceAtlas, prevDistanceAtlas);
+            slots[0] = CreateConstants(scene, linearSampler, in frame, frame.FrameIndex, hysteresis: 0.0f, probeStride: 1, probePhase: 0, resetFlag: 1, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
+            slots[1] = CreateConstants(scene, linearSampler, in frame, frame.FrameIndex + 1, hysteresis: 0.0f, probeStride: 1, probePhase: 0, resetFlag: 0, currIrradianceAtlas, currDistanceAtlas, prevIrradianceAtlas, prevDistanceAtlas);
+            slots[2] = CreateConstants(scene, linearSampler, in frame, frame.FrameIndex + 2, hysteresis: 0.5f, probeStride: 1, probePhase: 0, resetFlag: 0, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
+            slots[3] = CreateConstants(scene, linearSampler, in frame, frame.FrameIndex + 3, hysteresis: 0.67f, probeStride: 1, probePhase: 0, resetFlag: 0, currIrradianceAtlas, currDistanceAtlas, prevIrradianceAtlas, prevDistanceAtlas);
 
             constantBuffer.Upload(0, new()
             {
@@ -81,7 +81,7 @@ internal unsafe class GiProbePass : DisposableObject
         {
             warmupFramesRemaining--;
 
-            slots[0] = CreateConstants(in frame, frame.FrameIndex, hysteresis: 0.80f, probeStride: 1, probePhase: 0, resetFlag: 0, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
+            slots[0] = CreateConstants(scene, linearSampler, in frame, frame.FrameIndex, hysteresis: 0.80f, probeStride: 1, probePhase: 0, resetFlag: 0, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
 
             constantBuffer.Upload(0, new()
             {
@@ -102,7 +102,7 @@ internal unsafe class GiProbePass : DisposableObject
             }
 
             uint phase = frame.FrameIndex & (SteadyStateStride - 1u);
-            slots[0] = CreateConstants(in frame, frame.FrameIndex, hysteresis: hysteresis, probeStride: SteadyStateStride, probePhase: phase, resetFlag: 0, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
+            slots[0] = CreateConstants(scene, linearSampler, in frame, frame.FrameIndex, hysteresis: hysteresis, probeStride: SteadyStateStride, probePhase: phase, resetFlag: 0, prevIrradianceAtlas, prevDistanceAtlas, currIrradianceAtlas, currDistanceAtlas);
 
             constantBuffer.Upload(0, new()
             {
@@ -146,16 +146,18 @@ internal unsafe class GiProbePass : DisposableObject
             (prevDistanceAtlas, currDistanceAtlas) = (currDistanceAtlas, prevDistanceAtlas);
         }
 
-        GiProbeConstants CreateConstants(in FrameContext currentFrame,
-                                         uint slotFrameIndex,
-                                         float hysteresis,
-                                         uint probeStride,
-                                         uint probePhase,
-                                         uint resetFlag,
-                                         Texture prevIrr,
-                                         Texture prevDist,
-                                         Texture currIrr,
-                                         Texture currDist)
+        static GiProbeConstants CreateConstants(SceneResources scene,
+                                                Sampler linearSampler,
+                                                in FrameContext frame,
+                                                uint slotFrameIndex,
+                                                float hysteresis,
+                                                uint probeStride,
+                                                uint probePhase,
+                                                uint resetFlag,
+                                                Texture prevIrr,
+                                                Texture prevDist,
+                                                Texture currIrr,
+                                                Texture currDist)
         {
             return new()
             {
@@ -163,7 +165,7 @@ internal unsafe class GiProbePass : DisposableObject
                 Hysteresis = hysteresis,
                 ProbeStride = probeStride,
                 PhaseAndReset = (probePhase << 1) | (resetFlag & 1u),
-                Environment = currentFrame.Environment,
+                Environment = frame.Environment,
                 Scene = scene.AccelerationStructure,
                 Vertices = scene.Vertices,
                 Indices = scene.Indices,

@@ -203,7 +203,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
             }
 
             float3 directCeiling = 0.0;
-            if (hit.Position.y < CeilingLightCenter.y - 0.5 && abs(hit.Position.x) < 420.0 && hit.Position.z > -150.0 && hit.Position.z < 600.0)
+            if (IsCeilingLightPotentiallyVisible(hit.Position))
             {
                 float3 ceilIrradiance = EvaluateClippedQuadIrradiance(giProbe.Environment, hit.Position, hitNormal);
                 if (dot(ceilIrradiance, ceilIrradiance) > 1e-6)
@@ -225,7 +225,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
             float3 bounceGI = 0.0;
             if (giProbe.Reset == 0u)
             {
-                float3 indirect = SampleDDGIIrradiance(hit.Position, hitNormal, -rayDir,
+                float3 indirect = SampleDDGIIrradiance(hit.Position, hitNormal, -rayDir, giProbe.Environment,
                                                        giProbe.PrevIrradianceAtlas, giProbe.PrevDistanceAtlas,
                                                        giProbe.LinearSampler);
                 bounceGI = albedo * (1.0 - saturate(material.Metallic)) * indirect;

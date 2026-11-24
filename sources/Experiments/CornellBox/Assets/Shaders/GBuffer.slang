@@ -10,9 +10,9 @@ struct GBufferConstants
 
     float4x4 InverseView;
 
-    float4x4 InverseProjection;
+    float4x4 InverseJitteredProjection;
 
-    float4x4 UnjitteredInverseProjection;
+    float4x4 InverseProjection;
 
     private float4 CameraPositionAndBaseInstance;
 
@@ -117,7 +117,7 @@ SkyVSOutput SkyVS(uint vertexId: SV_VertexID)
 [shader("fragment")]
 GBufferFSOutput SkyMotionFS(SkyVSOutput input)
 {
-    float3 direction = GetCameraRayDirection(input.UV, gBuffer.InverseProjection, gBuffer.InverseView);
+    float3 direction = GetCameraRayDirection(input.UV, gBuffer.InverseJitteredProjection, gBuffer.InverseView);
     float4 currentClip = mul(float4(direction, 0.0), gBuffer.ViewProjection);
     float4 previousClip = mul(float4(direction, 0.0), gBuffer.PreviousViewProjection);
 
@@ -173,7 +173,7 @@ GBufferFSOutput FSMain(MeshVSOutput input)
     float3 dpObj = fwidth(input.ObjectPosition);
     float3 dpWorld = fwidth(input.WorldPosition);
     float detailFade = input.MaterialId == WaterMaterialId
-        ? saturate(1.0 - max(dpWorld.x, dpWorld.z) * 0.35)
+        ? saturate(1.0 - max(dpWorld.x, dpWorld.z) * 0.055)
         : saturate(1.0 - max(dpObj.x, max(dpObj.y, dpObj.z)) * 0.25);
 
     if (material.PatternType != PatternSolid)
@@ -224,7 +224,7 @@ struct MotionDepthFSOutput
 [shader("fragment")]
 MotionDepthFSOutput SkyMotionDepthFS(SkyVSOutput input)
 {
-    float3 direction = GetCameraRayDirection(input.UV, gBuffer.UnjitteredInverseProjection, gBuffer.InverseView);
+    float3 direction = GetCameraRayDirection(input.UV, gBuffer.InverseProjection, gBuffer.InverseView);
     float4 currentClip = mul(float4(direction, 0.0), gBuffer.ViewProjection);
     float4 previousClip = mul(float4(direction, 0.0), gBuffer.PreviousViewProjection);
 

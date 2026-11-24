@@ -253,7 +253,7 @@ internal static class CornellBoxGeometry
             SceneMaterial.Matte(new(0.77f, 0.72f, 0.63f), 0.66f),
             SceneMaterial.Matte(new(0.56f, 0.25f, 0.14f), 0.74f),
             SceneMaterial.Matte(new(0.12f, 0.28f, 0.11f), 0.88f),
-            SceneMaterial.Coated(new(0.025f, 0.072f, 0.082f), 0.06f, 1.0f, 0.035f),
+            SceneMaterial.Matte(new(0.025f, 0.072f, 0.082f), 0.035f) with { Ior = 1.333f },
             SceneMaterial.Coated(new(0.94f, 0.88f, 0.76f), 0.22f, 0.85f, 0.05f) with { Emission = 16.0f },
             SceneMaterial.Coated(new(0.14f, 0.13f, 0.12f), 0.24f, 0.75f, 0.06f) with { Emission = 11.0f },
             SceneMaterial.Matte(new(0.77f, 0.72f, 0.63f), 0.64f, MaterialPattern.Fluted, 20.0f)

@@ -155,7 +155,7 @@ internal class Renderer : DisposableObject
         gBufferPass.Resize(renderWidth, renderHeight, App.PhysicalWidth, App.PhysicalHeight);
         shadowPass.Resize(renderWidth, renderHeight);
         lightingPass.Resize(renderWidth, renderHeight, upscalingPass is not null);
-        outputPass.Resize();
+        outputPass.Resize(App.PhysicalWidth, App.PhysicalHeight, upscalingPass is null);
 
         frameIndex = 0;
     }

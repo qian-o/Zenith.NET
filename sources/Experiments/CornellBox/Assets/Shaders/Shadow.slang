@@ -1,6 +1,8 @@
 ﻿#include "Common.slang"
 
 static const float AoRadius = 135.0;
+static const uint FlagResetAll = 1u << 0;
+static const uint FlagResetLight = 1u << 1;
 
 struct ShadowConstants
 {
@@ -145,6 +147,21 @@ float TraceAO(float3 origin, float3 normal, float u1, float u2, float uRange)
     return query.CommittedStatus() == COMMITTED_NOTHING ? 1.0 : 0.0;
 }
 
+float TraceLanternSoftVis(uint lanternIdx, float3 shadowOrigin, float u, float v)
+{
+    float3 toCenter = NightLanternPositions[lanternIdx] - shadowOrigin;
+    float3 lightT;
+    float3 lightB;
+    BuildOrthonormalBasis(normalize(toCenter), lightT, lightB);
+    float r = 8.5 * sqrt(u);
+    float a = TwoPI * v;
+    float3 sampleTarget = NightLanternPositions[lanternIdx] + (lightT * cos(a) + lightB * sin(a)) * r;
+    float3 toSample = sampleTarget - shadowOrigin;
+    float sampleDist = length(toSample);
+
+    return TraceVisibilityRay(shadow.Scene, shadowOrigin, toSample / max(sampleDist, 1e-4), sampleDist - 26.0) ? 1.0 : 0.0;
+}
+
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
@@ -198,8 +215,8 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         sunVis = TraceVisibilityRay(shadow.Scene, shadowOrigin, sunDir, RayMaxDistance) ? 1.0 : 0.0;
     }
 
-    float areaVis = 1.0;
-    if (worldPos.y < CeilingLightCenter.y - 0.5 && abs(worldPos.x) < 350.0 && worldPos.z > -320.0 && worldPos.z < 585.0)
+    float areaVis = 0.0;
+    if (IsCeilingLightPotentiallyVisible(worldPos))
     {
         float3 lightSample = CeilingLightCenter + float3((u * 2.0 - 1.0) * CeilingLightHalfSize.x, 0.0, (v * 2.0 - 1.0) * CeilingLightHalfSize.y);
         float3 toLight = lightSample - worldPos;
@@ -209,10 +226,6 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
         {
             areaVis = TraceVisibilityRay(shadow.Scene, shadowOrigin, dirToLight, dist - 1.5) ? 1.0 : 0.0;
         }
-        else
-        {
-            areaVis = 0.0;
-        }
     }
 
     float ao = TraceAO(shadowOrigin, normal, frac(u + 0.5), frac(v + 0.5), uRange);
@@ -220,38 +233,56 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float nightVis = 0.0;
     if (shadow.NightLightIntensity > 0.001)
     {
+        float scores[NightLanternCount];
         int bestIdx = -1;
         float bestScore = 0.0;
+        float totalScore = 0.0;
         for (uint i = 0u; i < NightLanternCount; i++)
         {
-            float3 toL = NightLanternPositions[i] - worldPos;
-            float dSq = dot(toL, toL);
-            float invDist;
-            float att = ComputeLanternAttenuation(dSq, invDist);
-            if (att > 0.0)
+            float3 L;
+            float dist;
+            float att = ComputeLanternAttenuation(NightLanternPositions[i] - worldPos, L, dist);
+            float s = att > 0.0 ? att * saturate(dot(normal, L)) : 0.0;
+            scores[i] = s;
+            totalScore += s;
+            if (s > bestScore)
             {
-                float ndl = saturate(dot(normal, toL * invDist));
-                float s = att * ndl;
-                if (s > bestScore)
-                {
-                    bestScore = s;
-                    bestIdx = int(i);
-                }
+                bestScore = s;
+                bestIdx = int(i);
             }
         }
 
         if (bestIdx >= 0 && bestScore > 5e-8)
         {
-            float3 toCenter = NightLanternPositions[bestIdx] - shadowOrigin;
-            float3 lightT;
-            float3 lightB;
-            BuildOrthonormalBasis(normalize(toCenter), lightT, lightB);
-            float r = 8.5 * sqrt(u);
-            float a = TwoPI * v;
-            float3 sampleTarget = NightLanternPositions[bestIdx] + (lightT * cos(a) + lightB * sin(a)) * r;
-            float3 toSample = sampleTarget - shadowOrigin;
-            float sampleDist = length(toSample);
-            nightVis = TraceVisibilityRay(shadow.Scene, shadowOrigin, toSample / max(sampleDist, 1e-4), sampleDist - 26.0) ? 1.0 : 0.0;
+            float visBest = TraceLanternSoftVis(uint(bestIdx), shadowOrigin, u, v);
+            float restScore = max(totalScore - bestScore, 0.0);
+            if (restScore > bestScore * 0.01)
+            {
+                float threshold = uRange * restScore;
+                float accum = 0.0;
+                uint secondIdx = uint(bestIdx);
+                for (uint i = 0u; i < NightLanternCount; i++)
+                {
+                    if (int(i) == bestIdx || scores[i] <= 0.0)
+                    {
+                        continue;
+                    }
+
+                    accum += scores[i];
+                    secondIdx = i;
+                    if (accum >= threshold)
+                    {
+                        break;
+                    }
+                }
+
+                float visRest = TraceLanternSoftVis(secondIdx, shadowOrigin, frac(u + 0.37), frac(v + 0.61));
+                nightVis = (bestScore * visBest + restScore * visRest) / totalScore;
+            }
+            else
+            {
+                nightVis = visBest;
+            }
         }
     }
 
@@ -265,7 +296,7 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float geoHistoryLen = 1.0;
     float lightHistoryLen = 1.0;
 
-    if ((shadow.Reset & 1u) == 0u)
+    if ((shadow.Reset & FlagResetAll) == 0u)
     {
         float2 prevUv = uv + motionVector + shadow.JitterDelta;
         if (all(prevUv >= 0.0) && all(prevUv <= 1.0))
@@ -305,13 +336,12 @@ void TraceShadowCS(uint3 dispatchThreadId: SV_DispatchThreadID)
                 float maxHist = movingDynamic ? 6.0 : lerp(32.0, 12.0, saturate(length(mvPixels) * 0.5));
                 geoHistoryLen = min(prevHistLen.x + 1.0, maxHist);
 
-                bool resetSun = (shadow.Reset & 2u) != 0u;
-                bool resetNight = (shadow.Reset & 4u) != 0u;
-                lightHistoryLen = (resetSun || resetNight) ? 1.0 : min(prevHistLen.y + 1.0, maxHist);
+                bool resetLight = (shadow.Reset & FlagResetLight) != 0u;
+                lightHistoryLen = resetLight ? 1.0 : min(prevHistLen.y + 1.0, maxHist);
 
                 accumSignal.gb = lerp(prevHist.gb, currentSignal.gb, 1.0 / geoHistoryLen);
-                accumSignal.r = resetSun ? currentSignal.r : lerp(prevHist.r, currentSignal.r, 1.0 / lightHistoryLen);
-                accumSignal.a = resetNight ? currentSignal.a : lerp(prevHist.a, currentSignal.a, 1.0 / lightHistoryLen);
+                accumSignal.r = resetLight ? currentSignal.r : lerp(prevHist.r, currentSignal.r, 1.0 / lightHistoryLen);
+                accumSignal.a = resetLight ? currentSignal.a : lerp(prevHist.a, currentSignal.a, 1.0 / lightHistoryLen);
             }
         }
     }

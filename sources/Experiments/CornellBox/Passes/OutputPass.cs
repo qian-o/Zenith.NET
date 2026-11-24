@@ -9,16 +9,21 @@ namespace CornellBox.Passes;
 
 internal unsafe class OutputPass : DisposableObject
 {
-    private const int BloomLevels = 3;
-    private const int ConstantSlotCount = 6;
+    private const int BloomLevels = 5;
+    private const int ConstantSlotCount = (BloomLevels * 2) + 1;
+    private const uint FlagFirstMip = 1u << 0;
+    private const uint FlagOutputLuminance = 1u << 1;
 
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline bloomDownsamplePipeline;
     private readonly ComputePipeline bloomUpsamplePipeline;
     private readonly GraphicsPipeline toneMappingPipeline;
+    private readonly GraphicsPipeline antialiasingPipeline;
     private readonly Sampler linearSampler;
     private readonly Texture[] downsampleMips = new Texture[BloomLevels];
     private readonly Texture[] upsampleMips = new Texture[BloomLevels - 1];
+
+    private Texture? toneMappedColor;
 
     public OutputPass()
     {
@@ -34,33 +39,20 @@ internal unsafe class OutputPass : DisposableObject
         using Shader downsampleShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "BloomDownsampleCS"));
         using Shader upsampleShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "BloomUpsampleCS"));
         using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "FullscreenVS"));
-        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "ToneMappingFS"));
+        using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "ToneMappingFS"));
+        using Shader antialiasingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, "AntialiasingFS"));
 
         bloomDownsamplePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = downsampleShader });
         bloomUpsamplePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = upsampleShader });
-        toneMappingPipeline = App.Context.CreateGraphicsPipeline(new()
-        {
-            VertexShader = vertexShader,
-            FragmentShader = fragmentShader,
-            InputLayouts = [],
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
-            AttachmentFormats = new()
-            {
-                ColorFormats = [App.ColorFormat],
-                SampleCount = SampleCount.Count1
-            },
-            RenderState = new()
-            {
-                Rasterizer = RasterizerState.CullNone(),
-                DepthStencil = DepthStencilState.DepthNone(),
-                Blend = BlendState.Opaque()
-            }
-        });
+        toneMappingPipeline = CreateFullscreenPipeline(vertexShader, toneMappingFragmentShader);
+        antialiasingPipeline = CreateFullscreenPipeline(vertexShader, antialiasingFragmentShader);
 
         linearSampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
-
-        CreateResources();
     }
+
+    public uint Width { get; private set; }
+
+    public uint Height { get; private set; }
 
     public Texture Color { get; private set; } = null!;
 
@@ -77,14 +69,13 @@ internal unsafe class OutputPass : DisposableObject
         for (int i = 0; i < BloomLevels; i++)
         {
             Texture dst = downsampleMips[i];
-            float texelScale = i is 0 ? 2.0f : 1.0f;
             slots[i] = new()
             {
                 Width = dst.Desc.Width,
                 Height = dst.Desc.Height,
-                FrameOrFirstMip = i is 0 ? 1u : 0u,
-                FilterRadius = 1.0f,
-                InvSourceSize = new(texelScale / Math.Max(prevSource.Desc.Width, 1u), texelScale / Math.Max(prevSource.Desc.Height, 1u)),
+                FrameIndex = frame.FrameIndex,
+                Flags = i is 0 ? FlagFirstMip : 0u,
+                InvSourceSize = new(1.0f / Math.Max(prevSource.Desc.Width, 1u), 1.0f / Math.Max(prevSource.Desc.Height, 1u)),
                 ParamA = threshold,
                 ParamB = knee,
                 PrimaryTexture = prevSource.SampledHandle,
@@ -105,10 +96,10 @@ internal unsafe class OutputPass : DisposableObject
             {
                 Width = dst.Desc.Width,
                 Height = dst.Desc.Height,
-                FrameOrFirstMip = 0u,
-                FilterRadius = 1.15f,
+                FrameIndex = frame.FrameIndex,
+                Flags = 0u,
                 InvSourceSize = new(1.0f / Math.Max(upSource.Desc.Width, 1u), 1.0f / Math.Max(upSource.Desc.Height, 1u)),
-                ParamA = 0.0f,
+                ParamA = 1.15f,
                 ParamB = 0.0f,
                 PrimaryTexture = upSource.SampledHandle,
                 SecondaryTexture = detail.SampledHandle,
@@ -118,12 +109,14 @@ internal unsafe class OutputPass : DisposableObject
             upSource = dst;
         }
 
-        slots[ConstantSlotCount - 1] = new()
+        int toneMappingSlot = (BloomLevels * 2) - 1;
+        Texture toneMapTarget = toneMappedColor ?? Color;
+        slots[toneMappingSlot] = new()
         {
-            Width = Color.Desc.Width,
-            Height = Color.Desc.Height,
-            FrameOrFirstMip = frame.FrameIndex,
-            FilterRadius = 0.0f,
+            Width = toneMapTarget.Desc.Width,
+            Height = toneMapTarget.Desc.Height,
+            FrameIndex = frame.FrameIndex,
+            Flags = toneMappedColor is not null ? FlagOutputLuminance : 0u,
             InvSourceSize = Vector2.Zero,
             ParamA = frame.Environment.Exposure,
             ParamB = 0.045f,
@@ -133,10 +126,30 @@ internal unsafe class OutputPass : DisposableObject
             LinearSampler = linearSampler.Handle
         };
 
+        int activeSlots = ConstantSlotCount - 1;
+        if (toneMappedColor is not null)
+        {
+            slots[ConstantSlotCount - 1] = new()
+            {
+                Width = Color.Desc.Width,
+                Height = Color.Desc.Height,
+                FrameIndex = frame.FrameIndex,
+                Flags = 0u,
+                InvSourceSize = new(1.0f / Math.Max(toneMappedColor.Desc.Width, 1u), 1.0f / Math.Max(toneMappedColor.Desc.Height, 1u)),
+                ParamA = 0.0f,
+                ParamB = 0.0f,
+                PrimaryTexture = toneMappedColor.SampledHandle,
+                SecondaryTexture = default,
+                Destination = default,
+                LinearSampler = linearSampler.Handle
+            };
+            activeSlots = ConstantSlotCount;
+        }
+
         constantBuffer.Upload(0, new()
         {
             Pointer = (nint)slots,
-            SizeInBytes = stride * ConstantSlotCount
+            SizeInBytes = stride * (uint)activeSlots
         });
 
         ThreadGroupSize downGroup = bloomDownsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
@@ -166,26 +179,23 @@ internal unsafe class OutputPass : DisposableObject
             commandBuffer.Barrier(BarrierStages.ComputeShading, i is 0 ? BarrierStages.FragmentShading : BarrierStages.ComputeShading);
         }
 
-        uint toneMappingOffset = (uint)((ConstantSlotCount - 1) * stride);
+        DrawFullscreen(commandBuffer, toneMappingPipeline, toneMapTarget, (uint)(toneMappingSlot * stride));
 
-        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        commandBuffer.BeginRenderPass([ColorAttachment.DontCare(Color)], null);
-        commandBuffer.SetPipeline(toneMappingPipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, toneMappingOffset);
-        commandBuffer.Draw(3, 1, 0, 0);
-        commandBuffer.EndRenderPass();
-        commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+        if (toneMappedColor is not null)
+        {
+            DrawFullscreen(commandBuffer, antialiasingPipeline, Color, (uint)((ConstantSlotCount - 1) * stride));
+        }
     }
 
-    public void Resize()
+    public void Resize(uint width, uint height, bool hasAntialiasing)
     {
-        if (Color.Desc.Width == App.PhysicalWidth && Color.Desc.Height == App.PhysicalHeight)
+        if (Width == width && Height == height && (toneMappedColor is not null) == hasAntialiasing)
         {
             return;
         }
 
         DestroyResources();
-        CreateResources();
+        CreateResources(width, height, hasAntialiasing);
     }
 
     protected override void Destroy()
@@ -193,21 +203,32 @@ internal unsafe class OutputPass : DisposableObject
         DestroyResources();
 
         linearSampler?.Dispose();
+        antialiasingPipeline?.Dispose();
         toneMappingPipeline?.Dispose();
         bloomUpsamplePipeline?.Dispose();
         bloomDownsamplePipeline?.Dispose();
         constantBuffer?.Dispose();
     }
 
-    private void CreateResources()
+    private void CreateResources(uint width, uint height, bool hasAntialiasing)
     {
-        Color = App.Context.CreateTexture(TextureDesc.ColorAttachment(App.ColorFormat, App.PhysicalWidth, App.PhysicalHeight, 1, SampleCount.Count1) with
+        Width = width;
+        Height = height;
+
+        TextureDesc colorDesc = TextureDesc.ColorAttachment(App.ColorFormat, width, height, 1, SampleCount.Count1);
+
+        Color = App.Context.CreateTexture(colorDesc with
         {
-            Usages = TextureUsages.ColorAttachment | TextureUsages.UpscalingInput
+            Usages = colorDesc.Usages | TextureUsages.UpscalingInput
         });
 
-        uint mipWidth = Math.Max(1u, App.PhysicalWidth / 2u);
-        uint mipHeight = Math.Max(1u, App.PhysicalHeight / 2u);
+        if (hasAntialiasing)
+        {
+            toneMappedColor = App.Context.CreateTexture(colorDesc);
+        }
+
+        uint mipWidth = width;
+        uint mipHeight = height;
         for (int i = 0; i < BloomLevels; i++)
         {
             mipWidth = Math.Max(1u, mipWidth / 2u);
@@ -236,8 +257,46 @@ internal unsafe class OutputPass : DisposableObject
             downsampleMips[i] = null!;
         }
 
+        toneMappedColor?.Dispose();
+        toneMappedColor = null;
         Color?.Dispose();
         Color = null!;
+
+        Width = 0;
+        Height = 0;
+    }
+
+    private void DrawFullscreen(CommandBuffer commandBuffer, GraphicsPipeline pipeline, Texture target, uint constantOffset)
+    {
+        commandBuffer.Transition(target, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.DontCare(target)], null);
+        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, constantOffset);
+        commandBuffer.Draw(3, 1, 0, 0);
+        commandBuffer.EndRenderPass();
+        commandBuffer.Transition(target, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+    }
+
+    private static GraphicsPipeline CreateFullscreenPipeline(Shader vertexShader, Shader fragmentShader)
+    {
+        return App.Context.CreateGraphicsPipeline(new()
+        {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [App.ColorFormat],
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
+        });
     }
 
     private static Texture CreateBloomTexture(uint width, uint height)
@@ -259,10 +318,10 @@ file struct OutputConstants
     public uint Height;
 
     [FieldOffset(8)]
-    public uint FrameOrFirstMip;
+    public uint FrameIndex;
 
     [FieldOffset(12)]
-    public float FilterRadius;
+    public uint Flags;
 
     [FieldOffset(16)]
     public Vector2 InvSourceSize;

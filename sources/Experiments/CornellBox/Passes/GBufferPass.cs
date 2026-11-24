@@ -132,8 +132,8 @@ internal unsafe class GBufferPass : DisposableObject
             ViewProjection = frame.ViewProjection,
             PreviousViewProjection = frame.PreviousViewProjection,
             InverseView = frame.InverseView,
-            InverseProjection = frame.InverseJitteredProjection,
-            UnjitteredInverseProjection = frame.InverseProjection,
+            InverseJitteredProjection = frame.InverseJitteredProjection,
+            InverseProjection = frame.InverseProjection,
             CameraPosition = frame.CameraPosition,
             ElapsedSeconds = frame.Environment.ElapsedSeconds,
             Materials = scene.Materials,
@@ -158,12 +158,7 @@ internal unsafe class GBufferPass : DisposableObject
         commandBuffer.Transition(MotionVectors, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
-        commandBuffer.BeginRenderPass([
-            ColorAttachment.DontCare(AlbedoAndMaterial),
-            ColorAttachment.DontCare(NormalAndRoughness),
-            ColorAttachment.DontCare(Depth),
-            ColorAttachment.DontCare(MotionVectors)
-        ], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
+        commandBuffer.BeginRenderPass([ColorAttachment.DontCare(AlbedoAndMaterial), ColorAttachment.DontCare(NormalAndRoughness), ColorAttachment.DontCare(Depth), ColorAttachment.DontCare(MotionVectors)], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
         DrawMeshBatches(commandBuffer, scene, batches, meshPipeline, staticOnly: null);
         commandBuffer.SetPipeline(skyMotionPipeline);
@@ -223,10 +218,7 @@ internal unsafe class GBufferPass : DisposableObject
                     commandBuffer.Transition(outputDepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
                 }
 
-                commandBuffer.BeginRenderPass([
-                    ColorAttachment.Load(outputDepth),
-                    ColorAttachment.Clear(outputMotionVectors, Vector4.Zero)
-                ], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
+                commandBuffer.BeginRenderPass([ColorAttachment.Load(outputDepth), ColorAttachment.Clear(outputMotionVectors, Vector4.Zero)], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
 
                 DrawMeshBatches(commandBuffer, scene, batches, dynamicMotionDepthPipeline, staticOnly: false);
 
@@ -238,10 +230,7 @@ internal unsafe class GBufferPass : DisposableObject
                 commandBuffer.Transition(outputMotionVectors, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
                 commandBuffer.Transition(outputDepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
-                commandBuffer.BeginRenderPass([
-                    ColorAttachment.Clear(outputDepth, Vector4.One),
-                    ColorAttachment.Clear(outputMotionVectors, Vector4.Zero)
-                ], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
+                commandBuffer.BeginRenderPass([ColorAttachment.Clear(outputDepth, Vector4.One), ColorAttachment.Clear(outputMotionVectors, Vector4.Zero)], DepthStencilAttachment.Clear(outputDepthStencil, 1.0f, 0));
 
                 DrawMeshBatches(commandBuffer, scene, batches, meshMotionDepthPipeline, staticOnly: null);
 
@@ -300,7 +289,7 @@ internal unsafe class GBufferPass : DisposableObject
         for (int i = 0; i < batches.Length; i++)
         {
             SceneResources.DrawBatch batch = batches[i];
-            if (staticOnly.HasValue && (batch.BaseInstance < firstDynamic) != staticOnly.Value)
+            if (staticOnly is bool isStatic && (batch.BaseInstance < firstDynamic) != isStatic)
             {
                 continue;
             }
@@ -419,10 +408,10 @@ file struct GBufferConstants
     public Matrix4x4 InverseView;
 
     [FieldOffset(256)]
-    public Matrix4x4 InverseProjection;
+    public Matrix4x4 InverseJitteredProjection;
 
     [FieldOffset(320)]
-    public Matrix4x4 UnjitteredInverseProjection;
+    public Matrix4x4 InverseProjection;
 
     [FieldOffset(384)]
     public Vector3 CameraPosition;
