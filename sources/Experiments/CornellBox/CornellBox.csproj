@@ -3,6 +3,9 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>$(StandardTargetFramework)</TargetFramework>
+
+        <FSRDownloadRuntime>true</FSRDownloadRuntime>
+        <NgxDownloadRuntime>true</NgxDownloadRuntime>
     </PropertyGroup>
 
     <ItemGroup>

@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <TargetFramework>$(StandardTargetFramework)</TargetFramework>
-        <FSRDownloadRuntime>true</FSRDownloadRuntime>
-        <NgxDownloadRuntime>true</NgxDownloadRuntime>
     </PropertyGroup>
 
     <ItemGroup>
