@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Zenith.NET;
 
 const int BytesPerLine = 16;
@@ -12,9 +14,7 @@ const int BytesPerLine = 16;
 string rootDirectory = GetRootDirectory();
 string sourcesDirectory = Path.Combine(rootDirectory, "sources");
 
-string[] projectFiles = [.. Directory.EnumerateFiles(sourcesDirectory, "*.csproj", SearchOption.AllDirectories).OrderBy(static path => path, StringComparer.Ordinal)];
-
-foreach (string projectFile in projectFiles)
+foreach (string projectFile in Directory.EnumerateFiles(sourcesDirectory, "*.csproj", SearchOption.AllDirectories).OrderBy(static path => path, StringComparer.Ordinal))
 {
     string projectDirectory = Path.GetDirectoryName(projectFile)!;
     string projectName = Path.GetFileNameWithoutExtension(projectFile);
@@ -31,12 +31,17 @@ foreach (string projectFile in projectFiles)
         continue;
     }
 
-    TargetDefinition[] targets = ParseConfig(configPath);
+    string rootNamespace = GetRootNamespace(projectFile, projectName);
 
-    foreach (TargetDefinition target in targets)
+    foreach (TargetDefinition target in LoadTargets(configPath, projectDirectory, rootNamespace))
     {
-        ProcessTarget(projectName, shadersDirectory, target);
+        ProcessTarget(projectName, projectDirectory, shadersDirectory, target);
     }
+}
+
+static string GetRootDirectory([CallerFilePath] string filePath = "")
+{
+    return Path.GetDirectoryName(filePath)!;
 }
 
 static bool MatchesFilter(string[] filters, string projectName, string configPath)
@@ -52,29 +57,163 @@ static bool MatchesFilter(string[] filters, string projectName, string configPat
     return false;
 }
 
-static void ProcessTarget(string projectName, string shadersDirectory, TargetDefinition target)
+static string GetRootNamespace(string projectFile, string projectName)
 {
-    string outputPath = Path.GetFullPath(Path.Combine(shadersDirectory, target.Output));
-    Dictionary<string, ShaderDesc> existing = ParseExistingShaders(outputPath);
+    XDocument document = XDocument.Load(projectFile);
+    string? rootNamespace = document.Root?.Elements("PropertyGroup").Elements("RootNamespace").FirstOrDefault()?.Value.Trim();
+
+    return string.IsNullOrEmpty(rootNamespace) ? projectName : rootNamespace;
+}
+
+static TargetDefinition[] LoadTargets(string configPath, string projectDirectory, string rootNamespace)
+{
+    TargetConfig[] configs = JsonSerializer.Deserialize(File.ReadAllText(configPath), ShaderConfigJsonContext.Default.TargetConfigArray)
+        ?? throw new InvalidOperationException($"Failed to deserialize '{configPath}'.");
+
+    List<TargetDefinition> targets = [];
+    HashSet<string> outputPaths = new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+    foreach (TargetConfig config in configs)
+    {
+        TargetDefinition target = ResolveTarget(config, configPath, projectDirectory, rootNamespace);
+        if (!outputPaths.Add(target.OutputPath))
+        {
+            throw new InvalidOperationException($"Duplicate output path '{target.OutputPath}' in '{configPath}'.");
+        }
+
+        targets.Add(target);
+    }
+
+    return [.. targets];
+}
+
+static TargetDefinition ResolveTarget(TargetConfig config, string configPath, string projectDirectory, string rootNamespace)
+{
+    if (string.IsNullOrWhiteSpace(config.Output))
+    {
+        throw new InvalidOperationException($"Target in '{configPath}' is missing 'output'.");
+    }
+
+    string outputPath = Path.GetFullPath(Path.Combine(projectDirectory, config.Output));
+    string className = string.IsNullOrWhiteSpace(config.ClassName) ? InferClassName(outputPath) : config.ClassName;
+    string @namespace = string.IsNullOrWhiteSpace(config.Namespace) ? InferNamespace(projectDirectory, outputPath, rootNamespace) : config.Namespace;
+    string accessibility = string.IsNullOrWhiteSpace(config.Accessibility) ? "internal" : config.Accessibility;
+    GraphicsApi[] defaultApis = config.Apis is { Length: > 0 } ? config.Apis : Enum.GetValues<GraphicsApi>();
+
+    if (config.Shaders is null or { Length: 0 })
+    {
+        throw new InvalidOperationException($"Target '{className}' is missing 'shaders'.");
+    }
+
+    List<ShaderDefinition> shaders = [];
+    HashSet<string> shaderNames = new(StringComparer.Ordinal);
+
+    foreach (ShaderConfig shaderConfig in config.Shaders)
+    {
+        string file = shaderConfig.File ?? config.File ?? throw new InvalidOperationException($"Shader in target '{className}' is missing 'file'.");
+        if (string.IsNullOrWhiteSpace(file))
+        {
+            throw new InvalidOperationException($"Shader in target '{className}' has an empty 'file'.");
+        }
+
+        if (string.IsNullOrWhiteSpace(shaderConfig.EntryPoint))
+        {
+            throw new InvalidOperationException($"Shader in target '{className}' is missing 'entryPoint'.");
+        }
+
+        string name = string.IsNullOrWhiteSpace(shaderConfig.Name) ? shaderConfig.EntryPoint : shaderConfig.Name;
+        if (!shaderNames.Add(name))
+        {
+            throw new InvalidOperationException($"Duplicate shader name '{name}' in target '{className}'.");
+        }
+
+        GraphicsApi[] shaderApis = [.. (shaderConfig.Apis ?? defaultApis).Distinct()];
+        if (shaderApis.Length is 0)
+        {
+            throw new InvalidOperationException($"Shader '{name}' in target '{className}' has no target APIs.");
+        }
+
+        Dictionary<string, string>? preprocessorMacros = MergePreprocessorMacros(config.PreprocessorMacros, shaderConfig.PreprocessorMacros);
+
+        shaders.Add(new(name, file, shaderConfig.EntryPoint, shaderApis, preprocessorMacros));
+    }
+
+    return new(@namespace, className, accessibility, outputPath, [.. shaders]);
+}
+
+static string InferClassName(string outputPath)
+{
+    string fileName = Path.GetFileName(outputPath);
+    int dotIndex = fileName.IndexOf('.', StringComparison.Ordinal);
+    string className = dotIndex > 0 ? fileName[..dotIndex] : Path.GetFileNameWithoutExtension(outputPath);
+
+    if (string.IsNullOrWhiteSpace(className))
+    {
+        throw new InvalidOperationException($"Cannot infer class name from output '{outputPath}'.");
+    }
+
+    return className;
+}
+
+static string InferNamespace(string projectDirectory, string outputPath, string rootNamespace)
+{
+    string outputDirectory = Path.GetDirectoryName(outputPath)!;
+    string relativeDirectory = Path.GetRelativePath(projectDirectory, outputDirectory);
+
+    if (relativeDirectory is "." || relativeDirectory.StartsWith("..", StringComparison.Ordinal))
+    {
+        return rootNamespace;
+    }
+
+    string[] segments = relativeDirectory.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+
+    return segments.Length is 0 ? rootNamespace : $"{rootNamespace}.{string.Join('.', segments)}";
+}
+
+static Dictionary<string, string>? MergePreprocessorMacros(Dictionary<string, string>? baseMacros, Dictionary<string, string>? overrideMacros)
+{
+    if (baseMacros is null && overrideMacros is null)
+    {
+        return null;
+    }
+
+    Dictionary<string, string> merged = new(StringComparer.Ordinal);
+
+    if (baseMacros is not null)
+    {
+        foreach ((string key, string value) in baseMacros)
+        {
+            merged[key] = value;
+        }
+    }
+
+    if (overrideMacros is not null)
+    {
+        foreach ((string key, string value) in overrideMacros)
+        {
+            merged[key] = value;
+        }
+    }
+
+    return merged.Count is 0 ? null : merged;
+}
+
+static void ProcessTarget(string projectName, string projectDirectory, string shadersDirectory, TargetDefinition target)
+{
+    Dictionary<string, ShaderDesc> existing = ParseExistingShaders(target.OutputPath);
     Dictionary<string, ShaderDesc> compiled = new(StringComparer.Ordinal);
-    List<GraphicsApi> usedApis = [];
 
     foreach (ShaderDefinition shader in target.Shaders)
     {
-        string sourcePath = Path.GetFullPath(Path.Combine(shadersDirectory, shader.Source));
+        string filePath = Path.GetFullPath(Path.Combine(shadersDirectory, shader.File));
 
         foreach (GraphicsApi graphicsApi in shader.Apis)
         {
-            if (!usedApis.Contains(graphicsApi))
-            {
-                usedApis.Add(graphicsApi);
-            }
-
             string fieldName = $"{graphicsApi}{shader.Name}";
 
             try
             {
-                compiled[fieldName] = ZenithCompiler.CompileFromFile(graphicsApi, sourcePath, shader.EntryPoint, shader.PreprocessorMacros, [shadersDirectory]);
+                compiled[fieldName] = ZenithCompiler.CompileFromFile(graphicsApi, filePath, shader.EntryPoint, shader.PreprocessorMacros, [shadersDirectory]);
 
                 Console.WriteLine($"[{projectName}] compiled {graphicsApi} {shader.Name}");
             }
@@ -100,186 +239,13 @@ static void ProcessTarget(string projectName, string shadersDirectory, TargetDef
         }
     }
 
-    List<GraphicsApi> orderedApis = [.. target.Apis.Where(usedApis.Contains)];
-    foreach (GraphicsApi graphicsApi in usedApis)
-    {
-        if (!orderedApis.Contains(graphicsApi))
-        {
-            orderedApis.Add(graphicsApi);
-        }
-    }
+    string generated = GenerateCode(target, compiled);
 
-    string generated = GenerateCode(target, orderedApis, compiled);
+    Directory.CreateDirectory(Path.GetDirectoryName(target.OutputPath)!);
+    File.WriteAllText(target.OutputPath, generated, new UTF8Encoding(true));
 
-    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-    File.WriteAllText(outputPath, generated, new UTF8Encoding(true));
-
-    Console.WriteLine($"[{projectName}] wrote {Path.GetFileName(outputPath)}");
-}
-
-static TargetDefinition[] ParseConfig(string configPath)
-{
-    JsonDocumentOptions options = new()
-    {
-        CommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true
-    };
-
-    using JsonDocument document = JsonDocument.Parse(File.ReadAllText(configPath), options);
-    JsonElement root = document.RootElement;
-
-    if (root.ValueKind is JsonValueKind.Array)
-    {
-        List<TargetDefinition> targets = [];
-        foreach (JsonElement element in root.EnumerateArray())
-        {
-            targets.Add(ParseTarget(element));
-        }
-
-        return [.. targets];
-    }
-
-    if (root.ValueKind is JsonValueKind.Object)
-    {
-        return [ParseTarget(root)];
-    }
-
-    throw new InvalidOperationException($"Invalid shaders.json root in '{configPath}'.");
-}
-
-static TargetDefinition ParseTarget(JsonElement element)
-{
-    string @namespace = GetRequiredString(element, "namespace");
-    string className = GetRequiredString(element, "className");
-    string accessibility = GetOptionalString(element, "accessibility") ?? "internal";
-    string output = GetOptionalString(element, "output") ?? $"../{className}.g.cs";
-    GraphicsApi[] apis = ParseApis(element) ?? Enum.GetValues<GraphicsApi>();
-
-    if (!TryGetPropertyIgnoreCase(element, "shaders", out JsonElement shadersElement) || shadersElement.ValueKind is not JsonValueKind.Array)
-    {
-        throw new InvalidOperationException($"Target '{className}' is missing 'shaders' array.");
-    }
-
-    List<ShaderDefinition> shaders = [];
-    HashSet<string> shaderNames = new(StringComparer.Ordinal);
-    foreach (JsonElement shaderElement in shadersElement.EnumerateArray())
-    {
-        string source = GetRequiredString(shaderElement, "source");
-        string entryPoint = GetRequiredString(shaderElement, "entryPoint");
-        string name = GetOptionalString(shaderElement, "name") ?? entryPoint;
-        if (!shaderNames.Add(name))
-        {
-            throw new InvalidOperationException($"Duplicate shader name '{name}' in target '{className}'.");
-        }
-
-        GraphicsApi[] shaderApis = ParseApis(shaderElement) ?? apis;
-        Dictionary<string, string>? preprocessorMacros = ParsePreprocessorMacros(shaderElement);
-
-        shaders.Add(new(name, source, entryPoint, shaderApis, preprocessorMacros));
-    }
-
-    return new(@namespace, className, accessibility, output, apis, [.. shaders]);
-}
-
-static GraphicsApi[]? ParseApis(JsonElement element)
-{
-    if (!TryGetPropertyIgnoreCase(element, "apis", out JsonElement apisElement))
-    {
-        return null;
-    }
-
-    if (apisElement.ValueKind is not JsonValueKind.Array)
-    {
-        throw new InvalidOperationException("'apis' must be an array.");
-    }
-
-    List<GraphicsApi> apis = [];
-    foreach (JsonElement apiElement in apisElement.EnumerateArray())
-    {
-        string value = apiElement.GetString() ?? throw new InvalidOperationException("API name cannot be null.");
-        apis.Add(Enum.Parse<GraphicsApi>(value, ignoreCase: true));
-    }
-
-    return [.. apis];
-}
-
-static Dictionary<string, string>? ParsePreprocessorMacros(JsonElement element)
-{
-    if (!TryGetPropertyIgnoreCase(element, "preprocessorMacros", out JsonElement macrosElement))
-    {
-        return null;
-    }
-
-    Dictionary<string, string> preprocessorMacros = new(StringComparer.Ordinal);
-
-    switch (macrosElement.ValueKind)
-    {
-        case JsonValueKind.Object:
-            foreach (JsonProperty property in macrosElement.EnumerateObject())
-            {
-                string value = property.Value.ValueKind switch
-                {
-                    JsonValueKind.String => property.Value.GetString() ?? string.Empty,
-                    JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => property.Value.ToString(),
-                    JsonValueKind.Null => string.Empty,
-                    _ => throw new InvalidOperationException($"Unsupported preprocessor macro value for '{property.Name}'.")
-                };
-
-                if (!preprocessorMacros.TryAdd(property.Name, value))
-                {
-                    throw new InvalidOperationException($"Duplicate preprocessor macro '{property.Name}'.");
-                }
-            }
-            break;
-
-        case JsonValueKind.Array:
-            foreach (JsonElement item in macrosElement.EnumerateArray())
-            {
-                string key = item.GetString() ?? throw new InvalidOperationException("Preprocessor macro name cannot be null.");
-                if (!preprocessorMacros.TryAdd(key, "1"))
-                {
-                    throw new InvalidOperationException($"Duplicate preprocessor macro '{key}'.");
-                }
-            }
-            break;
-
-        default:
-            throw new InvalidOperationException("'preprocessorMacros' must be an object or array.");
-    }
-
-    return preprocessorMacros.Count is 0 ? null : preprocessorMacros;
-}
-
-static bool TryGetPropertyIgnoreCase(JsonElement element, string name, out JsonElement value)
-{
-    foreach (JsonProperty property in element.EnumerateObject())
-    {
-        if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
-        {
-            value = property.Value;
-
-            return true;
-        }
-    }
-
-    value = default;
-
-    return false;
-}
-
-static string GetRequiredString(JsonElement element, string name)
-{
-    return GetOptionalString(element, name) ?? throw new InvalidOperationException($"Missing required property '{name}'.");
-}
-
-static string? GetOptionalString(JsonElement element, string name)
-{
-    if (TryGetPropertyIgnoreCase(element, name, out JsonElement value) && value.ValueKind is not JsonValueKind.Null)
-    {
-        return value.GetString();
-    }
-
-    return null;
+    string relativeOutput = Path.GetRelativePath(projectDirectory, target.OutputPath).Replace('\\', '/');
+    Console.WriteLine($"[{projectName}] wrote {relativeOutput}");
 }
 
 static Dictionary<string, ShaderDesc> ParseExistingShaders(string outputPath)
@@ -293,9 +259,7 @@ static Dictionary<string, ShaderDesc> ParseExistingShaders(string outputPath)
 
     string text = File.ReadAllText(outputPath).ReplaceLineEndings("\n");
 
-    Regex fieldRegex = new(@"private static readonly ShaderDesc (?<field>\w+) = new\(\)\s*\{\s*Bytecode =(?<bytes>.*?),\s*EntryPoint = ""(?<entryPoint>[^""]*)""(?:\s*,\s*ThreadGroup = new\(\)\s*\{\s*X = (?<x>\d+),\s*Y = (?<y>\d+),\s*Z = (?<z>\d+)\s*\})?\s*\};", RegexOptions.Singleline);
-
-    foreach (Match match in fieldRegex.Matches(text))
+    foreach (Match match in ShaderRegex.Field().Matches(text))
     {
         string field = match.Groups["field"].Value;
         string entryPoint = match.Groups["entryPoint"].Value;
@@ -305,7 +269,7 @@ static Dictionary<string, ShaderDesc> ParseExistingShaders(string outputPath)
         uint z = match.Groups["z"].Success ? uint.Parse(match.Groups["z"].Value, CultureInfo.InvariantCulture) : 0;
 
         List<byte> bytes = [];
-        foreach (Match hexMatch in Regex.Matches(bytesSection, @"0x([0-9A-Fa-f]{2})"))
+        foreach (Match hexMatch in ShaderRegex.HexByte().Matches(bytesSection))
         {
             bytes.Add(byte.Parse(hexMatch.Groups[1].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
         }
@@ -326,7 +290,7 @@ static Dictionary<string, ShaderDesc> ParseExistingShaders(string outputPath)
     return result;
 }
 
-static string GenerateCode(TargetDefinition target, List<GraphicsApi> orderedApis, Dictionary<string, ShaderDesc> compiled)
+static string GenerateCode(TargetDefinition target, Dictionary<string, ShaderDesc> compiled)
 {
     StringBuilder builder = new();
 
@@ -359,7 +323,7 @@ static string GenerateCode(TargetDefinition target, List<GraphicsApi> orderedApi
         builder.AppendLine("    }");
     }
 
-    foreach (GraphicsApi graphicsApi in orderedApis)
+    foreach (GraphicsApi graphicsApi in Enum.GetValues<GraphicsApi>())
     {
         ShaderDefinition[] apiShaders = [.. target.Shaders.Where(shader => shader.Apis.Contains(graphicsApi))];
 
@@ -457,16 +421,42 @@ static void AppendBytecode(StringBuilder builder, byte[] bytecode)
     builder.AppendLine("        ],");
 }
 
-static string GetRootDirectory([CallerFilePath] string filePath = "")
+internal sealed class TargetConfig
 {
-    return Path.GetDirectoryName(filePath)!;
+    public string? Namespace { get; init; }
+
+    public string? ClassName { get; init; }
+
+    public string? Accessibility { get; init; }
+
+    public required string Output { get; init; }
+
+    public string? File { get; init; }
+
+    public GraphicsApi[]? Apis { get; init; }
+
+    public Dictionary<string, string>? PreprocessorMacros { get; init; }
+
+    public required ShaderConfig[] Shaders { get; init; }
+}
+
+internal sealed class ShaderConfig
+{
+    public string? Name { get; init; }
+
+    public string? File { get; init; }
+
+    public required string EntryPoint { get; init; }
+
+    public GraphicsApi[]? Apis { get; init; }
+
+    public Dictionary<string, string>? PreprocessorMacros { get; init; }
 }
 
 file readonly struct TargetDefinition(string @namespace,
                                       string className,
                                       string accessibility,
-                                      string output,
-                                      GraphicsApi[] apis,
+                                      string outputPath,
                                       ShaderDefinition[] shaders)
 {
     public readonly string Namespace = @namespace;
@@ -475,26 +465,40 @@ file readonly struct TargetDefinition(string @namespace,
 
     public readonly string Accessibility = accessibility;
 
-    public readonly string Output = output;
-
-    public readonly GraphicsApi[] Apis = apis;
+    public readonly string OutputPath = outputPath;
 
     public readonly ShaderDefinition[] Shaders = shaders;
 }
 
 file readonly struct ShaderDefinition(string name,
-                                      string source,
+                                      string file,
                                       string entryPoint,
                                       GraphicsApi[] apis,
                                       Dictionary<string, string>? preprocessorMacros)
 {
     public readonly string Name = name;
 
-    public readonly string Source = source;
+    public readonly string File = file;
 
     public readonly string EntryPoint = entryPoint;
 
     public readonly GraphicsApi[] Apis = apis;
 
     public readonly Dictionary<string, string>? PreprocessorMacros = preprocessorMacros;
+}
+
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true,
+                             ReadCommentHandling = JsonCommentHandling.Skip,
+                             AllowTrailingCommas = true,
+                             UseStringEnumConverter = true)]
+[JsonSerializable(typeof(TargetConfig[]))]
+internal partial class ShaderConfigJsonContext : JsonSerializerContext;
+
+internal static partial class ShaderRegex
+{
+    [GeneratedRegex(@"private static readonly ShaderDesc (?<field>\w+) = new\(\)\s*\{\s*Bytecode =(?<bytes>.*?),\s*EntryPoint = ""(?<entryPoint>[^""]*)""(?:\s*,\s*ThreadGroup = new\(\)\s*\{\s*X = (?<x>\d+),\s*Y = (?<y>\d+),\s*Z = (?<z>\d+)\s*\})?\s*\};", RegexOptions.Singleline)]
+    public static partial Regex Field();
+
+    [GeneratedRegex(@"0x([0-9A-Fa-f]{2})")]
+    public static partial Regex HexByte();
 }
