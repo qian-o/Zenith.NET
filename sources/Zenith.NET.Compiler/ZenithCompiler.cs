@@ -35,9 +35,9 @@ public static class ZenithCompiler
     {
         return new()
         {
-            Name = entryPoint,
-            CodeBytes = SlangCompiler.CompileWithReflection(Preamble, [file, .. Arguments(graphicsApi, entryPoint, preprocessorMacros, searchPaths)], out SlangReflection reflection),
-            ThreadGroupSize = ThreadGroupSize(reflection, entryPoint)
+            Bytecode = SlangCompiler.CompileWithReflection(Preamble, [file, .. Arguments(graphicsApi, entryPoint, preprocessorMacros, searchPaths)], out SlangReflection reflection),
+            EntryPoint = entryPoint,
+            ThreadGroup = ThreadGroup(reflection, entryPoint)
         };
     }
 
@@ -45,9 +45,9 @@ public static class ZenithCompiler
     {
         return new()
         {
-            Name = entryPoint,
-            CodeBytes = SlangCompiler.CompileWithReflection(Preamble + Environment.NewLine + source, Arguments(graphicsApi, entryPoint, preprocessorMacros, searchPaths), out SlangReflection reflection),
-            ThreadGroupSize = ThreadGroupSize(reflection, entryPoint)
+            Bytecode = SlangCompiler.CompileWithReflection(Preamble + Environment.NewLine + source, Arguments(graphicsApi, entryPoint, preprocessorMacros, searchPaths), out SlangReflection reflection),
+            EntryPoint = entryPoint,
+            ThreadGroup = ThreadGroup(reflection, entryPoint)
         };
     }
 
@@ -95,7 +95,7 @@ public static class ZenithCompiler
         return [.. arguments];
     }
 
-    private static ThreadGroupSize ThreadGroupSize(SlangReflection reflection, string entryPoint)
+    private static ThreadGroup ThreadGroup(SlangReflection reflection, string entryPoint)
     {
         if (reflection.EntryPoints.FirstOrDefault(p => p.Name == entryPoint) is SlangEntryPoint slangEntryPoint && slangEntryPoint.ThreadGroupSize.Length is 3)
         {

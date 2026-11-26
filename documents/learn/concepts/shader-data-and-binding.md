@@ -258,7 +258,7 @@ commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 </p>
 <p>
     <resource key="concepts.shaders.dispatch.details">
-        <slot name="shaderDescThreadGroupSize"><a class="xref" href="xref:Zenith.NET.ShaderDesc.ThreadGroupSize"><code>ShaderDesc.ThreadGroupSize</code></a></slot>
+        <slot name="shaderDescThreadGroup"><a class="xref" href="xref:Zenith.NET.ShaderDesc.ThreadGroup"><code>ShaderDesc.ThreadGroup</code></a></slot>
         <slot name="dispatch"><a class="xref" href="xref:Zenith.NET.CommandBuffer.Dispatch(System.UInt32,System.UInt32,System.UInt32)"><code>Dispatch</code></a></slot>
         <slot name="computeShaderRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs">ComputeShaderRenderer.cs</a></slot>
         <slot name="link"><a href="~/learn/concepts/synchronization.md#layouts"><resource key="concepts.shaders.dispatch.details.link"></resource></a></slot>

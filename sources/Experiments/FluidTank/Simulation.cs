@@ -231,7 +231,7 @@ internal unsafe class Simulation : DisposableObject
 
     private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint count)
     {
-        uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize.X;
+        uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroup.X;
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);

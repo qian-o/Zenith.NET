@@ -84,7 +84,7 @@ internal unsafe class LightingPass : DisposableObject
             commandBuffer.Transition(ReactiveMask, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
-        ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup group = pipeline.Desc.ComputeShader.Desc.ThreadGroup;
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);

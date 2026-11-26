@@ -309,7 +309,7 @@ concepts.shaders.dispatch.description: "{dispatch} specifies how many thread gro
   declares {numthreads}, so each group contains 16 × 16 threads. To cover an image, divide its width and height
   by 16 and round each result up: a 17 × 19 image requires 2 × 2 groups. The shader checks each thread's coordinates
   and skips those outside the image."
-concepts.shaders.dispatch.details: The declared group size is available in {shaderDescThreadGroupSize} and can be
+concepts.shaders.dispatch.details: The declared group size is available in {shaderDescThreadGroup} and can be
   used to calculate the group counts passed to {dispatch}. {computeShaderRendererCs} shows the complete calculation.
   After the dispatch, access to the resulting image must follow the requirements described in {link}.
 concepts.shaders.dispatch.details.link: Synchronization

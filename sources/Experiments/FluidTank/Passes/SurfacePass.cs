@@ -171,7 +171,7 @@ internal unsafe class SurfacePass : DisposableObject
 
     private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint width, uint height, uint depth)
     {
-        ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup group = pipeline.Desc.ComputeShader.Desc.ThreadGroup;
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constants, 0);

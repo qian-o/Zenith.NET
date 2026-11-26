@@ -10,12 +10,12 @@ internal class MTLShader : Shader
 
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
-        using DispatchData data = DispatchData.Create(desc.CodeBytes);
+        using DispatchData data = DispatchData.Create(desc.Bytecode);
 
         Library = context.Device.MakeLibrary(data, out NSError error);
         error.Success();
 
-        using NSString @string = new(desc.Name);
+        using NSString @string = new(desc.EntryPoint);
 
         Descriptor = new()
         {

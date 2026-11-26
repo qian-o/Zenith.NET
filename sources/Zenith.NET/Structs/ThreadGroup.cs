@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public struct ThreadGroupSize
+public struct ThreadGroup
 {
     public uint X;
 

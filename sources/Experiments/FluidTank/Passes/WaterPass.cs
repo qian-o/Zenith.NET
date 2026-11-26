@@ -107,7 +107,7 @@ internal unsafe class WaterPass : DisposableObject
             commandBuffer.Transition(reflection, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.SetPipeline(reflectionPipeline);
             commandBuffer.SetConstantBuffer(reflectionConstants, 0);
-            ThreadGroupSize group = reflectionPipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+            ThreadGroup group = reflectionPipeline.Desc.ComputeShader.Desc.ThreadGroup;
             commandBuffer.Dispatch((fluidWidth + group.X - 1) / group.X, (fluidHeight + group.Y - 1) / group.Y, 1);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
             commandBuffer.Transition(reflection, default, TextureLayout.Storage, TextureLayout.Sampled);

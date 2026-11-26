@@ -25,8 +25,8 @@ internal unsafe class VKShader(VKGraphicsContext context, ShaderDesc desc) : Sha
         {
             SType = StructureType.ShaderModuleCreateInfo,
             PNext = (ShaderDescriptorSetAndBindingMappingInfoEXT*)ZenithMarshal.AllocateAndFill(scope, [mappingInfo]),
-            CodeSize = (nuint)Desc.CodeBytes.Length,
-            PCode = (uint*)ZenithMarshal.AllocateAndFill(scope, Desc.CodeBytes)
+            CodeSize = (nuint)Desc.Bytecode.Length,
+            PCode = (uint*)ZenithMarshal.AllocateAndFill(scope, Desc.Bytecode)
         };
 
         return new()
@@ -34,7 +34,7 @@ internal unsafe class VKShader(VKGraphicsContext context, ShaderDesc desc) : Sha
             SType = StructureType.PipelineShaderStageCreateInfo,
             PNext = (ShaderModuleCreateInfo*)ZenithMarshal.AllocateAndFill(scope, [createInfo]),
             Stage = stage,
-            PName = (byte*)ZenithMarshal.StringToPointer(scope, Desc.Name, StringEncoding.UTF8)
+            PName = (byte*)ZenithMarshal.StringToPointer(scope, Desc.EntryPoint, StringEncoding.UTF8)
         };
     }
 

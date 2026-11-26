@@ -14,13 +14,13 @@ internal class MTLMeshShadingPipeline : MeshShadingPipeline
         {
             MeshFunctionDescriptor = desc.MeshShader.Metal().Descriptor,
             FragmentFunctionDescriptor = desc.FragmentShader.Metal().Descriptor,
-            RequiredThreadsPerMeshThreadgroup = new(desc.MeshShader.Desc.ThreadGroupSize.X, desc.MeshShader.Desc.ThreadGroupSize.Y, desc.MeshShader.Desc.ThreadGroupSize.Z)
+            RequiredThreadsPerMeshThreadgroup = new(desc.MeshShader.Desc.ThreadGroup.X, desc.MeshShader.Desc.ThreadGroup.Y, desc.MeshShader.Desc.ThreadGroup.Z)
         };
 
         if (desc.TaskShader is not null)
         {
             descriptor.ObjectFunctionDescriptor = desc.TaskShader.Metal().Descriptor;
-            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.TaskShader.Desc.ThreadGroupSize.X, desc.TaskShader.Desc.ThreadGroupSize.Y, desc.TaskShader.Desc.ThreadGroupSize.Z);
+            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.TaskShader.Desc.ThreadGroup.X, desc.TaskShader.Desc.ThreadGroup.Y, desc.TaskShader.Desc.ThreadGroup.Z);
         }
 
         // AttachmentFormats and RenderState

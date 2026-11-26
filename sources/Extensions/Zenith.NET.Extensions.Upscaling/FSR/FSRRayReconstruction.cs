@@ -75,7 +75,7 @@ internal unsafe class FSRRayReconstruction(FSRVendor vendor, RayReconstructionDe
 
         FSRVendor.Transition(commandBuffer, [linearDepth, motionVectors, normals, diffuseInput, specularInput], TextureLayout.Undefined, TextureLayout.Storage);
 
-        ThreadGroupSize prepareGroup = vendor.PreparePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup prepareGroup = vendor.PreparePipeline.Desc.ComputeShader.Desc.ThreadGroup;
 
         commandBuffer.SetPipeline(vendor.PreparePipeline);
         commandBuffer.SetConstantBuffer(constants, 0);
@@ -124,7 +124,7 @@ internal unsafe class FSRRayReconstruction(FSRVendor vendor, RayReconstructionDe
         FSRVendor.Transition(commandBuffer, [diffuseInput], TextureLayout.Common, TextureLayout.Storage);
         FSRVendor.Transition(commandBuffer, [activeTransparencyMask], TextureLayout.Undefined, TextureLayout.Storage);
 
-        ThreadGroupSize composeGroup = vendor.ComposePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup composeGroup = vendor.ComposePipeline.Desc.ComputeShader.Desc.ThreadGroup;
 
         commandBuffer.SetPipeline(vendor.ComposePipeline);
         commandBuffer.SetConstantBuffer(constants, 0);

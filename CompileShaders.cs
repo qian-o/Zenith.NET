@@ -90,8 +90,8 @@ static void ProcessTarget(string projectName, string shadersDirectory, TargetDef
                 {
                     compiled[fieldName] = new()
                     {
-                        Name = shader.EntryPoint,
-                        CodeBytes = []
+                        Bytecode = [],
+                        EntryPoint = shader.EntryPoint
                     };
 
                     Console.WriteLine($"[{projectName}] skipped {graphicsApi} {shader.Name} (empty)");
@@ -293,16 +293,16 @@ static Dictionary<string, ShaderDesc> ParseExistingShaders(string outputPath)
 
     string text = File.ReadAllText(outputPath).ReplaceLineEndings("\n");
 
-    Regex fieldRegex = new(@"private static readonly ShaderDesc (?<field>\w+) = new\(\)\s*\{\s*Name = ""(?<name>[^""]*)"",\s*CodeBytes =(?<bytes>.*?),\s*ThreadGroupSize = new\(\)\s*\{\s*X = (?<x>\d+),\s*Y = (?<y>\d+),\s*Z = (?<z>\d+)\s*\}\s*\};", RegexOptions.Singleline);
+    Regex fieldRegex = new(@"private static readonly ShaderDesc (?<field>\w+) = new\(\)\s*\{\s*Bytecode =(?<bytes>.*?),\s*EntryPoint = ""(?<entryPoint>[^""]*)""(?:\s*,\s*ThreadGroup = new\(\)\s*\{\s*X = (?<x>\d+),\s*Y = (?<y>\d+),\s*Z = (?<z>\d+)\s*\})?\s*\};", RegexOptions.Singleline);
 
     foreach (Match match in fieldRegex.Matches(text))
     {
         string field = match.Groups["field"].Value;
-        string name = match.Groups["name"].Value;
+        string entryPoint = match.Groups["entryPoint"].Value;
         string bytesSection = match.Groups["bytes"].Value;
-        uint x = uint.Parse(match.Groups["x"].Value, CultureInfo.InvariantCulture);
-        uint y = uint.Parse(match.Groups["y"].Value, CultureInfo.InvariantCulture);
-        uint z = uint.Parse(match.Groups["z"].Value, CultureInfo.InvariantCulture);
+        uint x = match.Groups["x"].Success ? uint.Parse(match.Groups["x"].Value, CultureInfo.InvariantCulture) : 0;
+        uint y = match.Groups["y"].Success ? uint.Parse(match.Groups["y"].Value, CultureInfo.InvariantCulture) : 0;
+        uint z = match.Groups["z"].Success ? uint.Parse(match.Groups["z"].Value, CultureInfo.InvariantCulture) : 0;
 
         List<byte> bytes = [];
         foreach (Match hexMatch in Regex.Matches(bytesSection, @"0x([0-9A-Fa-f]{2})"))
@@ -312,9 +312,9 @@ static Dictionary<string, ShaderDesc> ParseExistingShaders(string outputPath)
 
         result[field] = new()
         {
-            Name = name,
-            CodeBytes = [.. bytes],
-            ThreadGroupSize = new()
+            Bytecode = [.. bytes],
+            EntryPoint = entryPoint,
+            ThreadGroup = new()
             {
                 X = x,
                 Y = y,
@@ -392,36 +392,46 @@ static string GenerateCode(TargetDefinition target, List<GraphicsApi> orderedApi
 
 static void AppendShaderDesc(StringBuilder builder, string fieldName, ShaderDesc shaderDesc)
 {
+    bool hasThreadGroup = shaderDesc.ThreadGroup.X is not 0 || shaderDesc.ThreadGroup.Y is not 0 || shaderDesc.ThreadGroup.Z is not 0;
+
     builder.AppendLine($"    private static readonly ShaderDesc {fieldName} = new()");
     builder.AppendLine("    {");
-    builder.AppendLine($"        Name = \"{shaderDesc.Name}\",");
 
-    AppendCodeBytes(builder, shaderDesc.CodeBytes);
+    AppendBytecode(builder, shaderDesc.Bytecode);
 
-    builder.AppendLine("        ThreadGroupSize = new()");
-    builder.AppendLine("        {");
-    builder.AppendLine($"            X = {shaderDesc.ThreadGroupSize.X},");
-    builder.AppendLine($"            Y = {shaderDesc.ThreadGroupSize.Y},");
-    builder.AppendLine($"            Z = {shaderDesc.ThreadGroupSize.Z}");
-    builder.AppendLine("        }");
+    if (hasThreadGroup)
+    {
+        builder.AppendLine($"        EntryPoint = \"{shaderDesc.EntryPoint}\",");
+        builder.AppendLine("        ThreadGroup = new()");
+        builder.AppendLine("        {");
+        builder.AppendLine($"            X = {shaderDesc.ThreadGroup.X},");
+        builder.AppendLine($"            Y = {shaderDesc.ThreadGroup.Y},");
+        builder.AppendLine($"            Z = {shaderDesc.ThreadGroup.Z}");
+        builder.AppendLine("        }");
+    }
+    else
+    {
+        builder.AppendLine($"        EntryPoint = \"{shaderDesc.EntryPoint}\"");
+    }
+
     builder.AppendLine("    };");
 }
 
-static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
+static void AppendBytecode(StringBuilder builder, byte[] bytecode)
 {
-    if (codeBytes.Length is 0)
+    if (bytecode.Length is 0)
     {
-        builder.AppendLine("        CodeBytes = [],");
+        builder.AppendLine("        Bytecode = [],");
 
         return;
     }
 
-    builder.AppendLine("        CodeBytes =");
+    builder.AppendLine("        Bytecode =");
     builder.AppendLine("        [");
 
-    for (int i = 0; i < codeBytes.Length; i += BytesPerLine)
+    for (int i = 0; i < bytecode.Length; i += BytesPerLine)
     {
-        int count = Math.Min(BytesPerLine, codeBytes.Length - i);
+        int count = Math.Min(BytesPerLine, bytecode.Length - i);
 
         builder.Append("            ");
 
@@ -433,10 +443,10 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
             }
 
             builder.Append("0x");
-            builder.Append(codeBytes[i + j].ToString("X2", CultureInfo.InvariantCulture));
+            builder.Append(bytecode[i + j].ToString("X2", CultureInfo.InvariantCulture));
         }
 
-        if (i + count < codeBytes.Length)
+        if (i + count < bytecode.Length)
         {
             builder.Append(',');
         }

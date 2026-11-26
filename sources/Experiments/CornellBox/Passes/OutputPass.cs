@@ -154,7 +154,7 @@ internal unsafe class OutputPass : DisposableObject
             SizeInBytes = strideInBytes * activeSlotCount
         });
 
-        ThreadGroupSize downsampleGroup = bloomDownsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup downsampleGroup = bloomDownsamplePipeline.Desc.ComputeShader.Desc.ThreadGroup;
         commandBuffer.SetPipeline(bloomDownsamplePipeline);
 
         for (uint i = 0; i < BloomLevelCount; i++)
@@ -167,7 +167,7 @@ internal unsafe class OutputPass : DisposableObject
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         }
 
-        ThreadGroupSize upsampleGroup = bloomUpsamplePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup upsampleGroup = bloomUpsamplePipeline.Desc.ComputeShader.Desc.ThreadGroup;
         commandBuffer.SetPipeline(bloomUpsamplePipeline);
 
         for (int i = BloomLevelCount - 2; i >= 0; i--)

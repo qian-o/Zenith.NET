@@ -169,7 +169,7 @@ concepts.shaders.compilation.guidance.link: 첫 번째 삼각형
 concepts.shaders.compilation.title: '셰이더 컴파일'
 concepts.shaders.description: 'C#과 Slang의 선언은 각 값의 위치와 셰이더의 접근 방식이 일치해야 합니다. 정점 입력 레이아웃은 정점 속성을 기술하고, 셰이더의 버퍼 선언은 매개변수와 배열을 기술하며, 리소스 핸들은 셰이더가 사용할 리소스를 가리킵니다.'
 concepts.shaders.dispatch.description: '{dispatch}는 실행할 스레드 그룹 수를 지정합니다. 컴퓨트 예제는 {numthreads}를 선언하므로 한 그룹은 16 × 16개 스레드로 구성됩니다. 이미지 전체를 처리하려면 너비와 높이를 각각 16으로 나누고 올림합니다. 예를 들어 17 × 19 이미지는 2 × 2개 그룹이 필요합니다. 셰이더는 각 스레드의 좌표를 확인하고 이미지 범위 밖이면 처리를 건너뜁니다.'
-concepts.shaders.dispatch.details: '선언한 그룹 크기는 {shaderDescThreadGroupSize}에서 확인할 수 있으며, 이 값으로 {dispatch}에 전달할 그룹 수를 계산합니다. 전체 계산은 {computeShaderRendererCs}에 있습니다. 디스패치 이후 결과 이미지에 접근할 때는 {link} 문서의 요구 사항을 따릅니다.'
+concepts.shaders.dispatch.details: '선언한 그룹 크기는 {shaderDescThreadGroup}에서 확인할 수 있으며, 이 값으로 {dispatch}에 전달할 그룹 수를 계산합니다. 전체 계산은 {computeShaderRendererCs}에 있습니다. 디스패치 이후 결과 이미지에 접근할 때는 {link} 문서의 요구 사항을 따릅니다.'
 concepts.shaders.dispatch.details.link: 동기화
 concepts.shaders.dispatch.title: '스레드 그룹'
 concepts.shaders.layout.context: '{link}는 이미지 크기와 텍스처 핸들 두 개로 이 구성을 보여 줍니다. 명시적 오프셋으로 각 필드의 시작 위치를 지정합니다. 다음 선언에는 {systemRuntimeInteropServices}와 {zenithNET} 네임스페이스를 사용합니다.'

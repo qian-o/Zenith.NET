@@ -2,9 +2,9 @@
 
 public struct ShaderDesc
 {
-    public string Name;
+    public byte[] Bytecode;
 
-    public byte[] CodeBytes;
+    public string EntryPoint;
 
-    public ThreadGroupSize ThreadGroupSize;
+    public ThreadGroup ThreadGroup;
 }

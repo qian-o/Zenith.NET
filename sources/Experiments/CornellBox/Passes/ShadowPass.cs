@@ -223,7 +223,7 @@ internal unsafe class ShadowPass : DisposableObject
 
     private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint offsetInBytes)
     {
-        ThreadGroupSize group = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        ThreadGroup group = pipeline.Desc.ComputeShader.Desc.ThreadGroup;
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, offsetInBytes);
