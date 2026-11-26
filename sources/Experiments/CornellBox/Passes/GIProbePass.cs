@@ -80,7 +80,18 @@ internal unsafe class GIProbePass : DisposableObject
         {
             remainingWarmupFrameCount--;
 
-            slots[0] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex, 0.80f, 1, 0, reset: false, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas);
+            slots[0] = CreateConstants(scene,
+                                       LinearSampler,
+                                       in frame,
+                                       frame.FrameIndex,
+                                       0.80f,
+                                       1,
+                                       0,
+                                       reset: false,
+                                       previousIrradianceAtlas,
+                                       previousDistanceAtlas,
+                                       currentIrradianceAtlas,
+                                       currentDistanceAtlas);
 
             constantBuffer.Upload(0, new()
             {

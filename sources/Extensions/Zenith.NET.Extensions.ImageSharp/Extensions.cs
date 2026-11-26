@@ -48,7 +48,13 @@ public static class Extensions
 
                 for (uint i = 1; i < mipLevels; i++)
                 {
-                    ZenithHelper.MipDimensions((uint)image.Width, (uint)image.Height, 1, i, out uint mipWidth, out uint mipHeight, out _);
+                    ZenithHelper.MipDimensions((uint)image.Width,
+                                               (uint)image.Height,
+                                               1,
+                                               i,
+                                               out uint mipWidth,
+                                               out uint mipHeight,
+                                               out _);
 
                     using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali, srgb));
 
