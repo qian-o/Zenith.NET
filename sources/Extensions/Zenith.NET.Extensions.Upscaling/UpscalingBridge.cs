@@ -32,13 +32,15 @@ internal partial class UpscalingBridge : DisposableObject
                 Register(new MetalFXVendor(context));
                 break;
         }
-
-        Capabilities = new(superResolution is not null, rayReconstruction is not null, frameGeneration is not null);
     }
 
     public GraphicsContext Context { get; }
 
-    public UpscalingCapabilities Capabilities { get; }
+    public bool SuperResolutionSupported => superResolution is not null;
+
+    public bool RayReconstructionSupported => rayReconstruction is not null;
+
+    public bool FrameGenerationSupported => frameGeneration is not null;
 
     public SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {
@@ -71,9 +73,9 @@ internal partial class UpscalingBridge : DisposableObject
 
     private void Register(Vendor vendor)
     {
-        superResolution ??= vendor.Capabilities.SuperResolutionSupported ? vendor : null;
-        rayReconstruction ??= vendor.Capabilities.RayReconstructionSupported ? vendor : null;
-        frameGeneration ??= vendor.Capabilities.FrameGenerationSupported ? vendor : null;
+        superResolution ??= vendor.SuperResolutionSupported ? vendor : null;
+        rayReconstruction ??= vendor.RayReconstructionSupported ? vendor : null;
+        frameGeneration ??= vendor.FrameGenerationSupported ? vendor : null;
 
         if (vendor == superResolution || vendor == rayReconstruction || vendor == frameGeneration)
         {
@@ -105,7 +107,11 @@ internal abstract class Vendor(GraphicsContext context) : DisposableObject
 {
     public GraphicsContext Context { get; } = context;
 
-    public abstract UpscalingCapabilities Capabilities { get; }
+    public abstract bool SuperResolutionSupported { get; }
+
+    public abstract bool RayReconstructionSupported { get; }
+
+    public abstract bool FrameGenerationSupported { get; }
 
     public abstract SuperResolution CreateSuperResolution(SuperResolutionDesc desc);
 

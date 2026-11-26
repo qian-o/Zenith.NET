@@ -25,10 +25,16 @@ internal unsafe class FSRVendor : Vendor
                 break;
         }
 
-        Capabilities = new(IsSupported(Fsr.APICreateContextDescTypeUpscale), IsSupported(Fsr.APICreateContextDescTypeDenoiser), IsSupported(Fsr.APICreateContextDescTypeFrameGeneration));
+        SuperResolutionSupported = IsSupported(Fsr.APICreateContextDescTypeUpscale);
+        RayReconstructionSupported = IsSupported(Fsr.APICreateContextDescTypeDenoiser);
+        FrameGenerationSupported = IsSupported(Fsr.APICreateContextDescTypeFrameGeneration);
     }
 
-    public override UpscalingCapabilities Capabilities { get; }
+    public override bool SuperResolutionSupported { get; }
+
+    public override bool RayReconstructionSupported { get; }
+
+    public override bool FrameGenerationSupported { get; }
 
     public ComputePipeline PreparePipeline => preparePipeline ??= UpscalingBridge.CreatePipeline(Context, UpscalingBridge.RayReconstructionPrepareCS(Context.GraphicsApi));
 

@@ -57,12 +57,18 @@ internal unsafe partial class DLSSVendor : Vendor
                 break;
         }
 
-        Capabilities = new(IsSupported(parameters, Ngx.ParameterSuperSamplingAvailable), IsSupported(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable), IsSupported(parameters, Ngx.ParameterFrameGenerationAvailable));
+        SuperResolutionSupported = IsSupported(parameters, Ngx.ParameterSuperSamplingAvailable);
+        RayReconstructionSupported = IsSupported(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable);
+        FrameGenerationSupported = IsSupported(parameters, Ngx.ParameterFrameGenerationAvailable);
 
         DestroyParameters(parameters);
     }
 
-    public override UpscalingCapabilities Capabilities { get; }
+    public override bool SuperResolutionSupported { get; }
+
+    public override bool RayReconstructionSupported { get; }
+
+    public override bool FrameGenerationSupported { get; }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {

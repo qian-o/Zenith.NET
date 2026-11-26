@@ -79,7 +79,7 @@ internal static class App
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
 
-        isFrameGenerationEnabled = Context.UpscalingCapabilities.FrameGenerationSupported;
+        isFrameGenerationEnabled = Context.Capabilities.FrameGenerationSupported;
         CreateSwapChain();
 
         camera = new(input, new(0.0f, 244.0f, -935.0f), new(0.0f, 210.0f, 255.0f))
@@ -229,7 +229,7 @@ internal static class App
 
         bool hasRenderChanged = false;
 
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.SuperResolutionSupported);
+        ImGui.BeginDisabled(!Context.Capabilities.SuperResolutionSupported);
 
         int qualityIndex = renderer.Quality is UpscalingQuality quality ? (int)quality + 1 : 0;
         if (ImGui.Combo("Upscaling Quality", ref qualityIndex, "Off\0Native\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
@@ -244,7 +244,7 @@ internal static class App
 
         ImGui.EndDisabled();
 
-        ImGui.BeginDisabled(!Context.UpscalingCapabilities.FrameGenerationSupported);
+        ImGui.BeginDisabled(!Context.Capabilities.FrameGenerationSupported);
 
         bool hasFrameGenerationChanged = ImGui.Checkbox("Frame Generation", ref isFrameGenerationEnabled);
 

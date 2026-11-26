@@ -135,7 +135,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     }
 
     protected override void Initialize(bool useValidationLayer,
-                                       out Capabilities capabilities,
+                                       out GraphicsCapabilities capabilities,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
@@ -346,7 +346,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             QueueFamilies = new([.. queueSelection.CreateInfos.Select(static item => item.QueueFamilyIndex)]);
         }
 
-        capabilities = new VKCapabilities(this);
+        capabilities = new VKGraphicsCapabilities(this);
         graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, queueSelection.Graphics.QueueFamilyIndex, queueSelection.Graphics.QueueIndex);
         computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, queueSelection.Compute.QueueFamilyIndex, queueSelection.Compute.QueueIndex);
         transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, queueSelection.Transfer.QueueFamilyIndex, queueSelection.Transfer.QueueIndex);

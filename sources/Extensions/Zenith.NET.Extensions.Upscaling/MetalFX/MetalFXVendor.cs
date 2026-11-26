@@ -16,10 +16,16 @@ internal class MetalFXVendor : Vendor
         Compiler = Device.MakeCompiler(descriptor, out NSError error);
         error.Success();
 
-        Capabilities = new(MTLFXTemporalScalerDescriptor.SupportsMetal4FX(Device), MTLFXTemporalDenoisedScalerDescriptor.SupportsMetal4FX(Device), MTLFXFrameInterpolatorDescriptor.SupportsMetal4FX(Device));
+        SuperResolutionSupported = MTLFXTemporalScalerDescriptor.SupportsMetal4FX(Device);
+        RayReconstructionSupported = MTLFXTemporalDenoisedScalerDescriptor.SupportsMetal4FX(Device);
+        FrameGenerationSupported = MTLFXFrameInterpolatorDescriptor.SupportsMetal4FX(Device);
     }
 
-    public override UpscalingCapabilities Capabilities { get; }
+    public override bool SuperResolutionSupported { get; }
+
+    public override bool RayReconstructionSupported { get; }
+
+    public override bool FrameGenerationSupported { get; }
 
     public override SuperResolution CreateSuperResolution(SuperResolutionDesc desc)
     {

@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCapabilities(MTLGraphicsContext context) : Capabilities
+internal class MTLGraphicsCapabilities(MTLGraphicsContext context) : GraphicsCapabilities(context)
 {
     public override string DeviceName { get; } = context.Device.Name;
 

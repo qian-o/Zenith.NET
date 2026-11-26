@@ -38,7 +38,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
     }
 
     protected override void Initialize(bool useValidationLayer,
-                                       out Capabilities capabilities,
+                                       out GraphicsCapabilities capabilities,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
@@ -60,7 +60,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
         ResidencySet = Device.MakeResidencySet(residencySetDescriptor, out error);
         error.Success();
 
-        capabilities = new MTLCapabilities(this);
+        capabilities = new MTLGraphicsCapabilities(this);
         graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics);
         computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute);
         transferQueue = new MTLCommandQueue(this, CommandQueueType.Transfer);

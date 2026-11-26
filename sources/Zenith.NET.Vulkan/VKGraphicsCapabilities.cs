@@ -3,9 +3,9 @@ using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKCapabilities : Capabilities
+internal unsafe class VKGraphicsCapabilities : GraphicsCapabilities
 {
-    public VKCapabilities(VKGraphicsContext context)
+    public VKGraphicsCapabilities(VKGraphicsContext context) : base(context)
     {
         using ZenithMarshal.Scope scope = new();
 

@@ -252,7 +252,7 @@ internal unsafe class GBufferPass : DisposableObject
 
     public void Resize(uint width, uint height, uint targetOutputWidth, uint targetOutputHeight, bool hasOutputMotionDepth)
     {
-        bool useOutputMotionDepth = hasOutputMotionDepth && (width != targetOutputWidth || height != targetOutputHeight) && App.Context.UpscalingCapabilities.FrameGenerationSupported;
+        bool useOutputMotionDepth = hasOutputMotionDepth && (width != targetOutputWidth || height != targetOutputHeight) && App.Context.Capabilities.FrameGenerationSupported;
         if (Width == width && Height == height && outputWidth == targetOutputWidth && outputHeight == targetOutputHeight && HasOutputMotionDepth == useOutputMotionDepth)
         {
             return;

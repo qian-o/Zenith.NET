@@ -4,9 +4,9 @@ using Feature = Silk.NET.Direct3D12.Feature;
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe class DXCapabilities : Capabilities
+internal unsafe class DXGraphicsCapabilities : GraphicsCapabilities
 {
-    public DXCapabilities(DXGraphicsContext context)
+    public DXGraphicsCapabilities(DXGraphicsContext context) : base(context)
     {
         AdapterDesc desc;
         context.Adapter.GetDesc(&desc).Success();

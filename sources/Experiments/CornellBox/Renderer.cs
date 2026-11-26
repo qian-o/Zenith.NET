@@ -35,7 +35,7 @@ internal class Renderer : DisposableObject
         Resize(isFrameGenerationEnabled);
     }
 
-    public UpscalingQuality? Quality { get; set; } = App.Context.UpscalingCapabilities.SuperResolutionSupported ? UpscalingQuality.Quality : null;
+    public UpscalingQuality? Quality { get; set; } = App.Context.Capabilities.SuperResolutionSupported ? UpscalingQuality.Quality : null;
 
     public AtmospherePreset Preset
     {
