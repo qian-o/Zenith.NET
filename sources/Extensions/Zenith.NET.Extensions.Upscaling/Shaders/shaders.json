@@ -1,0 +1,25 @@
+﻿{
+  "namespace": "Zenith.NET.Extensions.Upscaling",
+  "className": "UpscalingBridge",
+  "output": "../UpscalingBridge.g.cs",
+  "apis": [
+    "DirectX12",
+    "Metal",
+    "Vulkan"
+  ],
+  "shaders": [
+    {
+      "name": "RayReconstructionPrepareCS",
+      "source": "RayReconstruction.slang",
+      "entryPoint": "PrepareCS",
+      "preprocessorMacros": {
+        "PREPARE": "1"
+      }
+    },
+    {
+      "name": "RayReconstructionComposeCS",
+      "source": "RayReconstruction.slang",
+      "entryPoint": "ComposeCS"
+    }
+  ]
+}

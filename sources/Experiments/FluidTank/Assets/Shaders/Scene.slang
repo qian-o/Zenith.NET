@@ -66,7 +66,7 @@ struct FSOutput
 ConstantBuffer<SceneConstants> scene;
 
 [shader("vertex")]
-VSOutput VSMain(VSInput input)
+VSOutput MainVS(VSInput input)
 {
     float4 worldPosition = float4(input.Position.xyz, 1.0);
     float4 viewPosition = mul(worldPosition, scene.View);
@@ -82,7 +82,7 @@ VSOutput VSMain(VSInput input)
 }
 
 [shader("fragment")]
-FSOutput FSMain(VSOutput input)
+FSOutput MainFS(VSOutput input)
 {
     SceneMaterial material = scene.Materials[input.MaterialId];
     float3 normal = normalize(input.Normal);

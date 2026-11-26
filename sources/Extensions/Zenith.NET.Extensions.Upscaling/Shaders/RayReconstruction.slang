@@ -76,7 +76,7 @@ struct ComposeConstants
     DescriptorHandle<RWTexture2D<float>> TransparencyMask;
 };
 
-#if 0
+#ifdef PREPARE
 ConstantBuffer<PrepareConstants> prepare;
 #else
 ConstantBuffer<ComposeConstants> compose;
@@ -126,7 +126,7 @@ float2 OctahedralEncode(float3 normal)
     return saturate(normal.xy * 0.5 + 0.5);
 }
 
-#if 0
+#ifdef PREPARE
 float ReconstructLinearDepth(float deviceDepth)
 {
     float denom = deviceDepth * prepare.M34 - prepare.M33;

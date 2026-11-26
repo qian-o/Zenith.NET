@@ -128,7 +128,7 @@ GBufferFSOutput SkyMotionFS(SkyVSOutput input)
 }
 
 [shader("vertex")]
-MeshVSOutput VSMain(MeshVSInput input, uint instanceId: SV_InstanceID)
+MeshVSOutput MainVS(MeshVSInput input, uint instanceId: SV_InstanceID)
 {
     SceneInstance instance = gBuffer.Instances[gBuffer.BaseInstance + instanceId];
     float3 localPos = input.Position.xyz;
@@ -156,7 +156,7 @@ MeshVSOutput VSMain(MeshVSInput input, uint instanceId: SV_InstanceID)
 }
 
 [shader("fragment")]
-GBufferFSOutput FSMain(MeshVSOutput input)
+GBufferFSOutput MainFS(MeshVSOutput input)
 {
     SceneMaterial material = gBuffer.Materials[input.MaterialId];
 

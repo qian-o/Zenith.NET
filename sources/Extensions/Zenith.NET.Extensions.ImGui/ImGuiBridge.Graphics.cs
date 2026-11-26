@@ -70,20 +70,8 @@ internal unsafe partial class ImGuiBridge
     {
         sampler = Context.CreateSampler(SamplerDesc.PointClamp());
 
-        using Shader vertex = Context.CreateShader(Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyVSMain : DirectX12LinearVSMain,
-            GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyVSMain : MetalLinearVSMain,
-            GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyVSMain : VulkanLinearVSMain,
-            _ => default
-        });
-        using Shader fragment = Context.CreateShader(Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyFSMain : DirectX12LinearFSMain,
-            GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyFSMain : MetalLinearFSMain,
-            GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyFSMain : VulkanLinearFSMain,
-            _ => default
-        });
+        using Shader vertex = Context.CreateShader(colorSpace is ImGuiColorSpace.Legacy ? LegacyVS(Context.GraphicsApi) : LinearVS(Context.GraphicsApi));
+        using Shader fragment = Context.CreateShader(colorSpace is ImGuiColorSpace.Legacy ? LegacyFS(Context.GraphicsApi) : LinearFS(Context.GraphicsApi));
 
         InputLayout inputLayout = new();
         inputLayout.Add(new()

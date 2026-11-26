@@ -1,0 +1,38 @@
+﻿{
+  "namespace": "Zenith.NET.Extensions.ImGui",
+  "className": "ImGuiBridge",
+  "output": "../ImGuiBridge.g.cs",
+  "apis": [
+    "DirectX12",
+    "Metal",
+    "Vulkan"
+  ],
+  "shaders": [
+    {
+      "name": "LegacyVS",
+      "source": "ImGui.slang",
+      "entryPoint": "MainVS"
+    },
+    {
+      "name": "LegacyFS",
+      "source": "ImGui.slang",
+      "entryPoint": "MainFS"
+    },
+    {
+      "name": "LinearVS",
+      "source": "ImGui.slang",
+      "entryPoint": "MainVS",
+      "preprocessorMacros": {
+        "LINEAR": "1"
+      }
+    },
+    {
+      "name": "LinearFS",
+      "source": "ImGui.slang",
+      "entryPoint": "MainFS",
+      "preprocessorMacros": {
+        "LINEAR": "1"
+      }
+    }
+  ]
+}

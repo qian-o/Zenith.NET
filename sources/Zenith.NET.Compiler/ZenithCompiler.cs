@@ -31,33 +31,41 @@ public static class ZenithCompiler
         }
         """;
 
-    public static ShaderDesc CompileFromFile(GraphicsApi graphicsApi, string file, string name, string[]? searchPaths = null)
+    public static ShaderDesc CompileFromFile(GraphicsApi graphicsApi, string file, string entryPoint, Dictionary<string, string>? preprocessorMacros = null, string[]? searchPaths = null)
     {
         return new()
         {
-            Name = name,
-            CodeBytes = SlangCompiler.CompileWithReflection(Preamble, [file, .. Arguments(graphicsApi, name, searchPaths)], out SlangReflection reflection),
-            ThreadGroupSize = ThreadGroupSize(reflection, name)
+            Name = entryPoint,
+            CodeBytes = SlangCompiler.CompileWithReflection(Preamble, [file, .. Arguments(graphicsApi, entryPoint, preprocessorMacros, searchPaths)], out SlangReflection reflection),
+            ThreadGroupSize = ThreadGroupSize(reflection, entryPoint)
         };
     }
 
-    public static ShaderDesc CompileFromSource(GraphicsApi graphicsApi, string source, string name, string[]? searchPaths = null)
+    public static ShaderDesc CompileFromSource(GraphicsApi graphicsApi, string source, string entryPoint, Dictionary<string, string>? preprocessorMacros = null, string[]? searchPaths = null)
     {
         return new()
         {
-            Name = name,
-            CodeBytes = SlangCompiler.CompileWithReflection(Preamble + Environment.NewLine + source, Arguments(graphicsApi, name, searchPaths), out SlangReflection reflection),
-            ThreadGroupSize = ThreadGroupSize(reflection, name)
+            Name = entryPoint,
+            CodeBytes = SlangCompiler.CompileWithReflection(Preamble + Environment.NewLine + source, Arguments(graphicsApi, entryPoint, preprocessorMacros, searchPaths), out SlangReflection reflection),
+            ThreadGroupSize = ThreadGroupSize(reflection, entryPoint)
         };
     }
 
-    private static string[] Arguments(GraphicsApi graphicsApi, string name, string[]? searchPaths)
+    private static string[] Arguments(GraphicsApi graphicsApi, string entryPoint, Dictionary<string, string>? preprocessorMacros, string[]? searchPaths)
     {
         List<string> arguments =
         [
-            "-entry", name,
+            "-entry", entryPoint,
             "-matrix-layout-row-major"
         ];
+
+        if (preprocessorMacros is not null)
+        {
+            foreach ((string key, string value) in preprocessorMacros)
+            {
+                arguments.AddRange(["-D", string.IsNullOrEmpty(value) ? key : $"{key}={value}"]);
+            }
+        }
 
         if (searchPaths is not null)
         {
@@ -87,15 +95,15 @@ public static class ZenithCompiler
         return [.. arguments];
     }
 
-    private static ThreadGroupSize ThreadGroupSize(SlangReflection reflection, string name)
+    private static ThreadGroupSize ThreadGroupSize(SlangReflection reflection, string entryPoint)
     {
-        if (reflection.EntryPoints.FirstOrDefault(p => p.Name == name) is SlangEntryPoint entryPoint && entryPoint.ThreadGroupSize.Length is 3)
+        if (reflection.EntryPoints.FirstOrDefault(p => p.Name == entryPoint) is SlangEntryPoint slangEntryPoint && slangEntryPoint.ThreadGroupSize.Length is 3)
         {
             return new()
             {
-                X = entryPoint.ThreadGroupSize[0],
-                Y = entryPoint.ThreadGroupSize[1],
-                Z = entryPoint.ThreadGroupSize[2]
+                X = slangEntryPoint.ThreadGroupSize[0],
+                Y = slangEntryPoint.ThreadGroupSize[1],
+                Z = slangEntryPoint.ThreadGroupSize[2]
             };
         }
 

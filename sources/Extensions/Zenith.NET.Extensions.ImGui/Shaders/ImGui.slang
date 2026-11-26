@@ -33,7 +33,7 @@ float3 SrgbToLinear(float3 srgb)
 }
 
 [shader("vertex")]
-VSOutput VSMain(VSInput input)
+VSOutput MainVS(VSInput input)
 {
     VSOutput output;
 
@@ -41,7 +41,7 @@ VSOutput VSMain(VSInput input)
     output.UV = input.UV;
     output.Color = input.Color;
 
-#if 0
+#ifdef LINEAR
     output.Color.rgb = SrgbToLinear(output.Color.rgb);
 #endif
 
@@ -49,7 +49,7 @@ VSOutput VSMain(VSInput input)
 }
 
 [shader("fragment")]
-float4 FSMain(VSOutput input) : SV_TARGET
+float4 MainFS(VSOutput input) : SV_TARGET
 {
     return input.Color * constants.Texture.Sample(constants.Sampler, input.UV);
 }
