@@ -136,7 +136,11 @@ public class FrameGenerationSwapChain : GraphicsResource
 
     private bool Ensure(uint renderWidth, uint renderHeight)
     {
-        if (frameGeneration is not null && frameGeneration.Desc.RenderWidth == renderWidth && frameGeneration.Desc.RenderHeight == renderHeight && frameGeneration.Desc.OutputWidth == Desc.Surface.Width && frameGeneration.Desc.OutputHeight == Desc.Surface.Height)
+        if (frameGeneration is not null
+            && frameGeneration.Desc.RenderWidth == renderWidth
+            && frameGeneration.Desc.RenderHeight == renderHeight
+            && frameGeneration.Desc.OutputWidth == Desc.Surface.Width
+            && frameGeneration.Desc.OutputHeight == Desc.Surface.Height)
         {
             return false;
         }

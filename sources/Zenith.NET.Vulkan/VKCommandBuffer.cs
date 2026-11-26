@@ -284,7 +284,13 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         VKTexture vkSrc = src.Vulkan();
         VKTexture vkDst = dst.Vulkan();
 
-        ZenithHelper.MipDimensions(vkSrc.Desc.Width, vkSrc.Desc.Height, vkSrc.Desc.Depth, srcSubresource.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+        ZenithHelper.MipDimensions(vkSrc.Desc.Width,
+                                   vkSrc.Desc.Height,
+                                   vkSrc.Desc.Depth,
+                                   srcSubresource.MipLevel,
+                                   out uint mipWidth,
+                                   out uint mipHeight,
+                                   out uint mipDepth);
 
         ImageResolve2 region = new()
         {
@@ -357,7 +363,13 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
             VKTexture texture = attachment.Texture.Vulkan();
 
-            ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, attachment.Subresource.MipLevel, out width, out height, out _);
+            ZenithHelper.MipDimensions(texture.Desc.Width,
+                                       texture.Desc.Height,
+                                       texture.Desc.Depth,
+                                       attachment.Subresource.MipLevel,
+                                       out width,
+                                       out height,
+                                       out _);
 
             pColorAttachments[i] = new()
             {
@@ -387,7 +399,13 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
             VKTexture texture = attachment.Texture.Vulkan();
 
-            ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, attachment.Subresource.MipLevel, out width, out height, out _);
+            ZenithHelper.MipDimensions(texture.Desc.Width,
+                                       texture.Desc.Height,
+                                       texture.Desc.Depth,
+                                       attachment.Subresource.MipLevel,
+                                       out width,
+                                       out height,
+                                       out _);
 
             if (ZenithHelper.HasDepth(texture.Desc.Format))
             {

@@ -70,7 +70,13 @@ public abstract class SuperResolution : GraphicsResource
 
         public bool Equals(Key other)
         {
-            return Color == other.Color && Depth == other.Depth && MotionVectors == other.MotionVectors && ReactiveMask == other.ReactiveMask && Exposure == other.Exposure && DepthReversed == other.DepthReversed && DepthInfinite == other.DepthInfinite;
+            return Color == other.Color
+                   && Depth == other.Depth
+                   && MotionVectors == other.MotionVectors
+                   && ReactiveMask == other.ReactiveMask
+                   && Exposure == other.Exposure
+                   && DepthReversed == other.DepthReversed
+                   && DepthInfinite == other.DepthInfinite;
         }
     }
 }

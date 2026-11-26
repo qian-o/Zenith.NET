@@ -28,7 +28,17 @@ internal unsafe partial class DLSSVendor
         nint getInstanceProcAddr = Context.GetNativeObject(NativeObjectType.VulkanGetInstanceProcAddr);
         nint getDeviceProcAddr = Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr);
 
-        Ngx.Vulkan.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, instance, physicalDevice, device, getInstanceProcAddr, getDeviceProcAddr, &featureInfo, NGXVersion.Api).Success();
+        Ngx.Vulkan.InitWithProjectID(projectId,
+                                     NGXEngineType.Custom,
+                                     engineVersion,
+                                     dataPath,
+                                     instance,
+                                     physicalDevice,
+                                     device,
+                                     getInstanceProcAddr,
+                                     getDeviceProcAddr,
+                                     &featureInfo,
+                                     NGXVersion.Api).Success();
 
         createImageView = (delegate* unmanaged<nint, void*, void*, out ulong, int>)GetProcAddr("vkCreateImageView");
         destroyImageView = (delegate* unmanaged<nint, ulong, void*, void>)GetProcAddr("vkDestroyImageView");
@@ -272,7 +282,13 @@ internal unsafe partial class DLSSVendor
 
             createImageView(device, &imageViewCreateInfo, null, out ulong imageView).Success();
 
-            resources[texture] = resource = Ngx.CreateImageViewResourceVK((nint)imageView, texture.Vulkan(), subresourceRange, format, texture.Desc.Width, texture.Desc.Height, false);
+            resources[texture] = resource = Ngx.CreateImageViewResourceVK((nint)imageView,
+                                                                          texture.Vulkan(),
+                                                                          subresourceRange,
+                                                                          format,
+                                                                          texture.Desc.Width,
+                                                                          texture.Desc.Height,
+                                                                          false);
 
             texture.Disposing += (sender, _) =>
             {

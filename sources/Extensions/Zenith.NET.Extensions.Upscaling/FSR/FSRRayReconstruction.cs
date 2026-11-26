@@ -90,7 +90,18 @@ internal unsafe class FSRRayReconstruction(FSRVendor vendor, RayReconstructionDe
 
         commandBuffer.BeginExternalCommands();
 
-        vendor.EvaluateFeature(commandBuffer, denoiser, args, linearDepth, motionVectors, normals, diffuseInput, diffuseOutput, specularInput, specularOutput, cameraPositionDelta, frameIndex);
+        vendor.EvaluateFeature(commandBuffer,
+                               denoiser,
+                               args,
+                               linearDepth,
+                               motionVectors,
+                               normals,
+                               diffuseInput,
+                               diffuseOutput,
+                               specularInput,
+                               specularOutput,
+                               cameraPositionDelta,
+                               frameIndex);
 
         commandBuffer.EndExternalCommands();
 

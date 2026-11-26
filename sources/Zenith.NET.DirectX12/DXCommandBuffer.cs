@@ -14,7 +14,13 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     public DXCommandBuffer(DXGraphicsContext context, DXCommandQueue queue) : base(context, queue)
     {
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), SilkMarshal.GuidPtrOf<ID3D12CommandAllocator>(), (void**)CommandAllocator.GetAddressOf()).Success();
-        context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12GraphicsCommandList7>(), (void**)CommandList.GetAddressOf()).Success();
+
+        context.Device.CreateCommandList(0,
+                                         DXFormats.DirectX12(queue.Type),
+                                         CommandAllocator,
+                                         default(ID3D12PipelineState*),
+                                         SilkMarshal.GuidPtrOf<ID3D12GraphicsCommandList7>(),
+                                         (void**)CommandList.GetAddressOf()).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -213,7 +219,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DXTexture dxSrc = src.DirectX12();
         DXTexture dxDst = dst.DirectX12();
 
-        CommandList.ResolveSubresource(dxDst.Resource, dxDst.SubresourceIndex(dstSubresource), dxSrc.Resource, dxSrc.SubresourceIndex(srcSubresource), DXFormats.DirectX12(dxDst.Desc.Format));
+        CommandList.ResolveSubresource(dxDst.Resource,
+                                       dxDst.SubresourceIndex(dstSubresource),
+                                       dxSrc.Resource,
+                                       dxSrc.SubresourceIndex(srcSubresource),
+                                       DXFormats.DirectX12(dxDst.Desc.Format));
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)

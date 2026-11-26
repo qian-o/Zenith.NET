@@ -116,7 +116,18 @@ internal unsafe class FSRVendor : Vendor
         Dispatch(context, ref dispatchDesc);
     }
 
-    public void EvaluateFeature(CommandBuffer commandBuffer, FSRContext context, RayReconstructionArgs args, Texture linearDepth, Texture motionVectors, Texture normals, Texture diffuseInput, Texture diffuseOutput, Texture specularInput, Texture specularOutput, Vector3 cameraPositionDelta, uint frameIndex)
+    public void EvaluateFeature(CommandBuffer commandBuffer,
+                                FSRContext context,
+                                RayReconstructionArgs args,
+                                Texture linearDepth,
+                                Texture motionVectors,
+                                Texture normals,
+                                Texture diffuseInput,
+                                Texture diffuseOutput,
+                                Texture specularInput,
+                                Texture specularOutput,
+                                Vector3 cameraPositionDelta,
+                                uint frameIndex)
     {
         FSRDispatchDescDenoiser dispatchDesc = ParameterBuilder.EvaluationParams(commandBuffer, args, linearDepth, motionVectors, normals, cameraPositionDelta, frameIndex);
 
@@ -290,12 +301,36 @@ file static unsafe class ParameterBuilder
 
     public static FSRDispatchDescUpscale EvaluationParams(CommandBuffer commandBuffer, SuperResolutionArgs args, Texture output)
     {
-        return EvaluationParams(commandBuffer, args.Color, args.Depth, args.MotionVectors, args.Exposure, args.ReactiveMask, null, output, args.JitterOffset, args.Projection, args.DeltaTimeInSeconds, args.PreExposure, args.Reset);
+        return EvaluationParams(commandBuffer,
+                                args.Color,
+                                args.Depth,
+                                args.MotionVectors,
+                                args.Exposure,
+                                args.ReactiveMask,
+                                null,
+                                output,
+                                args.JitterOffset,
+                                args.Projection,
+                                args.DeltaTimeInSeconds,
+                                args.PreExposure,
+                                args.Reset);
     }
 
     public static FSRDispatchDescUpscale EvaluationParams(CommandBuffer commandBuffer, RayReconstructionArgs args, Texture color, Texture? transparencyMask, Texture output)
     {
-        return EvaluationParams(commandBuffer, color, args.Depth, args.MotionVectors, args.Exposure, args.ReactiveMask, transparencyMask, output, args.JitterOffset, args.Projection, args.DeltaTimeInSeconds, args.PreExposure, args.Reset);
+        return EvaluationParams(commandBuffer,
+                                color,
+                                args.Depth,
+                                args.MotionVectors,
+                                args.Exposure,
+                                args.ReactiveMask,
+                                transparencyMask,
+                                output,
+                                args.JitterOffset,
+                                args.Projection,
+                                args.DeltaTimeInSeconds,
+                                args.PreExposure,
+                                args.Reset);
     }
 
     public static FSRDispatchDescDenoiser EvaluationParams(CommandBuffer commandBuffer, RayReconstructionArgs args, Texture linearDepth, Texture motionVectors, Texture normals, Vector3 cameraPositionDelta, uint frameIndex)
@@ -431,7 +466,19 @@ file static unsafe class ParameterBuilder
         };
     }
 
-    private static FSRDispatchDescUpscale EvaluationParams(CommandBuffer commandBuffer, Texture color, Texture depth, Texture motionVectors, Texture? exposure, Texture? reactiveMask, Texture? transparencyMask, Texture output, Vector2 jitterOffset, Matrix4x4 projection, float deltaTimeInSeconds, float? preExposure, bool reset)
+    private static FSRDispatchDescUpscale EvaluationParams(CommandBuffer commandBuffer,
+                                                           Texture color,
+                                                           Texture depth,
+                                                           Texture motionVectors,
+                                                           Texture? exposure,
+                                                           Texture? reactiveMask,
+                                                           Texture? transparencyMask,
+                                                           Texture output,
+                                                           Vector2 jitterOffset,
+                                                           Matrix4x4 projection,
+                                                           float deltaTimeInSeconds,
+                                                           float? preExposure,
+                                                           bool reset)
     {
         (float nearPlane, float farPlane, float verticalFieldOfViewInRadians, _, bool depthReversed, _) = UpscalingHelper.DecomposePerspective(projection);
 

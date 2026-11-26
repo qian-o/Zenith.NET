@@ -82,7 +82,19 @@ public abstract class RayReconstruction : GraphicsResource
 
         public bool Equals(Key other)
         {
-            return Color == other.Color && Depth == other.Depth && MotionVectors == other.MotionVectors && DiffuseAlbedo == other.DiffuseAlbedo && SpecularAlbedo == other.SpecularAlbedo && Normals == other.Normals && Roughness == other.Roughness && SpecularHitDistance == other.SpecularHitDistance && ReactiveMask == other.ReactiveMask && TransparencyOverlay == other.TransparencyOverlay && Exposure == other.Exposure && DepthReversed == other.DepthReversed && DepthInfinite == other.DepthInfinite;
+            return Color == other.Color
+                   && Depth == other.Depth
+                   && MotionVectors == other.MotionVectors
+                   && DiffuseAlbedo == other.DiffuseAlbedo
+                   && SpecularAlbedo == other.SpecularAlbedo
+                   && Normals == other.Normals
+                   && Roughness == other.Roughness
+                   && SpecularHitDistance == other.SpecularHitDistance
+                   && ReactiveMask == other.ReactiveMask
+                   && TransparencyOverlay == other.TransparencyOverlay
+                   && Exposure == other.Exposure
+                   && DepthReversed == other.DepthReversed
+                   && DepthInfinite == other.DepthInfinite;
         }
     }
 }

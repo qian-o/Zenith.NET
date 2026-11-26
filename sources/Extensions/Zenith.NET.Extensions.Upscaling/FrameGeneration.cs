@@ -68,7 +68,12 @@ public abstract class FrameGeneration : GraphicsResource
 
         public bool Equals(Key other)
         {
-            return Color == other.Color && Depth == other.Depth && MotionVectors == other.MotionVectors && Hudless == other.Hudless && DepthReversed == other.DepthReversed && DepthInfinite == other.DepthInfinite;
+            return Color == other.Color
+                   && Depth == other.Depth
+                   && MotionVectors == other.MotionVectors
+                   && Hudless == other.Hudless
+                   && DepthReversed == other.DepthReversed
+                   && DepthInfinite == other.DepthInfinite;
         }
     }
 }
