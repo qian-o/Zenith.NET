@@ -5,15 +5,6 @@ public static class Extensions
     private static readonly Lock @lock = new();
     private static readonly Dictionary<GraphicsContext, UpscalingBridge> bridges = [];
 
-    extension(Capabilities capabilities)
-    {
-        public bool SuperResolutionSupported => GetBridge(capabilities.Context).SuperResolutionSupported;
-
-        public bool RayReconstructionSupported => GetBridge(capabilities.Context).RayReconstructionSupported;
-
-        public bool FrameGenerationSupported => GetBridge(capabilities.Context).FrameGenerationSupported;
-    }
-
     extension(GraphicsContext context)
     {
         public void InitializeUpscaling()
@@ -55,6 +46,15 @@ public static class Extensions
         {
             return GetBridge(context).CreateFrameGenerationSwapChain(desc);
         }
+    }
+
+    extension(Capabilities capabilities)
+    {
+        public bool SuperResolutionSupported => GetBridge(capabilities.Context).SuperResolutionSupported;
+
+        public bool RayReconstructionSupported => GetBridge(capabilities.Context).RayReconstructionSupported;
+
+        public bool FrameGenerationSupported => GetBridge(capabilities.Context).FrameGenerationSupported;
     }
 
     extension(TextureUsages)
