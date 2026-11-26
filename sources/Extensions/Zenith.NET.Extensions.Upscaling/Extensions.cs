@@ -5,7 +5,7 @@ public static class Extensions
     private static readonly Lock @lock = new();
     private static readonly Dictionary<GraphicsContext, UpscalingBridge> bridges = [];
 
-    extension(GraphicsCapabilities capabilities)
+    extension(Capabilities capabilities)
     {
         public bool SuperResolutionSupported => GetBridge(capabilities.Context).SuperResolutionSupported;
 

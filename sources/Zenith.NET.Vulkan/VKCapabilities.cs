@@ -3,9 +3,9 @@ using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKGraphicsCapabilities : GraphicsCapabilities
+internal unsafe class VKCapabilities : Capabilities
 {
-    public VKGraphicsCapabilities(VKGraphicsContext context) : base(context)
+    public VKCapabilities(VKGraphicsContext context) : base(context)
     {
         using ZenithMarshal.Scope scope = new();
 
@@ -30,4 +30,17 @@ internal unsafe class VKGraphicsCapabilities : GraphicsCapabilities
     public override bool RayTracingSupported { get; }
 
     public override bool MeshShadingSupported { get; }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    protected override void SetResourceName(string name)
+    {
+    }
+
+    protected override void Destroy()
+    {
+    }
 }

@@ -1,9 +1,7 @@
 ﻿namespace Zenith.NET;
 
-public abstract class GraphicsCapabilities(GraphicsContext context)
+public abstract class Capabilities(GraphicsContext context) : GraphicsResource(context)
 {
-    public GraphicsContext Context => context;
-
     public abstract string DeviceName { get; }
 
     public abstract bool RayTracingSupported { get; }

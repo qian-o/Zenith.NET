@@ -205,7 +205,7 @@ internal unsafe class VKBuffer : Buffer
         }
     }
 
-    public static BufferCreateInfo CreateInfo(BufferDesc desc, GraphicsCapabilities capabilities, QueueFamilies queueFamilies)
+    public static BufferCreateInfo CreateInfo(BufferDesc desc, Capabilities capabilities, QueueFamilies queueFamilies)
     {
         return new()
         {

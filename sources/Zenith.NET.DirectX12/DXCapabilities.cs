@@ -4,9 +4,9 @@ using Feature = Silk.NET.Direct3D12.Feature;
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe class DXGraphicsCapabilities : GraphicsCapabilities
+internal unsafe class DXCapabilities : Capabilities
 {
-    public DXGraphicsCapabilities(DXGraphicsContext context) : base(context)
+    public DXCapabilities(DXGraphicsContext context) : base(context)
     {
         AdapterDesc desc;
         context.Adapter.GetDesc(&desc).Success();
@@ -27,4 +27,17 @@ internal unsafe class DXGraphicsCapabilities : GraphicsCapabilities
     public override bool RayTracingSupported { get; }
 
     public override bool MeshShadingSupported { get; }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    protected override void SetResourceName(string name)
+    {
+    }
+
+    protected override void Destroy()
+    {
+    }
 }
