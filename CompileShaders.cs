@@ -421,7 +421,7 @@ static void AppendBytecode(StringBuilder builder, byte[] bytecode)
     builder.AppendLine("        ],");
 }
 
-internal sealed class TargetConfig
+internal class TargetConfig
 {
     public string? Namespace { get; init; }
 
@@ -440,7 +440,7 @@ internal sealed class TargetConfig
     public required ShaderConfig[] Shaders { get; init; }
 }
 
-internal sealed class ShaderConfig
+internal class ShaderConfig
 {
     public string? Name { get; init; }
 
