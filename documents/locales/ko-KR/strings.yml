@@ -189,8 +189,6 @@ concepts.shaders.title: 셰이더 데이터 및 바인딩
 concepts.synchronization.barriers.context: '관련 접근을 포함하고 큐에서 지원하는 단계를 선택합니다. {barrierStagesAll}은 지원되는 모든 단계를 포함합니다. 의존성이 일부 단계에만 관련된다면 해당 단계만 선택합니다.'
 concepts.synchronization.barriers.description: '같은 명령 버퍼에 두 컴퓨트 디스패치를 기록한다고 가정합니다. 첫 번째는 시뮬레이션 데이터를 쓰고 두 번째는 이를 읽습니다. 두 번째가 완료된 쓰기를 볼 수 있도록 디스패치 사이에 배리어를 둡니다. 스토리지 버퍼라면 텍스처 레이아웃을 전환하지 않고 다음과 같이 접근 순서를 정할 수 있습니다.'
 concepts.synchronization.barriers.details: '첫 번째 인수는 데이터를 만든 단계를, 두 번째는 데이터를 사용할 단계를 지정합니다. 두 인수는 디스패치 사이에 필요한 실행 순서와 메모리 가시성을 기술합니다.'
-concepts.synchronization.barriers.guidance: '{link}은 시뮬레이션 단계 사이에 이 패턴을 적용합니다.'
-concepts.synchronization.barriers.guidance.link: FluidTank 시뮬레이션
 concepts.synchronization.barriers.title: '파이프라인 배리어'
 concepts.synchronization.dependencies.description: '각 리소스에서 같은 데이터를 다루는 접근을 확인합니다. 어느 한쪽이라도 쓰기라면 필요한 순서를 지켜야 합니다. 읽기끼리는 충돌하지 않지만 텍스처 레이아웃과 화면 표시 요구 사항은 여전히 적용됩니다. CPU가 데이터를 갱신하거나 리소스를 해제할 때도 GPU가 해당 저장 공간을 다 쓸 때까지 기다려야 합니다.'
 concepts.synchronization.dependencies.details: '작업이 실행되는 위치에 따라 적절한 수단을 선택합니다.'
@@ -293,7 +291,6 @@ samples.triangle.title: Hello Triangle
 samples.workloads.description: 'Zenith.NET 저장소의 {link}에는 다음 애플리케이션과 도구가 있습니다.'
 samples.workloads.description.link: Experiments 디렉터리
 samples.workloads.table.cornellBox.description: '조명과 반사를 살펴볼 수 있는 인터랙티브 실내 장면입니다. 레이 트레이싱 지원이 필요합니다.'
-samples.workloads.table.fluidTank.description: '수면 또는 입자 형태로 볼 수 있는 수조 속 물 시뮬레이션입니다.'
 samples.workloads.table.headings.description: '설명'
 samples.workloads.table.headings.example: 예제
 samples.workloads.table.inkCanvas.description: '자유롭게 선을 그리고 지울 수 있는 캔버스입니다.'

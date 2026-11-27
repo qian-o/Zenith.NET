@@ -189,8 +189,6 @@ concepts.shaders.title: Données de shaders et liaison
 concepts.synchronization.barriers.context: 'Choisir des étapes qui couvrent les accès concernés et sont prises en charge par la file. {barrierStagesAll} inclut toutes les étapes disponibles ; une sélection plus restreinte convient lorsque la dépendance ne concerne que certaines d’entre elles.'
 concepts.synchronization.barriers.description: 'Considérons deux calculs enregistrés dans le même tampon de commandes : le premier écrit des données de simulation, le second les lit. Une barrière entre les deux garantit que le second voit les écritures achevées. Pour un tampon de stockage, elle ordonne les accès sans transition de layout de texture :'
 concepts.synchronization.barriers.details: 'Le premier argument indique les étapes qui ont produit les données ; le second indique celles qui vont les utiliser. Ensemble, ils décrivent l’ordre d’exécution et la visibilité mémoire nécessaires entre les deux calculs.'
-concepts.synchronization.barriers.guidance: 'La {link} applique ce principe entre les étapes de simulation.'
-concepts.synchronization.barriers.guidance.link: simulation FluidTank
 concepts.synchronization.barriers.title: 'Barrières de pipeline'
 concepts.synchronization.dependencies.description: 'Pour chaque ressource, repérer les accès qui portent sur les mêmes données. Si l’un d’eux écrit, préserver l’ordre requis entre eux. Deux lectures ne sont pas en conflit, même si les contraintes de layout et de présentation continuent de s’appliquer. Les mises à jour CPU et la libération des ressources doivent aussi attendre que le GPU ait fini d’utiliser la mémoire concernée.'
 concepts.synchronization.dependencies.details: 'Le mécanisme dépend du lieu d’exécution des opérations :'
@@ -293,7 +291,6 @@ samples.triangle.title: Bonjour triangle
 samples.workloads.description: 'Le {link} du dépôt Zenith.NET contient ces applications et utilitaires.'
 samples.workloads.description.link: répertoire Experiments
 samples.workloads.table.cornellBox.description: 'Une scène d’intérieur interactive pour observer l’éclairage et les reflets. Nécessite la prise en charge du lancer de rayons.'
-samples.workloads.table.fluidTank.description: 'Une simulation d’eau dans un réservoir, avec une vue de la surface et une vue des particules.'
 samples.workloads.table.headings.description: 'Description'
 samples.workloads.table.headings.example: Exemple
 samples.workloads.table.inkCanvas.description: Une zone de dessin pour tracer et effacer des traits à main levée.

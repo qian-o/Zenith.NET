@@ -1,3 +1,0 @@
-﻿using FluidTank;
-
-App.Run();

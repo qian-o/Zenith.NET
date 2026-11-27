@@ -141,14 +141,6 @@ title: '@samples.title'
         </tr>
         <tr>
             <td>
-                <a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/FluidTank">FluidTank</a>
-            </td>
-            <td>
-                <resource key="samples.workloads.table.fluidTank.description"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
                 <a href="https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/InkCanvas">InkCanvas</a>
             </td>
             <td>

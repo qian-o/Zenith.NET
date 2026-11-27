@@ -349,8 +349,6 @@ concepts.synchronization.barriers.description: 'Consider two compute dispatches 
 concepts.synchronization.barriers.details: The first argument identifies the stages that produced the data; the
   second identifies the stages that will consume it. Together they describe the execution order and memory visibility
   required between the two dispatches.
-concepts.synchronization.barriers.guidance: The {link} uses this pattern between simulation steps.
-concepts.synchronization.barriers.guidance.link: FluidTank simulation
 concepts.synchronization.barriers.title: Pipeline barriers
 concepts.synchronization.dependencies.description: For each resource, identify the accesses that touch the same
   data. If either access writes, preserve the required order between them. Two reads do not conflict, although texture
@@ -497,8 +495,6 @@ samples.workloads.description: The Zenith.NET repository's {link} contains these
 samples.workloads.description.link: Experiments directory
 samples.workloads.table.cornellBox.description: An interactive room scene for exploring lighting
   and reflections. Requires ray tracing support.
-samples.workloads.table.fluidTank.description: A water simulation in a tank, with surface
-  and particle views.
 samples.workloads.table.headings.description: Description
 samples.workloads.table.headings.example: Example
 samples.workloads.table.inkCanvas.description: A canvas for drawing and erasing freehand

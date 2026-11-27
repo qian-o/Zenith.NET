@@ -189,8 +189,6 @@ concepts.shaders.title: Shader-Daten und Bindung
 concepts.synchronization.barriers.context: 'Wählen Sie Stufen, die die relevanten Zugriffe umfassen und von der Warteschlange unterstützt werden. {barrierStagesAll} schließt alle unterstützten Stufen ein. Beschränken Sie die Auswahl, wenn die Abhängigkeit nur einen Teil davon betrifft.'
 concepts.synchronization.barriers.description: 'Angenommen, zwei Compute-Dispatches stehen im selben Befehlspuffer: Der erste schreibt Simulationsdaten, der zweite liest sie. Eine Barriere dazwischen stellt sicher, dass der zweite Dispatch die abgeschlossenen Schreibvorgänge sieht. Bei einem Speicherpuffer genügt es, die Zugriffe zu ordnen; ein Texturlayoutübergang ist nicht erforderlich:'
 concepts.synchronization.barriers.details: 'Das erste Argument benennt die Stufen, die die Daten erzeugt haben; das zweite die Stufen, die sie verwenden werden. Gemeinsam beschreiben sie die benötigte Ausführungsreihenfolge und Speichersichtbarkeit zwischen den beiden Dispatches.'
-concepts.synchronization.barriers.guidance: 'Die {link} verwendet dieses Muster zwischen Simulationsschritten.'
-concepts.synchronization.barriers.guidance.link: FluidTank-Simulation
 concepts.synchronization.barriers.title: 'Pipeline-Barrieren'
 concepts.synchronization.dependencies.description: 'Ermitteln Sie für jede Ressource, welche Zugriffe dieselben Daten betreffen. Sobald einer davon schreibt, muss die benötigte Reihenfolge erhalten bleiben. Zwei Lesezugriffe stehen nicht im Konflikt; Anforderungen an Texturlayout und Präsentation gelten dennoch. Auch CPU-Aktualisierungen und Ressourcenfreigaben müssen warten, bis die GPU den betroffenen Speicher nicht mehr verwendet.'
 concepts.synchronization.dependencies.details: 'Der Mechanismus richtet sich nach dem Ausführungsort der Operationen:'
@@ -293,7 +291,6 @@ samples.triangle.title: Hallo Dreieck
 samples.workloads.description: 'Das {link} im Zenith.NET-Repository enthält diese Anwendungen und Hilfsprogramme.'
 samples.workloads.description.link: Verzeichnis Experiments
 samples.workloads.table.cornellBox.description: 'Eine interaktive Raumszene zum Erkunden von Beleuchtung und Reflexionen. Erfordert Raytracing-Unterstützung.'
-samples.workloads.table.fluidTank.description: 'Eine Wassersimulation in einem Becken mit einer Oberflächen- und einer Partikelansicht.'
 samples.workloads.table.headings.description: 'Beschreibung'
 samples.workloads.table.headings.example: Beispiel
 samples.workloads.table.inkCanvas.description: Eine Zeichenfläche, auf der sich Freihandstriche zeichnen und wieder löschen lassen.

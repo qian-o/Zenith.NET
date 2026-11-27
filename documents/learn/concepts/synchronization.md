@@ -93,11 +93,6 @@ commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading
     <resource key="concepts.synchronization.barriers.details"></resource>
 </p>
 <p>
-    <resource key="concepts.synchronization.barriers.guidance">
-        <slot name="link"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Experiments/FluidTank/Simulation.cs"><resource key="concepts.synchronization.barriers.guidance.link"></resource></a></slot>
-    </resource>
-</p>
-<p>
     <resource key="concepts.synchronization.barriers.context">
         <slot name="barrierStagesAll"><a class="xref" href="xref:Zenith.NET.BarrierStages.All"><code>BarrierStages.All</code></a></slot>
     </resource>

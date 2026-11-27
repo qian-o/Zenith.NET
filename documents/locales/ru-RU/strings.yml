@@ -189,8 +189,6 @@ concepts.shaders.title: Данные шейдеров и привязка
 concepts.synchronization.barriers.context: 'Выбирайте стадии, которые охватывают нужные обращения и поддерживаются очередью. {barrierStagesAll} включает все поддерживаемые стадии. Если зависимость затрагивает лишь часть из них, можно указать более узкий набор.'
 concepts.synchronization.barriers.description: 'Рассмотрим два запуска вычислений в одном командном буфере: первый записывает данные симуляции, второй их читает. Барьер между ними позволяет второму запуску увидеть результаты завершённых записей. Для буфера хранения он упорядочивает обращения без перехода состояния текстуры:'
 concepts.synchronization.barriers.details: 'Первый аргумент указывает стадии, которые произвели данные, второй — стадии, которым они понадобятся. Вместе они описывают порядок выполнения и видимость памяти, необходимые между двумя запусками.'
-concepts.synchronization.barriers.guidance: 'Этот порядок используется в {link} между шагами симуляции.'
-concepts.synchronization.barriers.guidance.link: симуляции FluidTank
 concepts.synchronization.barriers.title: 'Барьеры конвейера'
 concepts.synchronization.dependencies.description: 'Для каждого ресурса определите обращения к одним и тем же данным. Если хотя бы одно из них записывает, сохраните необходимый порядок. Два чтения не конфликтуют, хотя требования к состоянию текстуры и выводу изображения продолжают действовать. Обновление данных с CPU и освобождение ресурсов тоже должны ждать, пока GPU закончит использовать соответствующую память.'
 concepts.synchronization.dependencies.details: 'Выбор механизма зависит от места выполнения операций:'
@@ -293,7 +291,6 @@ samples.triangle.title: 'Треугольник'
 samples.workloads.description: 'Каталог {link} репозитория Zenith.NET содержит следующие приложения и утилиты.'
 samples.workloads.description.link: 'Experiments'
 samples.workloads.table.cornellBox.description: 'Интерактивная сцена комнаты для изучения освещения и отражений. Требуется поддержка трассировки лучей.'
-samples.workloads.table.fluidTank.description: 'Симуляция воды в резервуаре с режимами отображения поверхности и частиц.'
 samples.workloads.table.headings.description: 'Описание'
 samples.workloads.table.headings.example: Пример
 samples.workloads.table.inkCanvas.description: Холст для рисования от руки и стирания штрихов.
