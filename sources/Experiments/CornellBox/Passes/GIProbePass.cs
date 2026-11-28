@@ -14,7 +14,9 @@ internal unsafe class GIProbePass : DisposableObject
     private const uint IrradianceAtlasHeight = 352;
     private const uint DistanceAtlasWidth = 1024;
     private const uint DistanceAtlasHeight = 704;
-    private const float SteadyStateHysteresis = 0.975f;
+    private const uint ProbeOffsetAtlasWidth = 64;
+    private const uint ProbeOffsetAtlasHeight = 44;
+    private const float SteadyStateHysteresis = 0.96f;
 
     private readonly Buffer constantBuffer;
     private readonly ComputePipeline pipeline;
@@ -23,6 +25,8 @@ internal unsafe class GIProbePass : DisposableObject
     private Texture currentIrradianceAtlas;
     private Texture previousDistanceAtlas;
     private Texture currentDistanceAtlas;
+    private Texture previousProbeOffsets;
+    private Texture currentProbeOffsets;
     private uint remainingWarmupFrameCount;
 
     public GIProbePass()
@@ -43,11 +47,15 @@ internal unsafe class GIProbePass : DisposableObject
         currentIrradianceAtlas = CreateAtlasTexture(PixelFormat.R16G16B16A16Float, IrradianceAtlasWidth, IrradianceAtlasHeight);
         previousDistanceAtlas = CreateAtlasTexture(PixelFormat.R16G16Float, DistanceAtlasWidth, DistanceAtlasHeight);
         currentDistanceAtlas = CreateAtlasTexture(PixelFormat.R16G16Float, DistanceAtlasWidth, DistanceAtlasHeight);
+        previousProbeOffsets = CreateAtlasTexture(PixelFormat.R16G16B16A16Float, ProbeOffsetAtlasWidth, ProbeOffsetAtlasHeight);
+        currentProbeOffsets = CreateAtlasTexture(PixelFormat.R16G16B16A16Float, ProbeOffsetAtlasWidth, ProbeOffsetAtlasHeight);
     }
 
     public Texture IrradianceAtlas => previousIrradianceAtlas;
 
     public Texture DistanceAtlas => previousDistanceAtlas;
+
+    public Texture ProbeOffsets => previousProbeOffsets;
 
     public Sampler LinearSampler { get; }
 
@@ -60,10 +68,10 @@ internal unsafe class GIProbePass : DisposableObject
         {
             remainingWarmupFrameCount = 16;
 
-            slots[0] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex, 0.0f, 1, 0, reset: true, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas);
-            slots[1] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex + 1, 0.0f, 1, 0, reset: false, currentIrradianceAtlas, currentDistanceAtlas, previousIrradianceAtlas, previousDistanceAtlas);
-            slots[2] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex + 2, 0.5f, 1, 0, reset: false, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas);
-            slots[3] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex + 3, 0.67f, 1, 0, reset: false, currentIrradianceAtlas, currentDistanceAtlas, previousIrradianceAtlas, previousDistanceAtlas);
+            slots[0] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex, 0.0f, 1, 0, reset: true, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas, previousProbeOffsets, currentProbeOffsets);
+            slots[1] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex + 1, 0.0f, 1, 0, reset: false, currentIrradianceAtlas, currentDistanceAtlas, previousIrradianceAtlas, previousDistanceAtlas, currentProbeOffsets, previousProbeOffsets);
+            slots[2] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex + 2, 0.5f, 1, 0, reset: false, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas, previousProbeOffsets, currentProbeOffsets);
+            slots[3] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex + 3, 0.67f, 1, 0, reset: false, currentIrradianceAtlas, currentDistanceAtlas, previousIrradianceAtlas, previousDistanceAtlas, currentProbeOffsets, previousProbeOffsets);
 
             constantBuffer.Upload(0, new()
             {
@@ -71,10 +79,10 @@ internal unsafe class GIProbePass : DisposableObject
                 SizeInBytes = strideInBytes * ConstantSlotCount
             });
 
-            DispatchFullSlot(commandBuffer, 0, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas);
-            DispatchFullSlot(commandBuffer, strideInBytes, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas);
-            DispatchFullSlot(commandBuffer, strideInBytes * 2, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas);
-            DispatchFullSlot(commandBuffer, strideInBytes * 3, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas);
+            DispatchFullSlot(commandBuffer, 0, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas, ref previousProbeOffsets, ref currentProbeOffsets);
+            DispatchFullSlot(commandBuffer, strideInBytes, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas, ref previousProbeOffsets, ref currentProbeOffsets);
+            DispatchFullSlot(commandBuffer, strideInBytes * 2, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas, ref previousProbeOffsets, ref currentProbeOffsets);
+            DispatchFullSlot(commandBuffer, strideInBytes * 3, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas, ref previousProbeOffsets, ref currentProbeOffsets);
         }
         else if (remainingWarmupFrameCount > 12)
         {
@@ -91,7 +99,9 @@ internal unsafe class GIProbePass : DisposableObject
                                        previousIrradianceAtlas,
                                        previousDistanceAtlas,
                                        currentIrradianceAtlas,
-                                       currentDistanceAtlas);
+                                       currentDistanceAtlas,
+                                       previousProbeOffsets,
+                                       currentProbeOffsets);
 
             constantBuffer.Upload(0, new()
             {
@@ -99,7 +109,7 @@ internal unsafe class GIProbePass : DisposableObject
                 SizeInBytes = strideInBytes
             });
 
-            DispatchFullSlot(commandBuffer, 0, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas);
+            DispatchFullSlot(commandBuffer, 0, ref previousIrradianceAtlas, ref currentIrradianceAtlas, ref previousDistanceAtlas, ref currentDistanceAtlas, ref previousProbeOffsets, ref currentProbeOffsets);
         }
         else
         {
@@ -112,7 +122,7 @@ internal unsafe class GIProbePass : DisposableObject
             }
 
             uint phase = frame.FrameIndex & (SteadyStateStride - 1);
-            slots[0] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex, hysteresis, SteadyStateStride, phase, reset: false, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas);
+            slots[0] = CreateConstants(scene, LinearSampler, in frame, frame.FrameIndex, hysteresis, SteadyStateStride, phase, reset: false, previousIrradianceAtlas, previousDistanceAtlas, currentIrradianceAtlas, currentDistanceAtlas, previousProbeOffsets, currentProbeOffsets);
 
             constantBuffer.Upload(0, new()
             {
@@ -124,6 +134,8 @@ internal unsafe class GIProbePass : DisposableObject
             commandBuffer.Transition(currentIrradianceAtlas, default, TextureLayout.Undefined, TextureLayout.CopyDst);
             commandBuffer.Transition(previousDistanceAtlas, default, TextureLayout.Sampled, TextureLayout.CopySrc);
             commandBuffer.Transition(currentDistanceAtlas, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+            commandBuffer.Transition(previousProbeOffsets, default, TextureLayout.Sampled, TextureLayout.CopySrc);
+            commandBuffer.Transition(currentProbeOffsets, default, TextureLayout.Undefined, TextureLayout.CopyDst);
 
             commandBuffer.CopyTexture(previousIrradianceAtlas, default, default, currentIrradianceAtlas, default, default, new()
             {
@@ -137,11 +149,19 @@ internal unsafe class GIProbePass : DisposableObject
                 Height = DistanceAtlasHeight,
                 Depth = 1
             });
+            commandBuffer.CopyTexture(previousProbeOffsets, default, default, currentProbeOffsets, default, default, new()
+            {
+                Width = ProbeOffsetAtlasWidth,
+                Height = ProbeOffsetAtlasHeight,
+                Depth = 1
+            });
 
             commandBuffer.Transition(previousIrradianceAtlas, default, TextureLayout.CopySrc, TextureLayout.Sampled);
             commandBuffer.Transition(currentIrradianceAtlas, default, TextureLayout.CopyDst, TextureLayout.Storage);
             commandBuffer.Transition(previousDistanceAtlas, default, TextureLayout.CopySrc, TextureLayout.Sampled);
             commandBuffer.Transition(currentDistanceAtlas, default, TextureLayout.CopyDst, TextureLayout.Storage);
+            commandBuffer.Transition(previousProbeOffsets, default, TextureLayout.CopySrc, TextureLayout.Sampled);
+            commandBuffer.Transition(currentProbeOffsets, default, TextureLayout.CopyDst, TextureLayout.Storage);
             commandBuffer.Barrier(BarrierStages.Copy, BarrierStages.ComputeShading);
 
             commandBuffer.SetPipeline(pipeline);
@@ -150,10 +170,12 @@ internal unsafe class GIProbePass : DisposableObject
 
             commandBuffer.Transition(currentIrradianceAtlas, default, TextureLayout.Storage, TextureLayout.Sampled);
             commandBuffer.Transition(currentDistanceAtlas, default, TextureLayout.Storage, TextureLayout.Sampled);
+            commandBuffer.Transition(currentProbeOffsets, default, TextureLayout.Storage, TextureLayout.Sampled);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
             (previousIrradianceAtlas, currentIrradianceAtlas) = (currentIrradianceAtlas, previousIrradianceAtlas);
             (previousDistanceAtlas, currentDistanceAtlas) = (currentDistanceAtlas, previousDistanceAtlas);
+            (previousProbeOffsets, currentProbeOffsets) = (currentProbeOffsets, previousProbeOffsets);
         }
 
         static GIProbeConstants CreateConstants(SceneResources scene,
@@ -167,7 +189,9 @@ internal unsafe class GIProbePass : DisposableObject
                                                 Texture previousIrradiance,
                                                 Texture previousDistance,
                                                 Texture currentIrradiance,
-                                                Texture currentDistance)
+                                                Texture currentDistance,
+                                                Texture previousOffsets,
+                                                Texture currentOffsets)
         {
             return new()
             {
@@ -185,13 +209,17 @@ internal unsafe class GIProbePass : DisposableObject
                 PreviousDistanceAtlas = reset ? default : previousDistance.SampledHandle,
                 CurrentIrradianceAtlas = currentIrradiance.StorageHandle,
                 CurrentDistanceAtlas = currentDistance.StorageHandle,
-                LinearSampler = linearSampler.Handle
+                LinearSampler = linearSampler.Handle,
+                PreviousProbeOffsets = reset ? default : previousOffsets.SampledHandle,
+                CurrentProbeOffsets = currentOffsets.StorageHandle
             };
         }
     }
 
     protected override void Destroy()
     {
+        currentProbeOffsets?.Dispose();
+        previousProbeOffsets?.Dispose();
         currentDistanceAtlas?.Dispose();
         previousDistanceAtlas?.Dispose();
         currentIrradianceAtlas?.Dispose();
@@ -206,10 +234,13 @@ internal unsafe class GIProbePass : DisposableObject
                                   ref Texture previousIrradiance,
                                   ref Texture currentIrradiance,
                                   ref Texture previousDistance,
-                                  ref Texture currentDistance)
+                                  ref Texture currentDistance,
+                                  ref Texture previousOffsets,
+                                  ref Texture currentOffsets)
     {
         commandBuffer.Transition(currentIrradiance, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(currentDistance, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(currentOffsets, default, TextureLayout.Undefined, TextureLayout.Storage);
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, offsetInBytes);
@@ -217,10 +248,12 @@ internal unsafe class GIProbePass : DisposableObject
 
         commandBuffer.Transition(currentIrradiance, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(currentDistance, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(currentOffsets, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
         (previousIrradiance, currentIrradiance) = (currentIrradiance, previousIrradiance);
         (previousDistance, currentDistance) = (currentDistance, previousDistance);
+        (previousOffsets, currentOffsets) = (currentOffsets, previousOffsets);
     }
 
     private static Texture CreateAtlasTexture(PixelFormat format, uint width, uint height)
@@ -279,4 +312,10 @@ file struct GIProbeConstants
 
     [FieldOffset(184)]
     public ResourceHandle LinearSampler;
+
+    [FieldOffset(192)]
+    public ResourceHandle PreviousProbeOffsets;
+
+    [FieldOffset(200)]
+    public ResourceHandle CurrentProbeOffsets;
 }

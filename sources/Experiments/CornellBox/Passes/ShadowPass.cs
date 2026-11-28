@@ -24,7 +24,7 @@ internal unsafe class ShadowPass : DisposableObject
     private Texture previousLinearDepth = null!;
     private Texture currentLinearDepth = null!;
     private Vector2 previousJitterOffset;
-    private uint filterWarmupFrameCount;
+    private Vector3 previousCameraPosition;
 
     public ShadowPass()
     {
@@ -52,22 +52,15 @@ internal unsafe class ShadowPass : DisposableObject
 
     public Texture PreviousLinearDepth => currentLinearDepth;
 
+    public Texture HistoryLength => previousHistoryLength;
+
     public void Record(CommandBuffer commandBuffer, SceneResources scene, GBufferPass gBuffer, in FrameContext frame)
     {
         Vector2 effectivePreviousJitter = frame.Reset ? frame.JitterOffset : previousJitterOffset;
         Vector2 jitterDelta = (frame.JitterOffset - effectivePreviousJitter) / new Vector2(Width, Height);
+        Vector3 effectivePreviousCameraPosition = frame.Reset ? frame.CameraPosition : previousCameraPosition;
 
         uint resetFlags = (frame.Reset ? FlagResetAll : 0) | (frame.ResetLighting ? FlagResetLight : 0);
-        if (resetFlags is not 0)
-        {
-            filterWarmupFrameCount = 12;
-        }
-
-        bool isWarmupFilter = filterWarmupFrameCount > 0;
-        if (isWarmupFilter)
-        {
-            filterWarmupFrameCount--;
-        }
 
         uint strideInBytes = (uint)sizeof(ShadowConstants);
         ShadowConstants* slots = stackalloc ShadowConstants[ConstantSlotCount];
@@ -77,6 +70,7 @@ internal unsafe class ShadowPass : DisposableObject
             InverseJitteredViewProjection = frame.InverseJitteredViewProjection,
             CameraPosition = frame.CameraPosition,
             FrameIndex = frame.FrameIndex,
+            PreviousCameraPosition = effectivePreviousCameraPosition,
             Width = Width,
             Height = Height,
             Reset = resetFlags,
@@ -96,62 +90,36 @@ internal unsafe class ShadowPass : DisposableObject
             CurrentHistoryLength = currentHistoryLength.StorageHandle
         };
 
-        uint activeSlotCount;
         slots[0] = baseConstants with { StepSize = 0 };
-
-        if (isWarmupFilter)
+        slots[1] = baseConstants with
         {
-            activeSlotCount = 4;
-            slots[1] = baseConstants with
-            {
-                StepSize = 4,
-                PreviousLinearDepth = currentLinearDepth.SampledHandle,
-                FilterInput = currentHistory.SampledHandle,
-                FilterOutput = ShadowAO.StorageHandle,
-                PreviousHistoryLength = currentHistoryLength.SampledHandle
-            };
-            slots[2] = baseConstants with
-            {
-                StepSize = 2,
-                PreviousLinearDepth = currentLinearDepth.SampledHandle,
-                FilterInput = ShadowAO.SampledHandle,
-                FilterOutput = filterScratch.StorageHandle,
-                PreviousHistoryLength = currentHistoryLength.SampledHandle
-            };
-            slots[3] = baseConstants with
-            {
-                StepSize = 1,
-                PreviousLinearDepth = currentLinearDepth.SampledHandle,
-                FilterInput = filterScratch.SampledHandle,
-                FilterOutput = ShadowAO.StorageHandle,
-                PreviousHistoryLength = currentHistoryLength.SampledHandle
-            };
-        }
-        else
+            StepSize = 4,
+            PreviousLinearDepth = currentLinearDepth.SampledHandle,
+            FilterInput = currentHistory.SampledHandle,
+            FilterOutput = ShadowAO.StorageHandle,
+            PreviousHistoryLength = currentHistoryLength.SampledHandle
+        };
+        slots[2] = baseConstants with
         {
-            activeSlotCount = 3;
-            slots[1] = baseConstants with
-            {
-                StepSize = 2,
-                PreviousLinearDepth = currentLinearDepth.SampledHandle,
-                FilterInput = currentHistory.SampledHandle,
-                FilterOutput = filterScratch.StorageHandle,
-                PreviousHistoryLength = currentHistoryLength.SampledHandle
-            };
-            slots[2] = baseConstants with
-            {
-                StepSize = 1,
-                PreviousLinearDepth = currentLinearDepth.SampledHandle,
-                FilterInput = filterScratch.SampledHandle,
-                FilterOutput = ShadowAO.StorageHandle,
-                PreviousHistoryLength = currentHistoryLength.SampledHandle
-            };
-        }
+            StepSize = 2,
+            PreviousLinearDepth = currentLinearDepth.SampledHandle,
+            FilterInput = ShadowAO.SampledHandle,
+            FilterOutput = filterScratch.StorageHandle,
+            PreviousHistoryLength = currentHistoryLength.SampledHandle
+        };
+        slots[3] = baseConstants with
+        {
+            StepSize = 1,
+            PreviousLinearDepth = currentLinearDepth.SampledHandle,
+            FilterInput = filterScratch.SampledHandle,
+            FilterOutput = ShadowAO.StorageHandle,
+            PreviousHistoryLength = currentHistoryLength.SampledHandle
+        };
 
         constantBuffer.Upload(0, new()
         {
             Pointer = (nint)slots,
-            SizeInBytes = strideInBytes * activeSlotCount
+            SizeInBytes = strideInBytes * ConstantSlotCount
         });
 
         commandBuffer.Transition(currentLinearDepth, default, TextureLayout.Undefined, TextureLayout.Storage);
@@ -163,35 +131,20 @@ internal unsafe class ShadowPass : DisposableObject
         commandBuffer.Transition(currentHistory, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(currentHistoryLength, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        if (isWarmupFilter)
-        {
-            commandBuffer.Transition(ShadowAO, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, strideInBytes);
-            commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(ShadowAO, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        Dispatch(commandBuffer, filterPipeline, strideInBytes);
+        commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-            commandBuffer.Transition(filterScratch, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, strideInBytes * 2);
-            commandBuffer.Transition(filterScratch, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(filterScratch, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        Dispatch(commandBuffer, filterPipeline, strideInBytes * 2);
+        commandBuffer.Transition(filterScratch, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-            commandBuffer.Transition(ShadowAO, default, TextureLayout.Sampled, TextureLayout.Storage);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, strideInBytes * 3);
-            commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
-        }
-        else
-        {
-            commandBuffer.Transition(filterScratch, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, strideInBytes);
-            commandBuffer.Transition(filterScratch, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-            commandBuffer.Transition(ShadowAO, default, TextureLayout.Undefined, TextureLayout.Storage);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, filterPipeline, strideInBytes * 2);
-            commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
-        }
+        commandBuffer.Transition(ShadowAO, default, TextureLayout.Sampled, TextureLayout.Storage);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        Dispatch(commandBuffer, filterPipeline, strideInBytes * 3);
+        commandBuffer.Transition(ShadowAO, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
@@ -199,6 +152,7 @@ internal unsafe class ShadowPass : DisposableObject
         (previousHistoryLength, currentHistoryLength) = (currentHistoryLength, previousHistoryLength);
         (previousLinearDepth, currentLinearDepth) = (currentLinearDepth, previousLinearDepth);
         previousJitterOffset = frame.JitterOffset;
+        previousCameraPosition = frame.CameraPosition;
     }
 
     public void Resize(uint width, uint height)
@@ -267,7 +221,7 @@ internal unsafe class ShadowPass : DisposableObject
         Width = 0;
         Height = 0;
         previousJitterOffset = Vector2.Zero;
-        filterWarmupFrameCount = 0;
+        previousCameraPosition = Vector3.Zero;
     }
 
     private static Texture CreateComputeTexture(PixelFormat format, uint width, uint height)
@@ -292,62 +246,65 @@ file struct ShadowConstants
     public uint FrameIndex;
 
     [FieldOffset(80)]
-    public uint Width;
-
-    [FieldOffset(84)]
-    public uint Height;
-
-    [FieldOffset(88)]
-    public uint Reset;
-
-    [FieldOffset(92)]
-    public uint StepSize;
+    public Vector3 PreviousCameraPosition;
 
     [FieldOffset(96)]
-    public Vector2 JitterDelta;
+    public uint Width;
+
+    [FieldOffset(100)]
+    public uint Height;
 
     [FieldOffset(104)]
-    public float NightLightIntensity;
+    public uint Reset;
+
+    [FieldOffset(108)]
+    public uint StepSize;
 
     [FieldOffset(112)]
-    public Vector3 KeyLightDirection;
+    public Vector2 JitterDelta;
 
-    [FieldOffset(124)]
-    public float SoftKeyCosRadius;
+    [FieldOffset(120)]
+    public float NightLightIntensity;
 
     [FieldOffset(128)]
-    public ResourceHandle Scene;
+    public Vector3 KeyLightDirection;
 
-    [FieldOffset(136)]
-    public ResourceHandle Depth;
+    [FieldOffset(140)]
+    public float SoftKeyCosRadius;
 
     [FieldOffset(144)]
-    public ResourceHandle NormalAndRoughness;
+    public ResourceHandle Scene;
 
     [FieldOffset(152)]
-    public ResourceHandle MotionVectors;
+    public ResourceHandle Depth;
 
     [FieldOffset(160)]
-    public ResourceHandle PreviousLinearDepth;
+    public ResourceHandle NormalAndRoughness;
 
     [FieldOffset(168)]
-    public ResourceHandle CurrentLinearDepth;
+    public ResourceHandle MotionVectors;
 
     [FieldOffset(176)]
-    public ResourceHandle PreviousHistory;
+    public ResourceHandle PreviousLinearDepth;
 
     [FieldOffset(184)]
-    public ResourceHandle CurrentHistory;
+    public ResourceHandle CurrentLinearDepth;
 
     [FieldOffset(192)]
-    public ResourceHandle FilterInput;
+    public ResourceHandle PreviousHistory;
 
     [FieldOffset(200)]
-    public ResourceHandle FilterOutput;
+    public ResourceHandle CurrentHistory;
 
     [FieldOffset(208)]
-    public ResourceHandle PreviousHistoryLength;
+    public ResourceHandle FilterInput;
 
     [FieldOffset(216)]
+    public ResourceHandle FilterOutput;
+
+    [FieldOffset(224)]
+    public ResourceHandle PreviousHistoryLength;
+
+    [FieldOffset(232)]
     public ResourceHandle CurrentHistoryLength;
 }

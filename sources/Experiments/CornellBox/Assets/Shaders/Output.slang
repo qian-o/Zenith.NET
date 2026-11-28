@@ -217,6 +217,15 @@ float3 LinearToSrgb(float3 linearColor)
     return select(clamped <= 0.0031308, clamped * 12.92, 1.055 * pow(clamped, 1.0 / 2.4) - 0.055);
 }
 
+float3 ApplyTriangularDither(float3 srgbColor, uint2 pixel, uint width, uint frameIndex)
+{
+    uint seed = PCGHash(pixel.x + pixel.y * max(width, 1u) + frameIndex * 1664525u);
+    float ditherA = float(seed >> 8u) * (1.0 / 16777216.0);
+    float ditherB = float(PCGHash(seed) >> 8u) * (1.0 / 16777216.0);
+
+    return saturate(srgbColor + (ditherA - ditherB) * (1.0 / 255.0));
+}
+
 [shader("vertex")]
 FullscreenVSOutput FullscreenVS(uint vertexId: SV_VertexID)
 {
@@ -241,13 +250,13 @@ float4 ToneMappingFS(FullscreenVSOutput input) : SV_TARGET
     hdr += bloomColor * (bloomIntensity * exposure);
 
     float3 srgbColor = LinearToSrgb(AcesFilm(hdr));
+    bool outputLuminance = (output.Flags & FlagOutputLuminance) != 0u;
+    if (!outputLuminance)
+    {
+        srgbColor = ApplyTriangularDither(srgbColor, pixel, output.Width, output.FrameIndex);
+    }
 
-    uint seed = PCGHash(pixel.x + pixel.y * max(output.Width, 1u) + output.FrameIndex * 1664525u);
-    float ditherA = float(seed >> 8u) * (1.0 / 16777216.0);
-    float ditherB = float(PCGHash(seed) >> 8u) * (1.0 / 16777216.0);
-    srgbColor = saturate(srgbColor + (ditherA - ditherB) * (1.0 / 255.0));
-
-    float alpha = (output.Flags & FlagOutputLuminance) != 0u ? PerceptualLuminance(srgbColor) : 1.0;
+    float alpha = outputLuminance ? PerceptualLuminance(srgbColor) : 1.0;
 
     return float4(srgbColor, alpha);
 }
@@ -255,36 +264,120 @@ float4 ToneMappingFS(FullscreenVSOutput input) : SV_TARGET
 [shader("fragment")]
 float4 AntialiasingFS(FullscreenVSOutput input) : SV_TARGET
 {
+    uint2 pixel = uint2(input.Position.xy);
     float2 texel = output.TexelSize;
-    float4 center = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV, 0);
-    float northwest =
-        output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, -1.0), 0).a;
-    float northeast =
-        output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(1.0, -1.0), 0).a;
-    float southwest =
-        output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(-1.0, 1.0), 0).a;
-    float southeast = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + texel * float2(1.0, 1.0), 0).a;
-    float minimum = min(center.a, min(min(northwest, northeast), min(southwest, southeast)));
-    float maximum = max(center.a, max(max(northwest, northeast), max(southwest, southeast)));
+    float4 rgbyM = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV, 0);
+    float lumaM = rgbyM.a;
+    float lumaS = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + float2(0.0, texel.y), 0).a;
+    float lumaE = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + float2(texel.x, 0.0), 0).a;
+    float lumaN = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - float2(0.0, texel.y), 0).a;
+    float lumaW = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - float2(texel.x, 0.0), 0).a;
 
-    if (maximum - minimum < max(0.0312, maximum * 0.125))
+    float rangeMax = max(max(lumaN, lumaW), max(max(lumaE, lumaS), lumaM));
+    float rangeMin = min(min(lumaN, lumaW), min(min(lumaE, lumaS), lumaM));
+    float range = rangeMax - rangeMin;
+    if (range < max(0.0312, rangeMax * 0.125))
     {
-        return float4(center.rgb, 1.0);
+        return float4(ApplyTriangularDither(rgbyM.rgb, pixel, output.Width, output.FrameIndex), 1.0);
     }
 
-    float2 direction =
-        float2(-(northwest + northeast - southwest - southeast), northwest + southwest - northeast - southeast);
-    float reduction = max((northwest + northeast + southwest + southeast) * 0.03125, 0.0078125);
-    direction = clamp(direction / (min(abs(direction.x), abs(direction.y)) + reduction), -8.0, 8.0) * texel;
+    float lumaNW = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + float2(-texel.x, -texel.y), 0).a;
+    float lumaSE = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + float2(texel.x, texel.y), 0).a;
+    float lumaNE = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + float2(texel.x, -texel.y), 0).a;
+    float lumaSW = output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + float2(-texel.x, texel.y), 0).a;
 
-    float3 inner = (output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - direction / 6.0, 0).rgb +
-                    output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + direction / 6.0, 0).rgb) *
-                   0.5;
-    float3 outer =
-        inner * 0.5 + (output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV - direction * 0.5, 0).rgb +
-                       output.PrimaryTexture.SampleLevel(output.LinearSampler, input.UV + direction * 0.5, 0).rgb) *
-                          0.25;
-    float luminance = PerceptualLuminance(outer);
+    float lumaNS = lumaN + lumaS;
+    float lumaWE = lumaW + lumaE;
+    float subpixNSWE = lumaNS + lumaWE;
+    float subpixNWSW = lumaNW + lumaSW;
+    float subpixNESE = lumaNE + lumaSE;
+    float subpixNWNE = lumaNW + lumaNE;
+    float subpixSWSE = lumaSW + lumaSE;
 
-    return float4(luminance < minimum || luminance > maximum ? inner : outer, 1.0);
+    float subpixRcpRange = 1.0 / range;
+    float subpixA = subpixNSWE * 2.0 + subpixNWNE + subpixSWSE;
+    float subpixB = (subpixA * (1.0 / 12.0)) - lumaM;
+    float subpixC = saturate(abs(subpixB) * subpixRcpRange);
+    float subpixD = ((-2.0 * subpixC) + 3.0) * (subpixC * subpixC);
+    float subpixE = subpixD * subpixD * 0.55;
+
+    float edgeHorz = abs(-2.0 * lumaW + subpixNWSW) + abs(-2.0 * lumaM + lumaNS) * 2.0 + abs(-2.0 * lumaE + subpixNESE);
+    float edgeVert = abs(-2.0 * lumaN + subpixNWNE) + abs(-2.0 * lumaM + lumaWE) * 2.0 + abs(-2.0 * lumaS + subpixSWSE);
+    bool horzSpan = edgeHorz >= edgeVert;
+
+    float luma1 = horzSpan ? lumaN : lumaW;
+    float luma2 = horzSpan ? lumaS : lumaE;
+    float gradient1 = luma1 - lumaM;
+    float gradient2 = luma2 - lumaM;
+    bool pair1Steepest = abs(gradient1) >= abs(gradient2);
+    float gradientScaled = 0.25 * max(abs(gradient1), abs(gradient2));
+
+    float lengthSign = horzSpan ? -texel.y : -texel.x;
+    if (!pair1Steepest)
+    {
+        lengthSign = -lengthSign;
+    }
+
+    float lumaLocalAvg = pair1Steepest ? 0.5 * (luma1 + lumaM) : 0.5 * (luma2 + lumaM);
+    float2 posB = input.UV;
+    if (horzSpan)
+    {
+        posB.y += lengthSign * 0.5;
+    }
+    else
+    {
+        posB.x += lengthSign * 0.5;
+    }
+
+    float2 offNP = horzSpan ? float2(texel.x, 0.0) : float2(0.0, texel.y);
+    static const float StepSizes[6] = { 1.0, 2.0, 3.5, 5.5, 8.0, 12.0 };
+    float2 posN = posB;
+    float2 posP = posB;
+    float lumaEndN = lumaLocalAvg;
+    float lumaEndP = lumaLocalAvg;
+    bool doneN = false;
+    bool doneP = false;
+
+    [unroll]
+    for (int i = 0; i < 6; i++)
+    {
+        float2 stepVec = offNP * StepSizes[i];
+        if (!doneN)
+        {
+            posN -= stepVec;
+            lumaEndN = output.PrimaryTexture.SampleLevel(output.LinearSampler, posN, 0).a - lumaLocalAvg;
+            doneN = abs(lumaEndN) >= gradientScaled;
+        }
+
+        if (!doneP)
+        {
+            posP += stepVec;
+            lumaEndP = output.PrimaryTexture.SampleLevel(output.LinearSampler, posP, 0).a - lumaLocalAvg;
+            doneP = abs(lumaEndP) >= gradientScaled;
+        }
+    }
+
+    float dstN = horzSpan ? (input.UV.x - posN.x) : (input.UV.y - posN.y);
+    float dstP = horzSpan ? (posP.x - input.UV.x) : (posP.y - input.UV.y);
+    bool directionN = dstN < dstP;
+    float dst = min(dstN, dstP);
+    float spanLength = max(dstN + dstP, 1e-5);
+    float lumaEndMin = directionN ? lumaEndN : lumaEndP;
+    bool goodSpan = (lumaEndMin < 0.0) != ((lumaM - lumaLocalAvg) < 0.0);
+    float pixelOffset = goodSpan ? (0.5 - dst / spanLength) : 0.0;
+    float finalOffset = max(pixelOffset, subpixE);
+
+    float2 finalUv = input.UV;
+    if (horzSpan)
+    {
+        finalUv.y += finalOffset * lengthSign;
+    }
+    else
+    {
+        finalUv.x += finalOffset * lengthSign;
+    }
+
+    float3 result = output.PrimaryTexture.SampleLevel(output.LinearSampler, finalUv, 0).rgb;
+
+    return float4(ApplyTriangularDither(result, pixel, output.Width, output.FrameIndex), 1.0);
 }

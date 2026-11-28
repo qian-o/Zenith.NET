@@ -10,6 +10,7 @@ static const uint InvalidIndex = 0xFFFFFFFFu;
 static const uint RayMaskOpaque = 0x01u;
 static const uint RayMaskAll = 0xFFu;
 static const uint CeilingLightMaterialId = 14u;
+static const uint CourtyardPaverMaterialId = 17u;
 static const uint LimestoneMaterialId = 18u;
 static const uint TerracottaMaterialId = 19u;
 static const uint FoliageMaterialId = 20u;
@@ -20,8 +21,6 @@ static const uint MaxMaterialId = 24u;
 
 static const float3 GlassSphereCenter = float3(-168.0, 190.0, 195.0);
 static const float GlassSphereRadius = 48.0;
-static const float3 EmeraldUrnCenter = float3(-548.0, 148.0, 425.0);
-static const float EmeraldUrnRadius = 38.0;
 
 static const uint PatternSolid = 0u;
 static const uint PatternChecker = 1u;
@@ -173,12 +172,15 @@ static const uint DDGIAtlasColumns = 64u;
 static const float2 DDGIIrradianceAtlasSize = float2(512.0, 352.0);
 static const float2 DDGIDistanceAtlasSize = float2(1024.0, 704.0);
 
-static const float3 DDGICascade0Origin = float3(-645.0, -12.0, -196.0);
-static const float3 DDGICascade0Spacing = float3(86.0, 62.0, 72.0);
+static const float DDGICascade0MaxDistance = 155.0;
+static const float DDGICascade1MaxDistance = 320.0;
+
+static const float3 DDGICascade0Origin = float3(-735.0, 16.0, -212.0);
+static const float3 DDGICascade0Spacing = float3(98.0, 60.0, 74.0);
 static const int3 DDGICascade0Counts = int3(16, 10, 12);
 
-static const float3 DDGICascade1Origin = float3(-1155.0, -12.0, -1150.0);
-static const float3 DDGICascade1Spacing = float3(210.0, 128.0, 196.0);
+static const float3 DDGICascade1Origin = float3(-1210.0, 18.0, -1245.0);
+static const float3 DDGICascade1Spacing = float3(220.0, 120.0, 212.0);
 static const int3 DDGICascade1Counts = int3(12, 6, 12);
 
 struct SceneVertex
@@ -237,13 +239,6 @@ uint PCGHash(uint input)
     uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
 
     return (word >> 22u) ^ word;
-}
-
-float InterleavedGradientNoise(uint2 pixel, uint frameIndex)
-{
-    float2 f = float2(pixel) + 5.588238 * float(frameIndex & 63u);
-
-    return frac(52.9829189 * frac(0.06711056 * f.x + 0.00583715 * f.y));
 }
 
 float2 OctEncode(float3 n)
@@ -654,8 +649,9 @@ float3 EvaluateProceduralNormal(uint materialId, SceneMaterial material, float3 
         float2 uv = TriplanarCoords(objectPos, objectNormal, material.PatternScale);
         float2 f = frac(uv) - 0.5;
         float2 d = abs(f);
-        float bevelBandX = smoothstep(0.456, 0.474, d.x) * (1.0 - smoothstep(0.474, 0.492, d.x));
-        float bevelBandY = smoothstep(0.456, 0.474, d.y) * (1.0 - smoothstep(0.474, 0.492, d.y));
+        float2 plateau = 1.0 - smoothstep(0.456, 0.486, d);
+        float bevelBandX = smoothstep(0.456, 0.472, d.x) * (1.0 - smoothstep(0.472, 0.488, d.x)) * plateau.y;
+        float bevelBandY = smoothstep(0.456, 0.472, d.y) * (1.0 - smoothstep(0.472, 0.488, d.y)) * plateau.x;
         float eps = 0.035;
         float gX = ValueNoise2D(uv * 5.5 + float2(eps, 0.0)) - ValueNoise2D(uv * 5.5 - float2(eps, 0.0));
         float gY = ValueNoise2D(uv * 5.5 + float2(0.0, eps)) - ValueNoise2D(uv * 5.5 - float2(0.0, eps));
@@ -830,8 +826,9 @@ float2 ComputeDDGIAtlasUV(uint probeIndex, float3 dir, uint interiorSize, float2
 }
 
 float3 SampleDDGICascade(float3 worldPos, float3 normal, float3 viewDir, float3 origin, float3 spacing, int3 counts,
-                         uint probeOffset, Texture2D<float4> irradianceAtlas, Texture2D<float2> distanceAtlas,
-                         SamplerState linearSampler, out float confidence)
+                         uint probeOffset, float maxDistance, Texture2D<float4> irradianceAtlas,
+                         Texture2D<float2> distanceAtlas, Texture2D<float4> probeOffsets, SamplerState linearSampler,
+                         out float confidence)
 {
     float3 bias = (normal * 0.75 + viewDir * 0.25) * (min(spacing.x, min(spacing.y, spacing.z)) * 0.14);
     float3 biasedPos = worldPos + bias;
@@ -849,8 +846,9 @@ float3 SampleDDGICascade(float3 worldPos, float3 normal, float3 viewDir, float3 
         int3 offset = int3(i & 1, (i >> 1) & 1, (i >> 2) & 1);
         int3 probeCoord = clamp(baseIdx + offset, int3(0, 0, 0), counts - 1);
         uint probeIndex = probeOffset + uint((probeCoord.z * counts.y + probeCoord.y) * counts.x + probeCoord.x);
+        uint2 probeTile = uint2(probeIndex % DDGIAtlasColumns, probeIndex / DDGIAtlasColumns);
 
-        float3 probePos = origin + float3(probeCoord) * spacing;
+        float3 probePos = origin + float3(probeCoord) * spacing + probeOffsets.Load(int3(probeTile, 0)).xyz;
         float3 toProbe = probePos - worldPos;
         float3 dirToProbe = toProbe * rsqrt(max(dot(toProbe, toProbe), 1e-8));
         float3 biasedToProbe = probePos - biasedPos;
@@ -865,15 +863,18 @@ float3 SampleDDGICascade(float3 worldPos, float3 normal, float3 viewDir, float3 
         float wrapCos = saturate((dot(dirToProbe, normal) + 1.0) * 0.5);
         weight *= (wrapCos * wrapCos) + 0.05;
 
+        float normDist = distToBiased / maxDistance;
         float2 distUV = ComputeDDGIAtlasUV(probeIndex, dirFromProbe, 14u, DDGIDistanceAtlasSize);
         float2 meanStats = distanceAtlas.SampleLevel(linearSampler, distUV, 0).xy;
         float meanDist = meanStats.x;
-        if (distToBiased > meanDist)
+        if (normDist > meanDist)
         {
-            float variance = max(abs(meanStats.y - meanDist * meanDist), 0.01);
-            float diff = distToBiased - meanDist;
+            float clampedMean = max(meanDist, 0.0);
+            float minVariance = 0.0020 + 0.012 * clampedMean * clampedMean;
+            float variance = max(meanStats.y - meanDist * meanDist, minVariance);
+            float diff = normDist - meanDist;
             float chebyshev = variance / (variance + diff * diff);
-            weight *= max(chebyshev * chebyshev * chebyshev, 0.0);
+            weight *= max(chebyshev * chebyshev, 0.0);
         }
 
         if (weight > 1e-5)
@@ -903,7 +904,7 @@ float3 SampleDDGICascade(float3 worldPos, float3 normal, float3 viewDir, float3 
 
 float3 SampleDDGIIrradiance(float3 worldPos, float3 normal, float3 viewDir, SceneEnvironment env,
                             Texture2D<float4> irradianceAtlas, Texture2D<float2> distanceAtlas,
-                            SamplerState linearSampler)
+                            Texture2D<float4> probeOffsets, SamplerState linearSampler)
 {
     bool insideSanctuary = IsInsideSanctuary(worldPos);
     float3 cascade0Max = DDGICascade0Origin + float3(DDGICascade0Counts - 1) * DDGICascade0Spacing;
@@ -917,17 +918,18 @@ float3 SampleDDGIIrradiance(float3 worldPos, float3 normal, float3 viewDir, Scen
     if (blend0 > 0.001)
     {
         irr0 = SampleDDGICascade(worldPos, normal, viewDir, DDGICascade0Origin, DDGICascade0Spacing, DDGICascade0Counts,
-                                 0u, irradianceAtlas, distanceAtlas, linearSampler, conf0);
-        if (insideSanctuary || (blend0 >= 0.999 && conf0 > 0.05))
+                                 0u, DDGICascade0MaxDistance, irradianceAtlas, distanceAtlas, probeOffsets,
+                                 linearSampler, conf0);
+        if ((insideSanctuary && conf0 > 0.02) || (blend0 >= 0.999 && conf0 > 0.05))
         {
             return irr0;
         }
     }
 
     float conf1 = 0.0;
-    float3 irr1 =
-        SampleDDGICascade(worldPos, normal, viewDir, DDGICascade1Origin, DDGICascade1Spacing, DDGICascade1Counts,
-                          DDGICascade0Probes, irradianceAtlas, distanceAtlas, linearSampler, conf1);
+    float3 irr1 = SampleDDGICascade(worldPos, normal, viewDir, DDGICascade1Origin, DDGICascade1Spacing,
+                                     DDGICascade1Counts, DDGICascade0Probes, DDGICascade1MaxDistance, irradianceAtlas,
+                                     distanceAtlas, probeOffsets, linearSampler, conf1);
 
     float w0 = blend0 * saturate(conf0 / 0.05);
     float3 irr = lerp(irr1, irr0, w0);
@@ -1070,12 +1072,14 @@ float3 EvaluateNightAccentIrradiance(SceneEnvironment env, float3 worldPos, floa
             float halfW = 264.0 - float(i) * 12.0;
             if (ax <= halfW + 4.0)
             {
-                float dy = worldPos.y - (yTop - 0.5);
-                float dz = worldPos.z - (zFront - 0.5);
+                float stripY = yTop - 1.95;
+                float stripZ = zFront - 0.35;
+                float dy = worldPos.y - stripY;
+                float dz = worldPos.z - stripZ;
                 float d = sqrt(dy * dy + dz * dz);
                 if (d < 22.0)
                 {
-                    float3 dirToStrip = float3(0.0, yTop - 0.5 - worldPos.y, zFront - 0.5 - worldPos.z) / max(d, 0.5);
+                    float3 dirToStrip = float3(0.0, stripY - worldPos.y, stripZ - worldPos.z) / max(d, 0.5);
                     float nDot = saturate(dot(normal, dirToStrip) * 0.6 + 0.4);
                     accent += float3(1.00, 0.72, 0.36) * (exp(-d * 0.20) * 0.75 * nDot);
                 }
@@ -1086,17 +1090,18 @@ float3 EvaluateNightAccentIrradiance(SceneEnvironment env, float3 worldPos, floa
     return accent * env.NightLightIntensity;
 }
 
-bool IsLanternOccludedBySanctuaryWall(float3 worldPos, float3 lanternPos)
+float ComputeSanctuaryWallLanternVisibility(float3 worldPos, float3 lanternPos)
 {
+    float vis = 1.0;
+
     if ((worldPos.x - 308.0) * (lanternPos.x - 308.0) < 0.0)
     {
         float t = (308.0 - worldPos.x) / (lanternPos.x - worldPos.x);
         float yCross = lerp(worldPos.y, lanternPos.y, t);
         float zCross = lerp(worldPos.z, lanternPos.z, t);
-        if (yCross >= 0.0 && yCross <= 560.0 && zCross >= 4.0 && zCross <= 588.0)
-        {
-            return true;
-        }
+        float yCov = smoothstep(-8.0, 8.0, yCross) * (1.0 - smoothstep(552.0, 568.0, yCross));
+        float zCov = smoothstep(-4.0, 12.0, zCross) * (1.0 - smoothstep(580.0, 596.0, zCross));
+        vis *= 1.0 - yCov * zCov;
     }
 
     if ((worldPos.x + 308.0) * (lanternPos.x + 308.0) < 0.0)
@@ -1104,10 +1109,9 @@ bool IsLanternOccludedBySanctuaryWall(float3 worldPos, float3 lanternPos)
         float t = (-308.0 - worldPos.x) / (lanternPos.x - worldPos.x);
         float yCross = lerp(worldPos.y, lanternPos.y, t);
         float zCross = lerp(worldPos.z, lanternPos.z, t);
-        if (yCross >= 0.0 && yCross <= 560.0 && zCross >= 4.0 && zCross <= 588.0)
-        {
-            return true;
-        }
+        float yCov = smoothstep(-8.0, 8.0, yCross) * (1.0 - smoothstep(552.0, 568.0, yCross));
+        float zCov = smoothstep(-4.0, 12.0, zCross) * (1.0 - smoothstep(580.0, 596.0, zCross));
+        vis *= 1.0 - yCov * zCov;
     }
 
     if ((worldPos.z - 574.0) * (lanternPos.z - 574.0) < 0.0)
@@ -1115,27 +1119,36 @@ bool IsLanternOccludedBySanctuaryWall(float3 worldPos, float3 lanternPos)
         float t = (574.0 - worldPos.z) / (lanternPos.z - worldPos.z);
         float xCross = abs(lerp(worldPos.x, lanternPos.x, t));
         float yCross = lerp(worldPos.y, lanternPos.y, t);
-        if (xCross <= 324.0 && yCross >= 0.0 && yCross <= 560.0 &&
-            (xCross >= 130.0 || yCross <= 64.0 || yCross >= 456.0))
-        {
-            return true;
-        }
+        float wallXCov = 1.0 - smoothstep(316.0, 332.0, xCross);
+        float wallYCov = smoothstep(-8.0, 8.0, yCross) * (1.0 - smoothstep(552.0, 568.0, yCross));
+        float winXCov = 1.0 - smoothstep(122.0, 138.0, xCross);
+        float winYCov = smoothstep(56.0, 72.0, yCross) * (1.0 - smoothstep(448.0, 464.0, yCross));
+        float occ = saturate(wallXCov * wallYCov * (1.0 - winXCov * winYCov));
+        vis *= 1.0 - occ;
     }
 
-    return false;
+    return vis;
 }
 
 float GetLanternShadowTrim(float3 rayDirToLantern)
 {
-    return lerp(16.0, 25.5, saturate(-rayDirToLantern.y));
+    return lerp(16.5, 29.0, saturate(abs(rayDirToLantern.y)));
 }
 
 float ComputeLanternAttenuation(float3 worldPos, float3 lanternPos, out float3 L, out float dist)
 {
     float3 toLight = lanternPos - worldPos;
     float distSq = dot(toLight, toLight);
-    if (distSq >= NightLanternRange * NightLanternRange || distSq < 144.0 ||
-        IsLanternOccludedBySanctuaryWall(worldPos, lanternPos))
+    if (distSq >= NightLanternRange * NightLanternRange || distSq < 144.0)
+    {
+        L = 0.0;
+        dist = 0.0;
+
+        return 0.0;
+    }
+
+    float wallVis = ComputeSanctuaryWallLanternVisibility(worldPos, lanternPos);
+    if (wallVis <= 1e-4)
     {
         L = 0.0;
         dist = 0.0;
@@ -1151,7 +1164,7 @@ float ComputeLanternAttenuation(float3 worldPos, float3 lanternPos, out float3 L
     float coreFade = saturate((dist - 12.0) / 8.0);
     float hoodFade = 1.0 - smoothstep(0.32, 0.68, -L.y);
 
-    return (rangeFade * rangeFade) * coreFade * hoodFade / (distSq + 1200.0);
+    return (rangeFade * rangeFade) * coreFade * hoodFade * wallVis / (distSq + 1200.0);
 }
 
 float3 EvaluateNightLightsSecondary(SceneEnvironment env, float3 worldPos, float3 shadingNormal, float3 diffuseAlbedo)

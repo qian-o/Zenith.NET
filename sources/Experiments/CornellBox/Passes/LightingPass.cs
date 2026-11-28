@@ -68,7 +68,9 @@ internal unsafe class LightingPass : DisposableObject
             LinearSampler = giProbe.LinearSampler.Handle,
             PreviousLinearDepth = frame.ResetLighting ? default : shadow.PreviousLinearDepth.SampledHandle,
             Color = Color.StorageHandle,
-            ReactiveMask = ReactiveMask?.StorageHandle ?? default
+            ReactiveMask = ReactiveMask?.StorageHandle ?? default,
+            ProbeOffsets = giProbe.ProbeOffsets.SampledHandle,
+            ShadowHistoryLength = frame.ResetLighting ? default : shadow.HistoryLength.SampledHandle
         };
 
         constantBuffer.Upload(0, new()
@@ -147,7 +149,7 @@ internal unsafe class LightingPass : DisposableObject
     {
         return App.Context.CreateTexture(TextureDesc.Texture2D(format, width, height, 1, SampleCount.Count1) with
         {
-            Usages = TextureUsages.Storage | TextureUsages.UpscalingInput
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.UpscalingInput
         });
     }
 }
@@ -229,4 +231,10 @@ file struct LightingConstants
 
     [FieldOffset(568)]
     public ResourceHandle ReactiveMask;
+
+    [FieldOffset(576)]
+    public ResourceHandle ProbeOffsets;
+
+    [FieldOffset(584)]
+    public ResourceHandle ShadowHistoryLength;
 }

@@ -29,6 +29,10 @@ struct GIProbeConstants
 
     DescriptorHandle<SamplerState> LinearSampler;
 
+    DescriptorHandle<Texture2D<float4>> PreviousProbeOffsets;
+
+    DescriptorHandle<WTexture2D<float4>> CurrentProbeOffsets;
+
     property uint FrameIndex
     {
         get {
@@ -70,6 +74,8 @@ ConstantBuffer<GIProbeConstants> giProbe;
 groupshared float3 sharedRayDir[RayCountPerProbe];
 groupshared float3 sharedRayRadiance[RayCountPerProbe];
 groupshared float sharedRayDistance[RayCountPerProbe];
+groupshared float sharedSignedHitDist[RayCountPerProbe];
+groupshared float3 sharedProbeOffset;
 groupshared uint sharedBackfaceCount;
 groupshared float3 sharedBasisTangent;
 groupshared float3 sharedBasisBitangent;
@@ -99,11 +105,13 @@ float3 GetProbeWorldPosition(uint probeIndex)
 void ComputeProbeRotationBasis(uint frameIndex, uint probeIndex, out float3 tangent, out float3 bitangent,
                                out float3 axis)
 {
-    uint seed = PCGHash(probeIndex * 1973u + frameIndex * 9277u + 26699u);
-    float u1 = float(seed & 0xFFFFu) * (1.0 / 65535.0);
-    float u2 = float((seed >> 16u) & 0xFFFFu) * (1.0 / 65535.0);
-    seed = PCGHash(seed);
-    float u3 = float(seed & 0xFFFFu) * (1.0 / 65535.0);
+    uint seed = PCGHash(probeIndex * 1973u + 26699u);
+    uint seed2 = PCGHash(seed);
+    uint seed3 = PCGHash(seed2);
+    float frame = float(frameIndex & 1023u);
+    float u1 = frac(float(seed >> 8u) * (1.0 / 16777216.0) + 0.7548776662 * frame);
+    float u2 = frac(float(seed2 >> 8u) * (1.0 / 16777216.0) + 0.5698402910 * frame);
+    float u3 = frac(float(seed3 >> 8u) * (1.0 / 16777216.0) + 0.6180339887 * frame);
 
     float cosA = cos(TwoPI * u1);
     float sinA = sin(TwoPI * u1);
@@ -138,6 +146,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     }
 
     uint tid = localId.x;
+    uint2 tile = uint2(probeIndex % DDGIAtlasColumns, probeIndex / DDGIAtlasColumns);
     if (tid == 0u)
     {
         float3 basisTangent;
@@ -145,6 +154,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
         float3 basisAxis;
         ComputeProbeRotationBasis(giProbe.FrameIndex, probeIndex, basisTangent, basisBitangent, basisAxis);
 
+        sharedProbeOffset = giProbe.Reset != 0u ? 0.0 : giProbe.PreviousProbeOffsets.Load(int3(tile, 0)).xyz;
         sharedBackfaceCount = 0u;
         sharedBasisTangent = basisTangent;
         sharedBasisBitangent = basisBitangent;
@@ -152,11 +162,11 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     }
     GroupMemoryBarrierWithGroupSync();
 
-    float3 probePos = GetProbeWorldPosition(probeIndex);
+    float3 probePos = GetProbeWorldPosition(probeIndex) + sharedProbeOffset;
     float3 baseDir = SphericalFibonacciDirection(tid, RayCountPerProbe);
     float3 rayDir =
         normalize(sharedBasisTangent * baseDir.x + sharedBasisBitangent * baseDir.y + sharedBasisAxis * baseDir.z);
-    float maxDistance = (probeIndex < DDGICascade0Probes) ? 140.0 : 340.0;
+    float maxDistance = (probeIndex < DDGICascade0Probes) ? DDGICascade0MaxDistance : DDGICascade1MaxDistance;
 
     uint instanceIndex;
     uint primitiveIndex;
@@ -165,6 +175,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
 
     float3 rayRadiance = 0.0;
     float effectiveDistance = maxDistance;
+    float signedHitDist = maxDistance;
 
     if (!TraceClosestHit(giProbe.Scene, probePos, rayDir, RayMaskOpaque, instanceIndex, primitiveIndex, barycentrics,
                          hitDistance))
@@ -179,10 +190,12 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
         {
             InterlockedAdd(sharedBackfaceCount, 1u);
             effectiveDistance = -0.2 * min(hitDistance, maxDistance);
+            signedHitDist = -hitDistance;
         }
         else
         {
             effectiveDistance = min(hitDistance, maxDistance);
+            signedHitDist = hitDistance;
 
             SceneMaterial material = giProbe.Materials[hit.MaterialId];
             float3 albedo = material.Albedo;
@@ -226,7 +239,7 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
             {
                 float3 indirect = SampleDDGIIrradiance(hit.Position, hitNormal, -rayDir, giProbe.Environment,
                                                        giProbe.PreviousIrradianceAtlas, giProbe.PreviousDistanceAtlas,
-                                                       giProbe.LinearSampler);
+                                                       giProbe.PreviousProbeOffsets, giProbe.LinearSampler);
                 bounceGI = albedo * (1.0 - saturate(material.Metallic)) * indirect;
             }
 
@@ -242,10 +255,60 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
     sharedRayDir[tid] = rayDir;
     sharedRayRadiance[tid] = rayRadiance;
     sharedRayDistance[tid] = effectiveDistance;
+    sharedSignedHitDist[tid] = signedHitDist;
     GroupMemoryBarrierWithGroupSync();
 
-    uint2 tile = uint2(probeIndex % DDGIAtlasColumns, probeIndex / DDGIAtlasColumns);
-    float currValidity = 1.0 - smoothstep(10.0, 24.0, float(sharedBackfaceCount));
+    if (tid == 0u)
+    {
+        int closestBackIdx = -1;
+        float closestBackDist = 1e9;
+        int closestFrontIdx = -1;
+        float closestFrontDist = 1e9;
+        for (uint r = 0u; r < RayCountPerProbe; r++)
+        {
+            float d = sharedSignedHitDist[r];
+            if (d < 0.0)
+            {
+                float absD = -d;
+                if (absD < closestBackDist)
+                {
+                    closestBackDist = absD;
+                    closestBackIdx = int(r);
+                }
+            }
+            else if (d < closestFrontDist)
+            {
+                closestFrontDist = d;
+                closestFrontIdx = int(r);
+            }
+        }
+
+        float3 spacing = (probeIndex < DDGICascade0Probes) ? DDGICascade0Spacing : DDGICascade1Spacing;
+        float minClearance = (probeIndex < DDGICascade0Probes) ? 12.0 : 20.0;
+        float3 targetOffset = sharedProbeOffset * 0.98;
+        if (sharedBackfaceCount > 2u && closestBackIdx >= 0)
+        {
+            targetOffset = sharedProbeOffset + sharedRayDir[closestBackIdx] * (closestBackDist + 5.0);
+        }
+        else if (sharedBackfaceCount == 0u && closestFrontIdx >= 0 && closestFrontDist < minClearance)
+        {
+            targetOffset =
+                sharedProbeOffset - sharedRayDir[closestFrontIdx] * ((minClearance - closestFrontDist) * 0.35);
+        }
+
+        float3 maxOffset = spacing * 0.42;
+        float3 rel = targetOffset / maxOffset;
+        float relLen = length(rel);
+        if (relLen > 1.0)
+        {
+            targetOffset /= relLen;
+        }
+
+        float3 nextOffset = lerp(sharedProbeOffset, targetOffset, giProbe.Reset != 0u ? 0.70 : 0.12);
+        giProbe.CurrentProbeOffsets.Store(tile, float4(nextOffset, 1.0));
+    }
+
+    float currValidity = 1.0 - smoothstep(6.0, 15.0, float(sharedBackfaceCount));
 
     if (tid < 36u)
     {
@@ -293,23 +356,20 @@ void UpdateProbesCS(uint3 groupId: SV_GroupID, uint3 localId: SV_GroupThreadID)
         for (uint r = 0u; r < RayCountPerProbe; r++)
         {
             float cosW = max(0.0, dot(sharedRayDir[r], texelDir));
-            if (cosW > 0.76)
+            if (cosW > 0.35)
             {
                 float c2 = cosW * cosW;
                 float c4 = c2 * c2;
-                float c8 = c4 * c4;
-                float c16 = c8 * c8;
-                float w = c16 * c16 * c16;
+                float w = c4 * c4 * c4 * c2;
                 if (w > 1e-5)
                 {
-                    float d = sharedRayDistance[r];
-                    distSum += float2(d, d * abs(d)) * w;
+                    float normD = clamp(sharedRayDistance[r] / maxDistance, -0.25, 1.0);
+                    distSum += float2(normD, normD * normD) * w;
                     wSum += w;
                 }
             }
         }
-        sharedDistTile[innerDist.y][innerDist.x] =
-            wSum > 1e-5 ? (distSum / wSum) : float2(maxDistance, maxDistance * maxDistance);
+        sharedDistTile[innerDist.y][innerDist.x] = wSum > 1e-5 ? (distSum / wSum) : float2(1.0, 1.0);
     }
     GroupMemoryBarrierWithGroupSync();
 

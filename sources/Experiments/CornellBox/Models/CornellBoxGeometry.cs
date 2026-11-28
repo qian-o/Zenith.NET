@@ -426,8 +426,8 @@ internal static class CornellBoxGeometry
             float yHalf = (yTop + 27.0f) * 0.5f;
 
             builder.AddRoundedBox(new(0.0f, yCenter, (zFront + zBack) * 0.5f), new(halfWidth, yHalf, 26.0f), 1.6f, 0.0f, MaterialId.TravertineStone);
-            builder.AddRoundedBox(new(0.0f, yTop + 0.45f, zFront + 1.1f), new(halfWidth - 3.0f, 0.45f, 2.3f), 0.3f, 0.0f, MaterialId.BrushedGold);
-            builder.AddRoundedBox(new(0.0f, yTop - 0.45f, zFront - 0.40f), new(halfWidth - 9.0f, 0.42f, 0.48f), 0.18f, 0.0f, MaterialId.WarmAccentStrip);
+            builder.AddRoundedBox(new(0.0f, yTop + 0.55f, zFront + 1.4f), new(halfWidth - 3.0f, 0.95f, 2.6f), 0.45f, 0.0f, MaterialId.BrushedGold);
+            builder.AddRoundedBox(new(0.0f, yTop - 1.95f, zFront - 0.35f), new(halfWidth - 9.0f, 0.45f, 0.48f), 0.18f, 0.0f, MaterialId.WarmAccentStrip);
         }
 
         foreach (float sign in (ReadOnlySpan<float>)[1.0f, -1.0f])
