@@ -928,8 +928,8 @@ float3 SampleDDGIIrradiance(float3 worldPos, float3 normal, float3 viewDir, Scen
 
     float conf1 = 0.0;
     float3 irr1 = SampleDDGICascade(worldPos, normal, viewDir, DDGICascade1Origin, DDGICascade1Spacing,
-                                     DDGICascade1Counts, DDGICascade0Probes, DDGICascade1MaxDistance, irradianceAtlas,
-                                     distanceAtlas, probeOffsets, linearSampler, conf1);
+                                    DDGICascade1Counts, DDGICascade0Probes, DDGICascade1MaxDistance, irradianceAtlas,
+                                    distanceAtlas, probeOffsets, linearSampler, conf1);
 
     float w0 = blend0 * saturate(conf0 / 0.05);
     float3 irr = lerp(irr1, irr0, w0);

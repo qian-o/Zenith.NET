@@ -729,9 +729,8 @@ float3 EvaluateWaterSubsurface(SceneEnvironment env, float3 worldPos, float3 nor
             float3 keyDir = env.KeyLightDirection;
             float uNdotL = saturate(dot(uNormal, keyDir));
             float uSunVis =
-                (uNdotL > 0.0 &&
-                 TraceVisibilityRay(lighting.Scene, OffsetRayOrigin(uHit.Position, uGeoNormal, keyDir), keyDir,
-                                    RayMaxDistance))
+                (uNdotL > 0.0 && TraceVisibilityRay(lighting.Scene, OffsetRayOrigin(uHit.Position, uGeoNormal, keyDir),
+                                                    keyDir, RayMaxDistance))
                     ? 1.0
                     : 0.0;
             float uDiffuse = 1.0 - saturate(uMat.Metallic);
@@ -754,11 +753,11 @@ float3 EvaluateWaterSubsurface(SceneEnvironment env, float3 worldPos, float3 nor
     float stripDist = ax > 470.0 ? min(abs(ax - 492.5), abs(ax - 603.5)) : min(abs(ax - 370.5), abs(ax - 445.5));
     float stripGlow = exp(-stripDist * 0.11) * env.NightLightIntensity;
 
-    float floorSunVis = (env.KeyLightDirection.y > 0.0 &&
-                         TraceVisibilityRay(lighting.Scene, floorPos + float3(0.0, 0.15, 0.0), env.KeyLightDirection,
-                                            RayMaxDistance))
-                            ? sunVis
-                            : 0.0;
+    float floorSunVis =
+        (env.KeyLightDirection.y > 0.0 &&
+         TraceVisibilityRay(lighting.Scene, floorPos + float3(0.0, 0.15, 0.0), env.KeyLightDirection, RayMaxDistance))
+            ? sunVis
+            : 0.0;
     float3 lanternFloor =
         EvaluateNightLightsSecondary(env, floorPos, float3(0.0, 1.0, 0.0), float3(1.0)) * lerp(0.35, 1.0, nightVis);
     float3 lightIrr = ddgiIrradiance * lerp(1.0, ao, 0.65) +
@@ -796,11 +795,11 @@ float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal
 
     float sunSpecScale =
         isPrimary ? ComputeRefractiveSunTransmittance(lighting.Environment.KeyLightDirection, position) : 1.0;
-    float3 sunDirect =
-        sunVis > 0.0 ? EvaluateDirectSunPBR(lighting.Environment, surfaceAlbedo, F0, roughness, metallic, clearcoat,
-                                            clearcoatRoughness, shadingNormal, viewDir, sunSpecScale) *
-                           sunVis
-                     : 0.0;
+    float3 sunDirect = sunVis > 0.0
+                           ? EvaluateDirectSunPBR(lighting.Environment, surfaceAlbedo, F0, roughness, metallic,
+                                                  clearcoat, clearcoatRoughness, shadingNormal, viewDir, sunSpecScale) *
+                                 sunVis
+                           : 0.0;
 
     float NdotV = saturate(dot(shadingNormal, viewDir));
     float3 F = FresnelSchlick(NdotV, F0);
@@ -819,14 +818,14 @@ float3 ShadeOpaqueSurface(uint materialId, float3 position, float3 shadingNormal
                                            roughness, metallic, clearcoat, clearcoatRoughness, nightVis)
                   : (metallic < 0.999 ? EvaluateNightLightsSecondary(lighting.Environment, position, shadingNormal,
                                                                      albedo * (1.0 - metallic)) *
-                                           nightVis
+                                            nightVis
                                       : 0.0);
 
-    outDdgiIrradiance = (isPrimary || hasDiffuse)
-                            ? SampleDDGIIrradiance(position, shadingNormal, viewDir, lighting.Environment,
-                                                   lighting.IrradianceAtlas, lighting.DistanceAtlas,
-                                                   lighting.ProbeOffsets, lighting.LinearSampler)
-                            : 0.0;
+    outDdgiIrradiance =
+        (isPrimary || hasDiffuse)
+            ? SampleDDGIIrradiance(position, shadingNormal, viewDir, lighting.Environment, lighting.IrradianceAtlas,
+                                   lighting.DistanceAtlas, lighting.ProbeOffsets, lighting.LinearSampler)
+            : 0.0;
     float3 indirectDiffuse = hasDiffuse ? kd * surfaceAlbedo * outDdgiIrradiance * lerp(1.0, ao, 0.75) : 0.0;
     float3 emission = EvaluateMaterialEmission(materialId, material, lighting.Environment);
     float3 caustics = isPrimary ? EvaluateGlassCaustics(lighting.Environment, position, shadingNormal, sunVis, areaVis,
@@ -934,9 +933,9 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
         float3 reflDir = reflect(rayDir, normal);
         float effEnvRough = clearcoat > 0.35 ? max(material.ClearcoatRoughness, MinimumRoughness) : roughness;
         float3 envDir = normalize(lerp(reflDir, normal, effEnvRough * effEnvRough));
-        float3 envIrr = SampleDDGIIrradiance(hit.Position, envDir, viewDir, lighting.Environment,
-                                             lighting.IrradianceAtlas, lighting.DistanceAtlas, lighting.ProbeOffsets,
-                                             lighting.LinearSampler);
+        float3 envIrr =
+            SampleDDGIIrradiance(hit.Position, envDir, viewDir, lighting.Environment, lighting.IrradianceAtlas,
+                                 lighting.DistanceAtlas, lighting.ProbeOffsets, lighting.LinearSampler);
         float3 envSky = envDir.y > 0.05 && !IsInsideSanctuaryShell(hit.Position)
                             ? EvaluateSkyAmbient(reflDir, lighting.Environment)
                             : 0.0;
@@ -944,11 +943,11 @@ float3 ShadeSecondaryHit(GeometryHit hit, float3 rayDir, float hitDistance, bool
 
         float3 F0 = lerp(ComputeDielectricF0(material.Ior), albedo, metallic);
         float NdotV = saturate(dot(normal, viewDir));
-        float3 coatAlbedo =
-            clearcoat > 0.0 ? EstimateEnvSpecularAlbedo(float3(0.04, 0.04, 0.04),
-                                                        max(material.ClearcoatRoughness, MinimumRoughness), NdotV) *
-                                  clearcoat
-                            : 0.0;
+        float3 coatAlbedo = clearcoat > 0.0
+                                ? EstimateEnvSpecularAlbedo(float3(0.04, 0.04, 0.04),
+                                                            max(material.ClearcoatRoughness, MinimumRoughness), NdotV) *
+                                      clearcoat
+                                : 0.0;
         float3 baseAlbedo = metallic > 0.15 ? EstimateEnvSpecularAlbedo(F0, roughness, NdotV) * metallic : 0.0;
         float3 specScale = baseAlbedo * (1.0 - coatAlbedo.r) + coatAlbedo;
         color += envRadiance * specScale;
@@ -1334,11 +1333,11 @@ void LightingCS(uint3 dispatchThreadId: SV_DispatchThreadID)
     float rayMirrorWeight = max(baseMirrorWeight, coatMirrorWeight);
     float lobeRoughness = coatMirrorWeight >= baseMirrorWeight ? clearcoatRoughness : baseRoughness;
     float3 roughSpecDir = normalize(lerp(reflDir, normal, baseRoughness * baseRoughness));
-    float3 roughSpecIrr = baseRoughness < 0.85
-                              ? SampleDDGIIrradiance(worldPos, roughSpecDir, viewDir, lighting.Environment,
-                                                     lighting.IrradianceAtlas, lighting.DistanceAtlas,
-                                                     lighting.ProbeOffsets, lighting.LinearSampler)
-                              : ddgiIrradiance;
+    float3 roughSpecIrr =
+        baseRoughness < 0.85
+            ? SampleDDGIIrradiance(worldPos, roughSpecDir, viewDir, lighting.Environment, lighting.IrradianceAtlas,
+                                   lighting.DistanceAtlas, lighting.ProbeOffsets, lighting.LinearSampler)
+            : ddgiIrradiance;
     float3 baseEnv = roughSpecIrr;
     float3 coatEnv = ddgiIrradiance;
 
